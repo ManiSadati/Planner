@@ -73,6 +73,7 @@ HIVMToStandrd, this is the pass wher ethe hir.load / store and mmadL1 instructio
 read ~/Planner/AGENT.md every time!
 
 
+one important thing is that we can build and run ptoas on this server but npuir might not work since it requires a server with an actual a5 machine. so we still can code here but we have to test on the other server . basically you and i will code. i will go to the other server. run and return the result back to you.
 
 # Tasks
 

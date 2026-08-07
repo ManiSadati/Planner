@@ -21,7 +21,14 @@ The scheduled explorer agent will later run at 7:00am Eastern time, Monday throu
 - `https://github.com/mouliangyu/PTOAS`
 - `https://github.com/WenboCodes/PTOAS`
 - forks of `https://github.com/mouliangyu/PTOAS`, especially active forks
+- forks that are themselves forked from active forks, not only direct forks of upstream
 - local fork: `/home/m84446336/PTOAS/PTOAS_Markham`
+
+## PTOAS Source-Of-Truth Rule
+
+The local PTOAS checkout is useful for building, running, and inspecting available code, but it is not authoritative for design state. Its `origin` remote is a personal fork, not upstream, and the checked-out branch may be far behind the active PTOAS ecosystem.
+
+Explorer/backfill work must compare upstream, active forks, forks-of-forks, branches, issues, and PRs before deciding whether a PTOAS change matters for the bridge plan.
 
 ## NPU-IR Tracking Targets
 
@@ -35,4 +42,3 @@ The scheduled explorer agent will later run at 7:00am Eastern time, Monday throu
 - No one-month backfill report has been produced yet.
 - No daily explorer report has been produced yet.
 - No acknowledgement state exists yet because there has been no meaningful explorer report.
-

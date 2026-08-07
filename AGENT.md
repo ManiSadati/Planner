@@ -90,7 +90,16 @@ PTOAS tracking should include:
 - `https://github.com/mouliangyu/PTOAS`
 - `https://github.com/WenboCodes/PTOAS`
 - forks of `https://github.com/mouliangyu/PTOAS`, especially active forks
+- forks that are themselves forked from active forks, not only direct forks of upstream
 - local fork: `/home/m84446336/PTOAS/PTOAS_Markham`
+
+PTOAS source-of-truth rule:
+
+- Do not treat `/home/m84446336/PTOAS/PTOAS_Markham` or its `origin` remote as the authoritative PTOAS source.
+- In that local repo, `origin` is a personal fork, not upstream.
+- The local branch `mani/fix_ptodsl` is useful for builds, experiments, and local reference, but it may be far behind the real active upstream/fork ecosystem.
+- For design truth, Codex must check upstream PTOAS plus relevant active fork networks: direct forks, forks-of-forks, branches, issue pages, and PRs.
+- If local PTOAS behavior disagrees with upstream/fork evidence, report the mismatch and avoid silently building plans on the local fork.
 
 NPU-IR tracking should include:
 
@@ -157,6 +166,23 @@ https://gitcode.com/manisadati/AscendNPU-IR
 ```
 
 Codex should avoid modifying PTOAS unless the human explicitly asks. The preferred strategy is to add the conversion path on the AscendNPU-IR side.
+
+## Build And Test Reality
+
+This server can build and run PTOAS locally, so PTOAS commands and tests may be used here when they are relevant and safe.
+
+AscendNPU-IR development can happen on this server, but full validation may require another server with actual A5 hardware. Codex and the human will work in a loop:
+
+1. Codex inspects, plans, and edits locally.
+2. The human copies or runs the relevant change on the A5 server.
+3. The human returns build/test logs, failures, IR dumps, or performance results.
+4. Codex uses those results to continue debugging or planning.
+
+When proposing NPU-IR verification, Codex should separate:
+
+- local checks that can run on this server;
+- compile-only or lit-style checks that may run without A5 hardware;
+- A5 hardware checks that require the other server and human feedback.
 
 For conversion work, pay special attention to:
 

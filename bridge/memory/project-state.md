@@ -19,6 +19,14 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Main local repo: `/home/m84446336/AscendNPU-IR`
 - Main fork: `https://gitcode.com/manisadati/AscendNPU-IR`
 - Upstream source of truth: `https://gitcode.com/Ascend/AscendNPU-IR`
+- PTOAS local checkout `/home/m84446336/PTOAS/PTOAS_Markham` is not source of truth; its `origin` is a personal fork and `mani/fix_ptodsl` may be behind the active ecosystem.
+- PTOAS design truth must come from upstream `hw-native-sys/PTOAS` plus active forks, branches, PRs, and issues.
+
+## Build/Test Reality
+
+- PTOAS can be built and run on this server.
+- AscendNPU-IR can be coded on this server, but full A5 validation may require another server with actual A5 hardware.
+- Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
 
 ## Planner Status
 
@@ -33,6 +41,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 
 - The exact NPU-IR interception point is not confirmed.
 - PTOAS VMI/VPTO pipeline status needs fresh source inspection.
+- PTOAS local branch state must not be confused with upstream/fork design state.
 - DMA and cube-template mappings may not be clean one-to-one mappings at the late HIVM-AVE level.
 - Synchronization and memory-planning ownership between NPU-IR and PTOAS must be kept explicit.
 - Performance parity is a requirement, not a nice-to-have.

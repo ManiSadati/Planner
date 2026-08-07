@@ -9,6 +9,7 @@ This baseline only records local repo state and where relevant source/docs appea
 ## Summary
 
 - PTOAS local repo is rich in VMI/VPTO/PTODSL design docs and has the clearest next PTOAS investigation path.
+- PTOAS local repo must not be treated as source of truth: its `origin` remote is a personal fork, and `mani/fix_ptodsl` may be behind the active upstream/fork ecosystem.
 - AscendNPU-IR local repo has explicit conversion directories for `HIVMToStandard` and `HIVMAVEToAVEIntrin`, plus docs already calling those out as important.
 - PTO-ISA local repo is a tile programming library / virtual ISA surface, with docs and tests for tile instructions, events, sync, CPU simulation, NPU ST, and communication.
 - All three local repos have uncommitted or untracked state. Treat existing changes as user-owned.
@@ -69,10 +70,17 @@ This baseline only records local repo state and where relevant source/docs appea
 
 ### Important PTOAS Leads For Stage 2
 
+- Use this local checkout for available docs/builds, but cross-check design conclusions against upstream PTOAS and active fork networks, including forks-of-forks, branches, issues, and PRs.
 - `docs/ptoas-tile-fusion-design.md` says the VPTO backend boundary is `ExpandTileOp`.
 - The same design doc says old `View2Memref` / `PTOToA5VM` mainline was removed.
 - `README.md` notes the VPTO backend enables a VMI to VPTO semantic pipeline and public function signatures should not expose `!pto.vmi.*`.
 - `ptodsl/README.md` says PTOAS uses the PTODSL TileLib daemon by default for VPTO tile-op expansion.
+
+## Testing Reality
+
+- PTOAS can be built and run on this server.
+- AscendNPU-IR can be edited on this server, but full A5 validation may require a separate A5 machine.
+- For A5-dependent work, the expected loop is: Codex edits locally, the human runs on the A5 server, and the human returns logs/results for the next pass.
 
 ## AscendNPU-IR Baseline
 
@@ -212,4 +220,3 @@ For Stage 4, start with:
 4. `/home/m84446336/pto-isa/docs/coding/Event.md`
 5. `/home/m84446336/pto-isa/docs/coding/compilation-process.md`
 6. `/home/m84446336/pto-isa/docs/isa/`
-
