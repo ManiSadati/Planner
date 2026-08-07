@@ -39,6 +39,32 @@ Explorer/backfill work must compare upstream, active forks, forks-of-forks, bran
 
 ## Current Watch Status
 
-- No one-month backfill report has been produced yet.
+- PTOAS Stage 2 snapshot produced: `explorer/reports/backfill/2026-08-07-ptoas-stage2-snapshot.md`.
+- PTOAS ecosystem inventory produced: `PTOAS/design/ecosystem-inventory-2026-08-07.md`.
+- Explorer branch triage policy produced: `explorer/docs/branch-triage-policy.md`.
 - No daily explorer report has been produced yet.
 - No acknowledgement state exists yet because there has been no meaningful explorer report.
+
+## Latest PTOAS Snapshot
+
+Collected: 2026-08-07 20:14:33 UTC.
+
+Current high-priority watch areas:
+
+- upstream `hw-native-sys/PTOAS` is the strongest source-of-truth signal;
+- `mouliangyu/PTOAS` remains important because it has 15 forks and active `feature-vpto-backend` descendants;
+- active direct forks and fork-of-fork branches are moving, but several default branches are behind upstream, so compare branch heads before trusting fork design state;
+- current upstream issues/PRs touch VMI/VPTO lowering, PTODSL scalar/control flow, sync/allocation, gather/scatter, L1/L0 loads, quant, and possible LLVM19/VPTO branch adaptation.
+- `WenboCodes/PTOAS` branch `new-vf-fusion-design` contains important VMI-level VF fusion docs and should be tracked as design context even though it is not upstream `main`.
+
+Bridge-relevant live upstream PR/issue topics:
+
+- `scf.while` / `scf.if` support and branch merge correctness;
+- VMI predicate fold, mask granularity, mask spill behavior, and vscatter memory effects;
+- PTODSL scalar interface unification and SIMT/scalar boundary cleanup;
+- explicit L1-to-L0 loads and MX quant movement;
+- allocator, bufid, event-id, and auto-sync behavior;
+- gather/scatter and GlobalTensor cast legality.
+- VMI-level VF fusion ideas from `WenboCodes/PTOAS:new-vf-fusion-design`: shaped pointers, multidimensional VMI load/store indices, post-fusion mem2reg, `N x VL` tile-shape constraints, and accumulator-lifetime/cost-model tradeoffs.
+
+When the mapping table starts, re-check these topics if more than a few days have passed.

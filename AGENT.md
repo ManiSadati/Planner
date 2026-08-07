@@ -67,6 +67,24 @@ Daily monitoring target:
 - Update the general explorer overview.
 - Write a separate daily markdown file only when the day contains a meaningful or large change.
 
+Explorer branch triage must follow `explorer/docs/branch-triage-policy.md`.
+The policy exists to avoid missing branch-local design work like
+`WenboCodes/PTOAS:new-vf-fusion-design` while also avoiding noise from AI-made
+branches. In short:
+
+- Do not rely on recency alone. First-seen branches in watched repos should be
+  scored once even if their head commit is older than the daily window.
+- Treat `codex/`, `claude/`, and similar AI branch prefixes as weak/noisy unless
+  they also touch relevant source, have a relevant PR/issue, or modify a known
+  watch area.
+- Do not treat `.claude/`, `AGENT*`, `openspec/`, or `adr/` changes as high
+  priority by themselves.
+- Human-looking branch names, design-specific branch names, relevant changed
+  files, large relevant diffs, and links from issues/PRs/bridge docs should
+  raise priority.
+- Skipped branches must still be recorded with a skip reason so "not reported"
+  is not confused with "not seen."
+
 One-time backfill target:
 
 - Owned by Codex, not the scheduled API-key explorer agent.

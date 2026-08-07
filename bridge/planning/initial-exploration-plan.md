@@ -40,6 +40,13 @@ Collect:
 
 ## Stage 2: PTOAS Design Context
 
+Status: complete enough to move to Stage 3. See:
+
+- `PTOAS/design/ecosystem-inventory-2026-08-07.md`
+- `PTOAS/design/lowering-pipeline.md`
+- `PTOAS/coding-guide/pipeline-and-validation.md`
+- `explorer/reports/backfill/2026-08-07-ptoas-stage2-snapshot.md`
+
 Answer:
 
 - What is the current PTOAS lowering pipeline?
@@ -49,6 +56,8 @@ Answer:
 - What synchronization and memory-planning passes are required versus optional when input already carries planning information?
 
 ## Stage 3: NPU-IR Design Context
+
+Status: next.
 
 Answer:
 

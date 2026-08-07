@@ -14,6 +14,7 @@ Nothing is scheduled or executed yet.
 ## Layout
 
 - `config.json`: repo paths, model, report paths, and change thresholds.
+- `docs/branch-triage-policy.md`: branch/file scoring policy for avoiding missed design branches without chasing AI-generated noise.
 - `src/repo_checker/`: collector, state manager, OpenAI summarizer, and report writer.
 - `systemd/`: 7am user timer template.
 - `scripts/install_systemd_timer.sh`: installs the timer when you are ready.
@@ -41,7 +42,7 @@ set +a
 PYTHONPATH=src python3 -m repo_checker --config config.json
 ```
 
-When you are ready to schedule it for 7am UTC:
+When you are ready to schedule it for 7am Eastern, Monday through Saturday:
 
 ```bash
 bash scripts/install_systemd_timer.sh

@@ -35,13 +35,25 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - `explorer/` exists but has not run a real daily scan yet.
 - Initial Codex-led exploration has started.
 - Stage 1 local repo baseline is complete: see `bridge/planning/local-repo-baseline.md`.
+- Stage 2 PTOAS context is complete enough for NPU-IR exploration: see `PTOAS/design/lowering-pipeline.md`, `PTOAS/design/ecosystem-inventory-2026-08-07.md`, and `PTOAS/coding-guide/pipeline-and-validation.md`.
 - Source-backed NPU-IR to PTOAS mapping table has not been created yet.
 
 ## Open Technical Risks
 
 - The exact NPU-IR interception point is not confirmed.
-- PTOAS VMI/VPTO pipeline status needs fresh source inspection.
-- PTOAS local branch state must not be confused with upstream/fork design state.
+- PTOAS VMI/VPTO pipeline is active and moving. Current design centerpieces are `ExpandTileOp`, PTODSL TileLib expansion, VMI layout assignment, and `VMIToVPTO`.
+- PTOAS local branch state must not be confused with upstream/fork design state. The 2026-08-07 ecosystem snapshot found active upstream PRs/issues in VMI, VPTO, PTODSL scalar/control flow, sync, memory planning, gather/scatter, and L1/L0 movement.
 - DMA and cube-template mappings may not be clean one-to-one mappings at the late HIVM-AVE level.
 - Synchronization and memory-planning ownership between NPU-IR and PTOAS must be kept explicit.
 - Performance parity is a requirement, not a nice-to-have.
+
+## Current PTOAS Understanding
+
+- PTOAS has `emitc` and `vpto` backend paths. The bridge should primarily reason about `vpto`.
+- Current VPTO tile-op lowering crosses the `ExpandTileOp` boundary from tile-native PTO IR to VPTO-facing helper IR.
+- PTODSL TileLib is the default VPTO tile-op expansion backend.
+- The VPTO backend always runs a VMI semantic pipeline before physical VPTO emission.
+- VMI represents logical vectors/masks; layout assignment owns physical register layout and mask granularity.
+- `level2` allows PTOAS memory planning and optional auto-sync; `level3` skips memory planning and preserves explicit address/manual-sync ownership.
+- The mapping table must include sync/memory ownership per row, because blindly mixing NPU-IR-authored sync with PTOAS auto-sync is risky.
+- `WenboCodes/PTOAS:new-vf-fusion-design` is important branch-local design context for future VMI-level VF fusion. It strengthens the need to preserve shaped access, loop, mask, and accumulator-lifetime facts across the NPU-IR bridge.
