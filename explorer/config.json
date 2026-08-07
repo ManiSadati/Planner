@@ -1,0 +1,49 @@
+{
+  "state_path": ".repo-checker-state/state.json",
+  "reports_dir": "reports",
+  "daily_report_dir": "reports/daily",
+  "generated_readme": "reports/README.md",
+  "timezone": "UTC",
+  "model": "gpt-5",
+  "big_change_threshold": 7,
+  "max_commits_per_branch": 40,
+  "max_diff_files_per_branch": 80,
+  "max_diff_chars_per_branch": 12000,
+  "initial_backfill": false,
+  "env_files": [
+    ".env",
+    ".venv"
+  ],
+  "repos": [
+    {
+      "id": "ptoas",
+      "name": "PTOAS Markham fork",
+      "kind": "github",
+      "path": "/home/m84446336/PTOAS/PTOAS_Markham",
+      "upstream": "hw-native-sys/PTOAS",
+      "fork": "afshinarefi/PTOAS_Markham",
+      "fetch_remotes": [
+        "origin",
+        "upstream",
+        "zhendong"
+      ],
+      "track_branches": true,
+      "track_github_issues": true,
+      "track_github_prs": true
+    },
+    {
+      "id": "ascend-npu-ir",
+      "name": "AscendNPU-IR fork",
+      "kind": "gitcode",
+      "path": "/home/m84446336/AscendNPU-IR",
+      "upstream_url": "https://gitcode.com/Ascend/AscendNPU-IR",
+      "fork_url": "git@gitcode.com:manisadati/AscendNPU-IR.git",
+      "fetch_remotes": [
+        "origin"
+      ],
+      "track_branches": true,
+      "track_github_issues": false,
+      "track_github_prs": false
+    }
+  ]
+}

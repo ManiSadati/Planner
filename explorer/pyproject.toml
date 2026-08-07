@@ -1,0 +1,15 @@
+[project]
+name = "ptoas-repo-checker"
+version = "0.1.0"
+description = "Daily AI-assisted repo, branch, issue, and PR watcher for PTOAS-related forks."
+requires-python = ">=3.10"
+dependencies = [
+  "openai>=1.0.0",
+]
+
+[project.scripts]
+repo-checker = "repo_checker.__main__:main"
+
+[tool.ruff]
+line-length = 100
+

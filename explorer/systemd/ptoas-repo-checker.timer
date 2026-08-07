@@ -1,0 +1,11 @@
+[Unit]
+Description=Run PTOAS repo checker every day at 7am
+
+[Timer]
+OnCalendar=*-*-* 07:00:00
+Persistent=true
+Unit=ptoas-repo-checker.service
+
+[Install]
+WantedBy=timers.target
+
