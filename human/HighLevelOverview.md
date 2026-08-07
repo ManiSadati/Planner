@@ -70,7 +70,7 @@ HIVMToStandrd, this is the pass wher ethe hir.load / store and mmadL1 instructio
     making sure ptoas is not doing a major update is very important. the explorer job is to verify we are aligned with both npuir and ptoas in terms of big design. explorer should work like a cron job that every morning at 7 am looks at all new or newly modified issue pages, PRs and  branches of every fork especially https://github.com/zhendong404/PTOAS, https://github.com/mouliangyu/PTOAS  and https://github.com/WenboCodes/PTOAS and of course every fork of https://github.com/mouliangyu/PTOAS/forks becuase this guy is very active.
 
 # Rules
-read ~/Planner/Agent.md every time!
+read ~/Planner/AGENT.md every time!
 
 
 
@@ -88,8 +88,11 @@ Make another folder in Planner called bridge. in there you will have memory and 
 there is also another folder called human. that one is written by human coder. it sets the main contract of what AI can do and cannot do. AI has to be aligned with it. AI agent should make sure documents in bridge folder align well with documents here. AI should not modify docs in human. if anything doesnt align, you should notify human but be to the point and brief.
 
 
-## make the Agent.md
-that file should be written soon. it should also look at the explorer folder to see if there is a new update, meaning when im working with codex, before you actually answer the prompt if its the first prompt of the day , you just summarize what happened that day in the explorer side and if i asked more or you think it was a big thing add it to the overview readme of explorer. so pop this in the first prompt of the day if i ignored it pop it in the next answer of you until i actually listen to you and say ok or sth like that .then you just leave it until tomorrow when cron job again goes through the all the things new about ptoas. 
+note that this intial stage is done by codex not the api key of openai.
+
+
+## make the AGENT.md
+that file should be written soon. it should also look at the explorer folder to see if there is a new update, meaning when im working with codex, before you actually answer the prompt if its the first prompt of the day , you just summarize what happened that day in the explorer side and if i asked more or you think it was a big thing add it to the overview readme of explorer. so pop this in the first prompt of the day if i ignored it pop it in the next answer of you until i actually listen to you and say ok or sth like that .then you just leave it until tomorrow when cron job again goes through the all the things new about ptoas. note that we dont want to put every update into our daily report just the ones that are either design level or connect closely with what we are doing. note that explorer daily update will use openai api key which is in explorer/.venv since its a cron job and codex wont have access to it.
 
 
 ## next stage
