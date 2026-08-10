@@ -19,7 +19,7 @@
       "id": "ptoas",
       "name": "PTOAS Markham fork",
       "kind": "github",
-      "path": "/home/m84446336/PTOAS/PTOAS_Markham",
+      "path": "$HOME/PTOAS/PTOAS_Markham",
       "upstream": "hw-native-sys/PTOAS",
       "fork": "afshinarefi/PTOAS_Markham",
       "fetch_remotes": [
@@ -35,7 +35,7 @@
       "id": "ascend-npu-ir",
       "name": "AscendNPU-IR fork",
       "kind": "gitcode",
-      "path": "/home/m84446336/AscendNPU-IR",
+      "path": "$HOME/AscendNPU-IR",
       "upstream_url": "https://gitcode.com/Ascend/AscendNPU-IR",
       "fork_url": "git@gitcode.com:manisadati/AscendNPU-IR.git",
       "fetch_remotes": [

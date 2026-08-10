@@ -10,7 +10,7 @@ build recipe yet.
 Local repo:
 
 ```text
-/home/m84446336/pto-isa
+$HOME/pto-isa
 ```
 
 Current local branch at scan time:

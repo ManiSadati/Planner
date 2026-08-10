@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-10
 
-Scope: local Stage 4 scan of `/home/m84446336/pto-isa` on branch `master` at
+Scope: local Stage 4 scan of `$HOME/pto-isa` on branch `master` at
 `896d8ec69aaf5b623fead5afcae7a657fa784a2b`. This pass did not fetch
 `git@gitcode.com:cann/pto-isa.git`. The local PTO-ISA worktree already has a
 modified `include/pto/npu/a5/TBinOp.hpp`; this note does not modify or depend
@@ -37,10 +37,10 @@ from intrinsics to IR/backend codegen.
 
 Key sources:
 
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/01-overview.md:5`
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/01-overview.md:14`
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/01-overview.md:22`
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/01-overview.md:38`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/01-overview.md:5`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/01-overview.md:14`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/01-overview.md:22`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/01-overview.md:38`
 
 PTO uses a three-layer contract:
 
@@ -56,9 +56,9 @@ valid-region semantics, explicit ordering dependencies, and operation meaning.
 
 Key source:
 
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/08-virtual-isa-and-ir.md:8`
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/08-virtual-isa-and-ir.md:18`
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/08-virtual-isa-and-ir.md:40`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/08-virtual-isa-and-ir.md:8`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/08-virtual-isa-and-ir.md:18`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/08-virtual-isa-and-ir.md:40`
 
 ## Type And State Model
 
@@ -68,10 +68,10 @@ dtype, shape, valid-region compatibility, location role, layout, and alignment.
 
 Key source:
 
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/03-state-and-types.md:7`
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/03-state-and-types.md:18`
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/03-state-and-types.md:29`
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/03-state-and-types.md:40`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/03-state-and-types.md:7`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/03-state-and-types.md:18`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/03-state-and-types.md:29`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/03-state-and-types.md:40`
 
 Important public type facts:
 
@@ -85,10 +85,10 @@ Important public type facts:
 
 Key sources:
 
-- `/home/m84446336/pto-isa/include/pto/common/type.hpp:122`
-- `/home/m84446336/pto-isa/include/pto/common/type.hpp:169`
-- `/home/m84446336/pto-isa/include/pto/common/type.hpp:224`
-- `/home/m84446336/pto-isa/include/pto/common/type.hpp:267`
+- `$HOME/pto-isa/include/pto/common/type.hpp:122`
+- `$HOME/pto-isa/include/pto/common/type.hpp:169`
+- `$HOME/pto-isa/include/pto/common/type.hpp:224`
+- `$HOME/pto-isa/include/pto/common/type.hpp:267`
 
 `GlobalTensor` carries a 5-D shape/stride contract plus layout. `Tile` carries
 location, dtype, static rows/cols, row/col stride, valid row/col, base layout,
@@ -97,12 +97,12 @@ setters.
 
 Key sources:
 
-- `/home/m84446336/pto-isa/include/pto/common/pto_tile.hpp:261`
-- `/home/m84446336/pto-isa/include/pto/common/pto_tile.hpp:272`
-- `/home/m84446336/pto-isa/include/pto/common/pto_tile.hpp:1394`
-- `/home/m84446336/pto-isa/include/pto/common/pto_tile.hpp:1428`
-- `/home/m84446336/pto-isa/include/pto/common/pto_tile.hpp:1508`
-- `/home/m84446336/pto-isa/include/pto/common/pto_tile.hpp:1597`
+- `$HOME/pto-isa/include/pto/common/pto_tile.hpp:261`
+- `$HOME/pto-isa/include/pto/common/pto_tile.hpp:272`
+- `$HOME/pto-isa/include/pto/common/pto_tile.hpp:1394`
+- `$HOME/pto-isa/include/pto/common/pto_tile.hpp:1428`
+- `$HOME/pto-isa/include/pto/common/pto_tile.hpp:1508`
+- `$HOME/pto-isa/include/pto/common/pto_tile.hpp:1597`
 
 ## Instruction Families
 
@@ -112,8 +112,8 @@ ops, layout/data-movement transforms, and complex/irregular ops.
 
 Key source:
 
-- `/home/m84446336/pto-isa/docs/mkdocs/src/manual/06-instructions.md:8`
-- `/home/m84446336/pto-isa/docs/PTOISA.md:9`
+- `$HOME/pto-isa/docs/mkdocs/src/manual/06-instructions.md:8`
+- `$HOME/pto-isa/docs/PTOISA.md:9`
 
 Bridge-relevant families:
 
@@ -135,14 +135,14 @@ Bridge-relevant families:
 
 Key sources:
 
-- `/home/m84446336/pto-isa/docs/isa/TLOAD.md:8`
-- `/home/m84446336/pto-isa/docs/isa/TSTORE.md:8`
-- `/home/m84446336/pto-isa/docs/isa/TMOV.md:8`
-- `/home/m84446336/pto-isa/docs/isa/TMATMUL.md:8`
-- `/home/m84446336/pto-isa/docs/isa/MGATHER.md:1`
-- `/home/m84446336/pto-isa/docs/isa/MSCATTER.md:1`
-- `/home/m84446336/pto-isa/docs/isa/TSYNC.md:8`
-- `/home/m84446336/pto-isa/docs/isa/SYNCALL.md:1`
+- `$HOME/pto-isa/docs/isa/TLOAD.md:8`
+- `$HOME/pto-isa/docs/isa/TSTORE.md:8`
+- `$HOME/pto-isa/docs/isa/TMOV.md:8`
+- `$HOME/pto-isa/docs/isa/TMATMUL.md:8`
+- `$HOME/pto-isa/docs/isa/MGATHER.md:1`
+- `$HOME/pto-isa/docs/isa/MSCATTER.md:1`
+- `$HOME/pto-isa/docs/isa/TSYNC.md:8`
+- `$HOME/pto-isa/docs/isa/SYNCALL.md:1`
 
 ## A5 Implementation Anchors
 
@@ -153,11 +153,11 @@ only an external scheduling concern.
 
 Key sources:
 
-- `/home/m84446336/pto-isa/include/pto/common/pto_instr.hpp:47`
-- `/home/m84446336/pto-isa/include/pto/common/pto_instr.hpp:256`
-- `/home/m84446336/pto-isa/include/pto/common/pto_instr.hpp:351`
-- `/home/m84446336/pto-isa/include/pto/common/pto_instr.hpp:658`
-- `/home/m84446336/pto-isa/include/pto/common/pto_instr.hpp:1246`
+- `$HOME/pto-isa/include/pto/common/pto_instr.hpp:47`
+- `$HOME/pto-isa/include/pto/common/pto_instr.hpp:256`
+- `$HOME/pto-isa/include/pto/common/pto_instr.hpp:351`
+- `$HOME/pto-isa/include/pto/common/pto_instr.hpp:658`
+- `$HOME/pto-isa/include/pto/common/pto_instr.hpp:1246`
 
 A5 event implementation maps PTO `Op` values to hardware pipes such as MTE2,
 MTE3, V, FIX, M, and MTE1. `Event<SrcOp,DstOp>` emits `set_flag`/`wait_flag`
@@ -166,13 +166,13 @@ for selected cross-core cases.
 
 Key sources:
 
-- `/home/m84446336/pto-isa/include/pto/common/event.hpp:21`
-- `/home/m84446336/pto-isa/include/pto/common/event.hpp:115`
-- `/home/m84446336/pto-isa/include/pto/common/event.hpp:259`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TSync.hpp:17`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TSync.hpp:38`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TSync.hpp:73`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TSync.hpp:98`
+- `$HOME/pto-isa/include/pto/common/event.hpp:21`
+- `$HOME/pto-isa/include/pto/common/event.hpp:115`
+- `$HOME/pto-isa/include/pto/common/event.hpp:259`
+- `$HOME/pto-isa/include/pto/npu/a5/TSync.hpp:17`
+- `$HOME/pto-isa/include/pto/npu/a5/TSync.hpp:38`
+- `$HOME/pto-isa/include/pto/npu/a5/TSync.hpp:73`
+- `$HOME/pto-isa/include/pto/npu/a5/TSync.hpp:98`
 
 A5 implementation details:
 
@@ -192,22 +192,22 @@ A5 implementation details:
 
 Key sources:
 
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TLoad.hpp:302`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TLoad.hpp:599`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TLoad.hpp:651`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TStore.hpp:115`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TStore.hpp:182`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TMatmul.hpp:28`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TMatmul.hpp:130`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TMatmul.hpp:159`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TMatmul.hpp:257`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TMov.hpp:451`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TMov.hpp:553`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/TMov.hpp:622`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/MGather.hpp:425`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/MGather.hpp:452`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/MScatter.hpp:391`
-- `/home/m84446336/pto-isa/include/pto/npu/a5/MScatter.hpp:456`
+- `$HOME/pto-isa/include/pto/npu/a5/TLoad.hpp:302`
+- `$HOME/pto-isa/include/pto/npu/a5/TLoad.hpp:599`
+- `$HOME/pto-isa/include/pto/npu/a5/TLoad.hpp:651`
+- `$HOME/pto-isa/include/pto/npu/a5/TStore.hpp:115`
+- `$HOME/pto-isa/include/pto/npu/a5/TStore.hpp:182`
+- `$HOME/pto-isa/include/pto/npu/a5/TMatmul.hpp:28`
+- `$HOME/pto-isa/include/pto/npu/a5/TMatmul.hpp:130`
+- `$HOME/pto-isa/include/pto/npu/a5/TMatmul.hpp:159`
+- `$HOME/pto-isa/include/pto/npu/a5/TMatmul.hpp:257`
+- `$HOME/pto-isa/include/pto/npu/a5/TMov.hpp:451`
+- `$HOME/pto-isa/include/pto/npu/a5/TMov.hpp:553`
+- `$HOME/pto-isa/include/pto/npu/a5/TMov.hpp:622`
+- `$HOME/pto-isa/include/pto/npu/a5/MGather.hpp:425`
+- `$HOME/pto-isa/include/pto/npu/a5/MGather.hpp:452`
+- `$HOME/pto-isa/include/pto/npu/a5/MScatter.hpp:391`
+- `$HOME/pto-isa/include/pto/npu/a5/MScatter.hpp:456`
 
 ## Bridge Implications
 

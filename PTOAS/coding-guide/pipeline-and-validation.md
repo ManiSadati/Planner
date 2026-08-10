@@ -9,7 +9,7 @@ Purpose: quick working guide for using PTOAS as context for the NPU-IR bridge. T
 Local path:
 
 ```text
-/home/m84446336/PTOAS/PTOAS_Markham
+$HOME/PTOAS/PTOAS_Markham
 ```
 
 This checkout is useful for source inspection, local builds, and experiments, but it is not authoritative. Its `origin` is a personal fork and the current branch `mani/fix_ptodsl` may be far behind active upstream/fork design.

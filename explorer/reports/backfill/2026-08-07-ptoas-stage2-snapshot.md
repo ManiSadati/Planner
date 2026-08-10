@@ -63,4 +63,4 @@ Next should be Stage 3: NPU-IR design context. That stage should confirm exactly
 - `https://github.com/hw-native-sys/PTOAS/branches`
 - `https://github.com/mouliangyu/PTOAS`
 - `https://github.com/WenboCodes/PTOAS/tree/new-vf-fusion-design/docs/new-vf-fusion-design`
-- local PTOAS checkout: `/home/m84446336/PTOAS/PTOAS_Markham`
+- local PTOAS checkout: `$HOME/PTOAS/PTOAS_Markham`

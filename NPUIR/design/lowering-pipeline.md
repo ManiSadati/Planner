@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-10
 
-Scope: initial Stage 3 local source scan of `/home/m84446336/AscendNPU-IR`
+Scope: initial Stage 3 local source scan of `$HOME/AscendNPU-IR`
 on branch `mani/fuse-explore` at
 `4254b5dec90a4d3d92f581f3fe32b79ea1a82d9a`. This pass did not fetch
 `https://gitcode.com/Ascend/AscendNPU-IR`, and the local repo currently has
@@ -35,7 +35,7 @@ HIVM compilation is enabled, then optionally lowers to LLVM-oriented IR.
 
 Key source:
 
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Tools/bishengir-compile/regbase/PassPipeline.cpp`
+- `$HOME/AscendNPU-IR/bishengir/lib/Tools/bishengir-compile/regbase/PassPipeline.cpp`
 
 In the local source, the late lowering order is:
 
@@ -65,9 +65,9 @@ memref-ext lowering, and FFTS metadata attachment.
 
 Key source:
 
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Pipelines/HIVMPipelines.cpp:360`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Pipelines/HIVMPipelines.cpp:437`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Pipelines/HIVMPipelines.cpp:455`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Pipelines/HIVMPipelines.cpp:360`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Pipelines/HIVMPipelines.cpp:437`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Pipelines/HIVMPipelines.cpp:455`
 
 Bridge implication: "before `convert-hivm-to-std`" is still too broad for the
 final design. Mapping rows should distinguish whether they need pre-memory-plan,
@@ -100,9 +100,9 @@ loop/subset/canonical cleanup
 
 Key source:
 
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HFusion/Pipelines/regbase/HFusionRegbasePipelines.cpp:397`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HFusion/Pipelines/regbase/HFusionRegbasePipelines.cpp:574`
-- `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Conversion/Passes.td:215`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HFusion/Pipelines/regbase/HFusionRegbasePipelines.cpp:397`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HFusion/Pipelines/regbase/HFusionRegbasePipelines.cpp:574`
+- `$HOME/AscendNPU-IR/bishengir/include/bishengir/Conversion/Passes.td:215`
 
 Bridge implication: there may be a high-value option to branch after
 `convert-hfusion-to-vector`, before vector/arith are converted to HIVMAVE, if
@@ -136,9 +136,9 @@ remove vector layout attr
 
 Key source:
 
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HIVMAVE/Pipelines/HIVMAVEPipelines.cpp:37`
-- `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Conversion/Passes.td:355`
-- `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Conversion/Passes.td:384`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVMAVE/Pipelines/HIVMAVEPipelines.cpp:37`
+- `$HOME/AscendNPU-IR/bishengir/include/bishengir/Conversion/Passes.td:355`
+- `$HOME/AscendNPU-IR/bishengir/include/bishengir/Conversion/Passes.td:384`
 
 Important source facts:
 
@@ -153,9 +153,9 @@ Important source facts:
 
 Key sources:
 
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/VectorToHIVMAVE/VectorToHIVMAVE.cpp:75`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/VectorToHIVMAVE/VectorToHIVMAVE.cpp:960`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/ArithToHIVMAVE/ArithToHIVMAVE.cpp:1976`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/VectorToHIVMAVE/VectorToHIVMAVE.cpp:75`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/VectorToHIVMAVE/VectorToHIVMAVE.cpp:960`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/ArithToHIVMAVE/ArithToHIVMAVE.cpp:1976`
 
 Bridge implication: this layer is the closest local analogue to PTOAS VMI for
 vector and mask semantics. The future-compatible path should try to preserve
@@ -169,14 +169,14 @@ memory scopes, cube/vector core type, synchronization, and macro operations.
 
 Initial key op locations:
 
-- `hivm.hir.load`: `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMDMAOps.td:62`
-- `hivm.hir.store`: `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMDMAOps.td:156`
-- `hivm.hir.nd2nz`: `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMDMAOps.td:356`
-- `hivm.hir.pointer_cast`: `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMOps.td:224`
-- `hivm.hir.set_flag`: `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMSynchronizationOps.td:43`
-- `hivm.hir.sync_block`: `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMSynchronizationOps.td:87`
-- `hivm.hir.sync_block_set`: `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMSynchronizationOps.td:129`
-- `hivm.hir.mmadL1`: `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMMacroOps.td:173`
+- `hivm.hir.load`: `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMDMAOps.td:62`
+- `hivm.hir.store`: `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMDMAOps.td:156`
+- `hivm.hir.nd2nz`: `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMDMAOps.td:356`
+- `hivm.hir.pointer_cast`: `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMOps.td:224`
+- `hivm.hir.set_flag`: `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMSynchronizationOps.td:43`
+- `hivm.hir.sync_block`: `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMSynchronizationOps.td:87`
+- `hivm.hir.sync_block_set`: `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMSynchronizationOps.td:129`
+- `hivm.hir.mmadL1`: `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMMacroOps.td:173`
 
 The regbase `HIVMToStandard` conversion rewrites many of these operations into
 external library calls. Its pattern list includes `MmadL1Op`, `ND2NZOp`,
@@ -185,9 +185,9 @@ indirect/stride/gather/scatter ops, and custom ops.
 
 Key source:
 
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMToStandard/HIVMToStandard.cpp:1936`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMToStandard/regbase/HIVMToStandard.cpp:1902`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMToStandard/regbase/HIVMToStandard.cpp:1978`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMToStandard/HIVMToStandard.cpp:1936`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMToStandard/regbase/HIVMToStandard.cpp:1902`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMToStandard/regbase/HIVMToStandard.cpp:1978`
 
 Concrete source-backed examples:
 
@@ -208,17 +208,17 @@ Concrete source-backed examples:
 
 Key sources:
 
-- `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMMacroOps.td:58`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HIVM/IR/LibraryFunctionOpInterface/LibraryFunctionOpInterfaceImpl.cpp:1104`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Template/lib/Cube/LocalMmad.cpp:314`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Template/include/Cube/LocalMmad/LocalMmadUtils.h:95`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HIVM/IR/LibraryFunctionOpInterface/LibraryFunctionOpInterfaceImpl.cpp:1204`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Template/include/DMA/ND2NZ.h:23`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Template/lib/DMA/Cbuf/nd2nz.cpp:19`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/HIVMDecomposeOp.cpp:400`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/InjectSync/InjectSync.cpp:75`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/GraphSyncSolver/SyncSolverCodeGen.cpp:197`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/regbase/PlanMemory.cpp:171`
+- `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMMacroOps.td:58`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/IR/LibraryFunctionOpInterface/LibraryFunctionOpInterfaceImpl.cpp:1104`
+- `$HOME/AscendNPU-IR/bishengir/lib/Template/lib/Cube/LocalMmad.cpp:314`
+- `$HOME/AscendNPU-IR/bishengir/lib/Template/include/Cube/LocalMmad/LocalMmadUtils.h:95`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/IR/LibraryFunctionOpInterface/LibraryFunctionOpInterfaceImpl.cpp:1204`
+- `$HOME/AscendNPU-IR/bishengir/lib/Template/include/DMA/ND2NZ.h:23`
+- `$HOME/AscendNPU-IR/bishengir/lib/Template/lib/DMA/Cbuf/nd2nz.cpp:19`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/HIVMDecomposeOp.cpp:400`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/InjectSync/InjectSync.cpp:75`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/GraphSyncSolver/SyncSolverCodeGen.cpp:197`
+- `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/regbase/PlanMemory.cpp:171`
 
 Bridge implication: for DMA/cube/sync, the bridge may need to run before
 `convert-hivm-to-std` or add a sibling lowering that consumes HIVM directly.
@@ -235,9 +235,9 @@ unary, ternary, vector-scalar, and broadcast registries.
 
 Key source:
 
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:3430`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:3586`
-- `/home/m84446336/AscendNPU-IR/bishengir/include/bishengir/Conversion/Passes.td:401`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:3430`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:3586`
+- `$HOME/AscendNPU-IR/bishengir/include/bishengir/Conversion/Passes.td:401`
 
 Detailed source facts:
 
@@ -254,10 +254,10 @@ Detailed source facts:
 
 Key sources:
 
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:120`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:780`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:1018`
-- `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:1448`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:120`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:780`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:1018`
+- `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:1448`
 
 Bridge implication: this is still a plausible first vector bridge boundary, but
 only for operations that have not already been lowered by `HIVMToStandard` or

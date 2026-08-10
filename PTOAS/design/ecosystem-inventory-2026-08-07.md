@@ -6,7 +6,7 @@ Scope: initial Codex-led PTOAS Stage 2 inventory. This is not the full one-month
 
 ## Source-Of-Truth Rule
 
-Do not use `/home/m84446336/PTOAS/PTOAS_Markham`, its `origin`, or local branch `mani/fix_ptodsl` as the authoritative PTOAS state.
+Do not use `$HOME/PTOAS/PTOAS_Markham`, its `origin`, or local branch `mani/fix_ptodsl` as the authoritative PTOAS state.
 
 For design truth, prefer:
 

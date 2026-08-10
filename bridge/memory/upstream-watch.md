@@ -22,7 +22,7 @@ The scheduled explorer agent will later run at 7:00am Eastern time, Monday throu
 - `https://github.com/WenboCodes/PTOAS`
 - forks of `https://github.com/mouliangyu/PTOAS`, especially active forks
 - forks that are themselves forked from active forks, not only direct forks of upstream
-- local fork: `/home/m84446336/PTOAS/PTOAS_Markham`
+- local fork: `$HOME/PTOAS/PTOAS_Markham`
 
 ## PTOAS Source-Of-Truth Rule
 
@@ -34,7 +34,7 @@ Explorer/backfill work must compare upstream, active forks, forks-of-forks, bran
 
 - upstream source of truth: `https://gitcode.com/Ascend/AscendNPU-IR`
 - main development fork: `https://gitcode.com/manisadati/AscendNPU-IR`
-- local fork: `/home/m84446336/AscendNPU-IR`
+- local fork: `$HOME/AscendNPU-IR`
 - GitHub mirrors if found and useful
 
 ## Current Watch Status

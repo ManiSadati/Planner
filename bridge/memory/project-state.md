@@ -17,10 +17,10 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 
 ## Development Target
 
-- Main local repo: `/home/m84446336/AscendNPU-IR`
+- Main local repo: `$HOME/AscendNPU-IR`
 - Main fork: `https://gitcode.com/manisadati/AscendNPU-IR`
 - Upstream source of truth: `https://gitcode.com/Ascend/AscendNPU-IR`
-- PTOAS local checkout `/home/m84446336/PTOAS/PTOAS_Markham` is not source of truth; its `origin` is a personal fork and `mani/fix_ptodsl` may be behind the active ecosystem.
+- PTOAS local checkout `$HOME/PTOAS/PTOAS_Markham` is not source of truth; its `origin` is a personal fork and `mani/fix_ptodsl` may be behind the active ecosystem.
 - PTOAS design truth must come from upstream `hw-native-sys/PTOAS` plus active forks, branches, PRs, and issues.
 
 ## Build/Test Reality
@@ -68,7 +68,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 
 ## Current NPU-IR Understanding
 
-- Local NPU-IR repo is `/home/m84446336/AscendNPU-IR` on `mani/fuse-explore` at `4254b5dec90a4d3d92f581f3fe32b79ea1a82d9a`; its only configured remote is the `manisadati` GitCode fork.
+- Local NPU-IR repo is `$HOME/AscendNPU-IR` on `mani/fuse-explore` at `4254b5dec90a4d3d92f581f3fe32b79ea1a82d9a`; its only configured remote is the `manisadati` GitCode fork.
 - Upstream source of truth is still `https://gitcode.com/Ascend/AscendNPU-IR`; compare with upstream before making compatibility claims.
 - Regbase late lowering runs `convert-hivm-to-std`, then `convert-hivmave-to-std`, then `convert-hivmave-to-ave-intrin`.
 - `lower-ave-pipeline` creates/optimizes HIVMAVE via `convert-vector-to-hivmave` and `convert-arith-to-hivmave` before final intrinsic lowering.
@@ -86,7 +86,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 
 ## Current PTO-ISA Understanding
 
-- Local PTO-ISA repo is `/home/m84446336/pto-isa` on `master` at `896d8ec69aaf5b623fead5afcae7a657fa784a2b`; its remote is `git@gitcode.com:cann/pto-isa.git`.
+- Local PTO-ISA repo is `$HOME/pto-isa` on `master` at `896d8ec69aaf5b623fead5afcae7a657fa784a2b`; its remote is `git@gitcode.com:cann/pto-isa.git`.
 - The local PTO-ISA worktree has an existing modified file, `include/pto/npu/a5/TBinOp.hpp`; do not revert or treat it as upstream truth without review.
 - PTO-ISA is a tile-level virtual ISA with a three-layer contract: Virtual ISA semantics, AS representation, and backend lowering/legalization.
 - Core contract dimensions are tile dtype, shape, valid region, location role, layout/fractal layout, GlobalTensor shape/stride/layout, events, and backend legality.

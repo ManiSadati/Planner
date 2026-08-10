@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -40,13 +41,17 @@ class CheckerConfig:
     repos: tuple[RepoConfig, ...]
 
 
+def _expand_path(value: str) -> Path:
+    return Path(os.path.expandvars(value)).expanduser()
+
+
 def _resolve(root: Path, value: str) -> Path:
-    path = Path(value).expanduser()
+    path = _expand_path(value)
     return path if path.is_absolute() else root / path
 
 
 def load_config(config_path: Path) -> CheckerConfig:
-    config_path = config_path.expanduser().resolve()
+    config_path = _expand_path(str(config_path)).resolve()
     root = config_path.parent
     data: dict[str, Any] = json.loads(config_path.read_text())
 
@@ -57,7 +62,7 @@ def load_config(config_path: Path) -> CheckerConfig:
                 id=item["id"],
                 name=item["name"],
                 kind=item["kind"],
-                path=Path(item["path"]).expanduser(),
+                path=_expand_path(item["path"]),
                 fetch_remotes=tuple(item.get("fetch_remotes", ())),
                 track_branches=bool(item.get("track_branches", True)),
                 track_github_issues=bool(item.get("track_github_issues", False)),

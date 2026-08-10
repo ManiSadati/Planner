@@ -366,21 +366,21 @@ Before implementing the conversion pass, cross-check these active areas against 
 
 ## Key Local Source References
 
-- `/home/m84446336/PTOAS/PTOAS_Markham/tools/ptoas/ptoas.cpp`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/ptoas-tile-fusion-design.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/designs/vmi-introduction.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/designs/vmi-implementation-manual.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/designs/ptodsl-tilelib-template-selection-design.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/designs/ptoas-auto-sync-design.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/designs/ptoas-largest-first-fit-four-gates-memplan-design.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/ptodsl/README.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/ptodsl/docs/user_guide/01-introduction.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/isa/vmi-isa/00-architecture-overview.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/isa/vmi-isa/01-load-store.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/isa/vmi-isa/08-predicate-ops.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/isa/micro-isa/01-pipeline-sync.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/isa/tile-op/03-pointer-and-view.md`
-- `/home/m84446336/PTOAS/PTOAS_Markham/docs/isa/tile-op/04-dma-data-movement.md`
+- `$HOME/PTOAS/PTOAS_Markham/tools/ptoas/ptoas.cpp`
+- `$HOME/PTOAS/PTOAS_Markham/docs/ptoas-tile-fusion-design.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/designs/vmi-introduction.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/designs/vmi-implementation-manual.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/designs/ptodsl-tilelib-template-selection-design.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/designs/ptoas-auto-sync-design.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/designs/ptoas-largest-first-fit-four-gates-memplan-design.md`
+- `$HOME/PTOAS/PTOAS_Markham/ptodsl/README.md`
+- `$HOME/PTOAS/PTOAS_Markham/ptodsl/docs/user_guide/01-introduction.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/isa/vmi-isa/00-architecture-overview.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/isa/vmi-isa/01-load-store.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/isa/vmi-isa/08-predicate-ops.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/isa/micro-isa/01-pipeline-sync.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/isa/tile-op/03-pointer-and-view.md`
+- `$HOME/PTOAS/PTOAS_Markham/docs/isa/tile-op/04-dma-data-movement.md`
 
 ## External Source References
 

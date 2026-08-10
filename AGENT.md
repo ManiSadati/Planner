@@ -115,11 +115,11 @@ PTOAS tracking should include:
 - `https://github.com/WenboCodes/PTOAS`
 - forks of `https://github.com/mouliangyu/PTOAS`, especially active forks
 - forks that are themselves forked from active forks, not only direct forks of upstream
-- local fork: `/home/m84446336/PTOAS/PTOAS_Markham`
+- local fork: `$HOME/PTOAS/PTOAS_Markham`
 
 PTOAS source-of-truth rule:
 
-- Do not treat `/home/m84446336/PTOAS/PTOAS_Markham` or its `origin` remote as the authoritative PTOAS source.
+- Do not treat `$HOME/PTOAS/PTOAS_Markham` or its `origin` remote as the authoritative PTOAS source.
 - In that local repo, `origin` is a personal fork, not upstream.
 - The local branch `mani/fix_ptodsl` is useful for builds, experiments, and local reference, but it may be far behind the real active upstream/fork ecosystem.
 - For design truth, Codex must check upstream PTOAS plus relevant active fork networks: direct forks, forks-of-forks, branches, issue pages, and PRs.
@@ -129,7 +129,7 @@ NPU-IR tracking should include:
 
 - upstream source of truth: `https://gitcode.com/Ascend/AscendNPU-IR`
 - main development fork: `https://gitcode.com/manisadati/AscendNPU-IR`
-- local fork: `/home/m84446336/AscendNPU-IR`
+- local fork: `$HOME/AscendNPU-IR`
 - GitHub mirrors, if available, as secondary tracking remotes
 
 Codex should treat upstream Ascend activity as important for compatibility, but it should also track the `manisadati` fork because that is where the bridge development happens.
@@ -154,6 +154,10 @@ Planner docs should rebuild one or two useful levels of hierarchy from the sourc
 - very localized implementation details should be linked to the source repo instead of copied wholesale.
 
 Summaries should include source references to the original files, branches, issues, PRs, or commits used.
+
+Do not write literal user-specific home directories into docs, plans, reports,
+or config examples. Use `$HOME/...`, `~/...`, repo-relative paths, or `%h/...`
+for systemd unit files.
 
 Codex should prefer concise, accurate documents over large copied documents. The purpose is reusable project context, not a mirror.
 
@@ -186,7 +190,7 @@ The main implementation target for the conversion work is:
 
 ```text
 https://gitcode.com/manisadati/AscendNPU-IR
-/home/m84446336/AscendNPU-IR
+$HOME/AscendNPU-IR
 ```
 
 Codex should avoid modifying PTOAS unless the human explicitly asks. The preferred strategy is to add the conversion path on the AscendNPU-IR side.

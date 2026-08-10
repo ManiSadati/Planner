@@ -10,7 +10,7 @@ a full build recipe yet.
 Local development repo:
 
 ```text
-/home/m84446336/AscendNPU-IR
+$HOME/AscendNPU-IR
 ```
 
 Current local branch at scan time:

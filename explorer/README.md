@@ -35,7 +35,7 @@ GITHUB_TOKEN=ghp-... # optional, but helps GitHub rate limits
 When you are ready to run manually:
 
 ```bash
-cd /home/m84446336/Planner/explorer
+cd $HOME/Planner/explorer
 set -a
 [ -f .venv ] && . ./.venv
 [ -f .env ] && . ./.env

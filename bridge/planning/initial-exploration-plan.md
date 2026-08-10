@@ -28,9 +28,9 @@ Status: complete. See `bridge/planning/local-repo-baseline.md`.
 
 Check local repo state and structure without changing branches:
 
-- `/home/m84446336/PTOAS/PTOAS_Markham`
-- `/home/m84446336/AscendNPU-IR`
-- `/home/m84446336/pto-isa`
+- `$HOME/PTOAS/PTOAS_Markham`
+- `$HOME/AscendNPU-IR`
+- `$HOME/pto-isa`
 
 Collect:
 

@@ -18,9 +18,9 @@ This baseline only records local repo state and where relevant source/docs appea
 
 | Repo | Local path | Current branch | HEAD | Working tree | Remotes |
 | --- | --- | --- | --- | --- | --- |
-| PTOAS | `/home/m84446336/PTOAS/PTOAS_Markham` | `mani/fix_ptodsl` tracking `origin/mani/fix_ptodsl`, ahead 770 | `b7208d14f` | modified `lib/TileOps/a5/tload.py`; untracked `build-clang21/`, `build-llvm21/`, `install-llvm21/`, `mani_log/` | `origin`, `upstream`, `zhendong` |
-| AscendNPU-IR | `/home/m84446336/AscendNPU-IR` | `mani/fuse-explore` tracking `origin/mani/fuse-explore` | `4254b5de` | clean | `origin` only, pointing to `git@gitcode.com:manisadati/AscendNPU-IR.git` |
-| PTO-ISA | `/home/m84446336/pto-isa` | `master` tracking `origin/master` | `896d8ec69` | modified `include/pto/npu/a5/TBinOp.hpp` | `origin`, pointing to `git@gitcode.com:cann/pto-isa.git` |
+| PTOAS | `$HOME/PTOAS/PTOAS_Markham` | `mani/fix_ptodsl` tracking `origin/mani/fix_ptodsl`, ahead 770 | `b7208d14f` | modified `lib/TileOps/a5/tload.py`; untracked `build-clang21/`, `build-llvm21/`, `install-llvm21/`, `mani_log/` | `origin`, `upstream`, `zhendong` |
+| AscendNPU-IR | `$HOME/AscendNPU-IR` | `mani/fuse-explore` tracking `origin/mani/fuse-explore` | `4254b5de` | clean | `origin` only, pointing to `git@gitcode.com:manisadati/AscendNPU-IR.git` |
+| PTO-ISA | `$HOME/pto-isa` | `master` tracking `origin/master` | `896d8ec69` | modified `include/pto/npu/a5/TBinOp.hpp` | `origin`, pointing to `git@gitcode.com:cann/pto-isa.git` |
 
 ## PTOAS Baseline
 
@@ -142,7 +142,7 @@ This baseline only records local repo state and where relevant source/docs appea
 
 ### Local Instruction File
 
-- `AGENTS.md` exists in `/home/m84446336/pto-isa`; read it before doing coding work inside that repo.
+- `AGENTS.md` exists in `$HOME/pto-isa`; read it before doing coding work inside that repo.
 
 ### Primary Docs
 
@@ -197,26 +197,26 @@ This baseline only records local repo state and where relevant source/docs appea
 
 For Stage 2, start with:
 
-1. `/home/m84446336/PTOAS/PTOAS_Markham/docs/ptoas-tile-fusion-design.md`
-2. `/home/m84446336/PTOAS/PTOAS_Markham/docs/vpto-spec.md`
-3. `/home/m84446336/PTOAS/PTOAS_Markham/ptodsl/README.md`
-4. `/home/m84446336/PTOAS/PTOAS_Markham/ptodsl/docs/user_guide/14-vmi-virtual-instruction-set.md`
-5. `/home/m84446336/PTOAS/PTOAS_Markham/docs/isa/vmi-isa/00-architecture-overview.md`
+1. `$HOME/PTOAS/PTOAS_Markham/docs/ptoas-tile-fusion-design.md`
+2. `$HOME/PTOAS/PTOAS_Markham/docs/vpto-spec.md`
+3. `$HOME/PTOAS/PTOAS_Markham/ptodsl/README.md`
+4. `$HOME/PTOAS/PTOAS_Markham/ptodsl/docs/user_guide/14-vmi-virtual-instruction-set.md`
+5. `$HOME/PTOAS/PTOAS_Markham/docs/isa/vmi-isa/00-architecture-overview.md`
 
 For Stage 3, start with:
 
-1. `/home/m84446336/AscendNPU-IR/docs_for_ai/NPU_IR_OVERVIEW.md`
-2. `/home/m84446336/AscendNPU-IR/docs_for_ai/VFFUSION_AND_VECTORIZATION.md`
-3. `/home/m84446336/AscendNPU-IR/bishengir/lib/Tools/bishengir-compile/regbase/PassPipeline.cpp`
-4. `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMToStandard/`
-5. `/home/m84446336/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/`
-6. `/home/m84446336/AscendNPU-IR/docs/source/en/developer_guide/dialects/HIVMDialect.md`
+1. `$HOME/AscendNPU-IR/docs_for_ai/NPU_IR_OVERVIEW.md`
+2. `$HOME/AscendNPU-IR/docs_for_ai/VFFUSION_AND_VECTORIZATION.md`
+3. `$HOME/AscendNPU-IR/bishengir/lib/Tools/bishengir-compile/regbase/PassPipeline.cpp`
+4. `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMToStandard/`
+5. `$HOME/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/`
+6. `$HOME/AscendNPU-IR/docs/source/en/developer_guide/dialects/HIVMDialect.md`
 
 For Stage 4, start with:
 
-1. `/home/m84446336/pto-isa/AGENTS.md`
-2. `/home/m84446336/pto-isa/README.md`
-3. `/home/m84446336/pto-isa/docs/coding/ProgrammingModel.md`
-4. `/home/m84446336/pto-isa/docs/coding/Event.md`
-5. `/home/m84446336/pto-isa/docs/coding/compilation-process.md`
-6. `/home/m84446336/pto-isa/docs/isa/`
+1. `$HOME/pto-isa/AGENTS.md`
+2. `$HOME/pto-isa/README.md`
+3. `$HOME/pto-isa/docs/coding/ProgrammingModel.md`
+4. `$HOME/pto-isa/docs/coding/Event.md`
+5. `$HOME/pto-isa/docs/coding/compilation-process.md`
+6. `$HOME/pto-isa/docs/isa/`
