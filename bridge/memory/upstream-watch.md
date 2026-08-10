@@ -46,6 +46,8 @@ Explorer/backfill work must compare upstream, active forks, forks-of-forks, bran
 - Explorer bot is installed as a user systemd timer: daily at 7:00am Eastern.
 - Four-day configured-scope lookback report produced: `explorer/reports/daily/2026-08-10.md`.
 - Latest generated overview: `explorer/reports/README.md`.
+- GitHub fork-discovery state bootstrapped for PTOAS: 74 forks and 801 branch
+  heads recorded.
 - GitHub token is configured; the previous unauthenticated PR file-list rate-limit failure did not recur on rerun.
 
 ## Latest PTOAS Snapshot
@@ -79,9 +81,12 @@ Standing branch-local design context remains important:
 
 When implementation planning resumes, re-check these targets first: LLVM19 environment, sync API split, implicit tmp pass ordering, PTO Common ops, SoftLibService pass ordering, VPTO scheduler framework, and FP4 S4 staging.
 
-Current explorer limitations:
+Current explorer status and limitations:
 
-- automatic direct-fork and fork-of-fork discovery is not implemented yet, though the policy caps future discovery at depth 2;
+- GitHub direct-fork and fork-of-fork discovery is implemented and capped at
+  depth 2;
 - GitCode issue/PR tracking for AscendNPU-IR is not implemented yet;
 - daily explorer uses metadata-first summaries and does not deeply read every changed source file;
-- deterministic PR/branch scoring is documented but not fully implemented before the OpenAI summary step.
+- deterministic branch/issue/PR scoring is implemented before the OpenAI
+  summary step, with score-sorted `Investigate`/`Watch` candidates and skipped
+  `Low priority`/`Noise` counts.

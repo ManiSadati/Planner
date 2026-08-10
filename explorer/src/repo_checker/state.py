@@ -17,6 +17,7 @@ class CheckerState:
     last_run_at: str | None = None
     repos: dict[str, Any] = field(default_factory=dict)
     github: dict[str, Any] = field(default_factory=dict)
+    github_forks: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def load(cls, path: Path) -> "CheckerState":
@@ -28,6 +29,7 @@ class CheckerState:
             last_run_at=data.get("last_run_at"),
             repos=data.get("repos", {}),
             github=data.get("github", {}),
+            github_forks=data.get("github_forks", {}),
         )
 
     def save(self, path: Path) -> None:
@@ -37,6 +39,6 @@ class CheckerState:
             "last_run_at": self.last_run_at,
             "repos": self.repos,
             "github": self.github,
+            "github_forks": self.github_forks,
         }
         path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
-

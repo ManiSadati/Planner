@@ -147,7 +147,7 @@ Answer:
 
 ## Stage 5: One-Month Ecosystem Backfill
 
-Status: partially covered by the 2026-08-10 four-day configured-scope explorer lookback. The current PTOAS watcher scope is up to date enough for near-term planning, but the full one-month ecosystem backfill and automatic depth-2 fork discovery are still pending.
+Status: partially covered by the 2026-08-10 four-day configured-scope explorer lookback. The current PTOAS watcher scope is up to date enough for near-term planning, and GitHub depth-2 fork discovery is now implemented for configured GitHub repos. The full one-month ecosystem backfill and GitCode issue/PR discovery are still pending.
 
 Review recent design-relevant activity for:
 

@@ -17,6 +17,7 @@ class RepoConfig:
     track_branches: bool
     track_github_issues: bool
     track_github_prs: bool
+    track_github_forks: bool
     upstream: str | None = None
     fork: str | None = None
     upstream_url: str | None = None
@@ -39,6 +40,9 @@ class CheckerConfig:
     max_diff_chars_per_branch: int
     max_markdown_files_for_diff_excerpt: int
     max_markdown_changed_lines_for_diff: int
+    max_forks_to_scan: int
+    max_branches_per_fork: int
+    max_fork_branch_changes_per_run: int
     initial_backfill: bool
     env_files: tuple[Path, ...]
     repos: tuple[RepoConfig, ...]
@@ -70,6 +74,7 @@ def load_config(config_path: Path) -> CheckerConfig:
                 track_branches=bool(item.get("track_branches", True)),
                 track_github_issues=bool(item.get("track_github_issues", False)),
                 track_github_prs=bool(item.get("track_github_prs", False)),
+                track_github_forks=bool(item.get("track_github_forks", False)),
                 upstream=item.get("upstream"),
                 fork=item.get("fork"),
                 upstream_url=item.get("upstream_url"),
@@ -96,6 +101,9 @@ def load_config(config_path: Path) -> CheckerConfig:
         max_markdown_changed_lines_for_diff=int(
             data.get("max_markdown_changed_lines_for_diff", 1200)
         ),
+        max_forks_to_scan=int(data.get("max_forks_to_scan", 120)),
+        max_branches_per_fork=int(data.get("max_branches_per_fork", 30)),
+        max_fork_branch_changes_per_run=int(data.get("max_fork_branch_changes_per_run", 60)),
         initial_backfill=bool(data.get("initial_backfill", False)),
         env_files=tuple(_resolve(root, value) for value in data.get("env_files", ())),
         repos=tuple(repos),

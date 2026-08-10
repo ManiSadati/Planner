@@ -42,10 +42,12 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
 - `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` has been reviewed as vector-pass prototype context. Do not continue it directly; port selected ideas into a fresh current-baseline branch if used. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
 - Latest configured-scope explorer lookback completed on 2026-08-10. Reports: `explorer/reports/README.md` and `explorer/reports/daily/2026-08-10.md`. The scan used the GitHub token and no longer hit the previous GitHub rate-limit failure.
+- GitHub fork-discovery state was bootstrapped on 2026-08-10 for PTOAS:
+  74 forks and 801 branch heads recorded, with no bootstrap errors.
 
 ## Latest Explorer/PTOAS State
 
-As of the 2026-08-10 four-day lookback, the configured watcher scope is current enough for near-term bridge planning. Scope covered configured PTOAS local/remotes, `hw-native-sys/PTOAS` issues/PRs, and local AscendNPU-IR branch tracking. It did not yet cover automatic direct-fork/fork-of-fork discovery or GitCode issue/PR tracking.
+As of the 2026-08-10 four-day lookback, the configured watcher scope is current enough for near-term bridge planning. Scope covered configured PTOAS local/remotes, `hw-native-sys/PTOAS` issues/PRs, and local AscendNPU-IR branch tracking. GitHub direct-fork/fork-of-fork discovery is implemented and bootstrapped for configured GitHub repos. GitCode issue/PR tracking is still pending.
 
 Latest PTOAS signals:
 

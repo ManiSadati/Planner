@@ -52,6 +52,10 @@ class BranchChange:
     diff_stat: str
     diff_excerpt: str
     is_new_branch: bool
+    source_repo: str | None = None
+    source_url: str | None = None
+    fork_depth: int | None = None
+    parent_repo: str | None = None
 
 
 @dataclass(frozen=True)

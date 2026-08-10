@@ -6,6 +6,7 @@ from .config import load_config
 from .env import load_env_files
 from .git_collect import RepoChanges, collect_git_changes
 from .github_collect import GitHubChanges, collect_github_changes
+from .github_fork_collect import collect_github_fork_changes
 from .report import has_changes, write_reports
 from .state import CheckerState, utc_now_iso
 from .summarize import DailySummary, summarize_changes
@@ -23,6 +24,7 @@ def run(
     state = CheckerState.load(config.state_path)
     next_repo_states = dict(state.repos)
     next_github_states = dict(state.github)
+    next_github_fork_states = dict(state.github_forks)
 
     repo_changes: list[RepoChanges] = []
     github_changes: list[GitHubChanges] = []
@@ -49,6 +51,17 @@ def run(
             github_changes.append(github)
             next_github_states[repo.id] = github_state
 
+        previous_fork_state = state.github_forks.get(repo.id, {})
+        fork_changes, fork_state = collect_github_fork_changes(
+            repo,
+            config,
+            previous_fork_state,
+            since_override=since_override,
+        )
+        if fork_changes is not None:
+            repo_changes.append(fork_changes)
+            next_github_fork_states[repo.id] = fork_state
+
     repo_changes_tuple = tuple(repo_changes)
     github_changes_tuple = tuple(github_changes)
 
@@ -71,5 +84,6 @@ def run(
     if not preserve_state:
         state.repos = next_repo_states
         state.github = next_github_states
+        state.github_forks = next_github_fork_states
         state.last_run_at = utc_now_iso()
         state.save(config.state_path)

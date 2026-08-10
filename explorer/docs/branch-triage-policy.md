@@ -197,6 +197,24 @@ when the metadata indicates bridge relevance.
 
 Use scoring for deterministic triage before any OpenAI call.
 
+Current implemented scoring starts with these explicit rules:
+
+```text
+if title/path/branch contains "vmi": +4
+if title/path/branch contains "ptodsl": +2
+if title/path/branch contains "migrat": +2
+if touches lib/PTO/Transforms: +2
+if touches docs/designs: +5
+if branch starts with codex/: -3
+if only touches .github or AGENT files: -4
+if changed files > 100: flag large +2
+```
+
+The implementation also gives positive weight to other configured bridge terms:
+`vpto`, `tilelib`, `sync`, `memory planning`, `memplan`, `fp4`,
+`scheduler`, `softlib`, `lowering`, and `pipeline`. The exact code lives in
+`src/repo_checker/triage.py`.
+
 Positive signals:
 
 | Signal | Score |
@@ -321,6 +339,9 @@ The daily agent should run in two phases:
 
 2. AI summarization:
    - receive only `Investigate` and selected `Watch` candidates;
+   - preserve score-sorted candidate order;
+   - end the daily report with an `Agent Highlights` section for the few items
+     the model judges most important;
    - summarize what changed and whether it affects the bridge;
    - write a daily report only for meaningful changes.
 

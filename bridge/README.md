@@ -16,6 +16,6 @@ Human intent lives in `human/`. If a bridge note conflicts with `human/`, the hu
 - Upstream/fork watch list: `bridge/memory/upstream-watch.md`.
 - Current mapping draft: `bridge/planning/npuir-to-ptoas-mapping.md`.
 
-The configured PTOAS watcher scope is current as of 2026-08-10. Full automatic
-direct-fork/fork-of-fork discovery and GitCode issue/PR tracking are still
-pending.
+The configured PTOAS watcher scope is current as of 2026-08-10. GitHub
+direct-fork/fork-of-fork discovery is implemented for configured GitHub repos.
+GitCode issue/PR tracking is still pending.

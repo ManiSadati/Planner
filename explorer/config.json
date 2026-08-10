@@ -12,6 +12,9 @@
   "max_diff_chars_per_branch": 12000,
   "max_markdown_files_for_diff_excerpt": 8,
   "max_markdown_changed_lines_for_diff": 1200,
+  "max_forks_to_scan": 120,
+  "max_branches_per_fork": 30,
+  "max_fork_branch_changes_per_run": 60,
   "initial_backfill": false,
   "env_files": [
     ".env",
@@ -32,7 +35,8 @@
       ],
       "track_branches": true,
       "track_github_issues": true,
-      "track_github_prs": true
+      "track_github_prs": true,
+      "track_github_forks": true
     },
     {
       "id": "ascend-npu-ir",
@@ -46,7 +50,8 @@
       ],
       "track_branches": true,
       "track_github_issues": false,
-      "track_github_prs": false
+      "track_github_prs": false,
+      "track_github_forks": false
     }
   ]
 }

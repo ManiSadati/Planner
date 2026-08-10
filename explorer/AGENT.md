@@ -89,6 +89,14 @@ High-value signals include VMI, VPTO, PTODSL, TileLib, tile fusion, sync, memory
 planning, allocator, mask/predicate, gather/scatter, DMA, L1/L0, A5, MX, quant,
 and compiler lowering changes.
 
+The daily bot must score branches, issues, and PRs deterministically before the
+OpenAI call. OpenAI should receive `Investigate` and `Watch` candidates plus
+counts/samples of skipped `Low priority` and `Noise` candidates.
+
+Sort candidates by deterministic score before summarization. The final daily
+markdown should end with `Agent Highlights`: the bot's short list of the most
+important items, with the reason each item matters.
+
 AI-prefixed branches such as `codex/`, `claude/`, `copilot/`, `agent/`, and
 `ai/` are noisy. Do not ignore them forever, but do not treat them as design
 truth unless they also have relevant source changes, PR/issue context, or links
