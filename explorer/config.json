@@ -6,9 +6,12 @@
   "timezone": "UTC",
   "model": "gpt-5",
   "big_change_threshold": 7,
+  "max_fork_depth": 2,
   "max_commits_per_branch": 40,
   "max_diff_files_per_branch": 80,
   "max_diff_chars_per_branch": 12000,
+  "max_markdown_files_for_diff_excerpt": 8,
+  "max_markdown_changed_lines_for_diff": 1200,
   "initial_backfill": false,
   "env_files": [
     ".env",

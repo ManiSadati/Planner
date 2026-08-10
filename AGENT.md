@@ -24,7 +24,7 @@ If `human/` and `bridge/` disagree, `human/` wins. Codex should briefly report t
 
 `bridge/` is the Codex-maintained working memory and planning area. It should stay brief, current, and useful for handoff between human and Codex coding sessions.
 
-`explorer/` is the monitoring-agent area. It tracks relevant upstream and fork activity, produces daily summaries, and warns when PTOAS or NPU-IR design movement may affect our bridge plan. The scheduled explorer agent may get its own nested contract later because it runs unattended and uses the OpenAI API key.
+`explorer/` is the monitoring-agent area. It tracks relevant upstream and fork activity, produces daily summaries, and warns when PTOAS or NPU-IR design movement may affect our bridge plan. The scheduled API-based explorer agent has its own nested contract at `explorer/AGENT.md` because it runs unattended and uses the OpenAI API key.
 
 `PTOAS/`, `NPUIR/`, and `PTO-ISA/` may contain Planner-side summaries of important design docs, pipeline notes, coding guides, and source links. Planner should not duplicate every low-level source document.
 
@@ -74,6 +74,7 @@ Daily monitoring target:
 - Write a separate daily markdown file only when the day contains a meaningful or large change.
 
 Explorer branch triage must follow `explorer/docs/branch-triage-policy.md`.
+The scheduled API-based explorer agent must also follow `explorer/AGENT.md`.
 The policy exists to avoid missing branch-local design work like
 `WenboCodes/PTOAS:new-vf-fusion-design` while also avoiding noise from AI-made
 branches. In short:
@@ -114,7 +115,8 @@ PTOAS tracking should include:
 - `https://github.com/mouliangyu/PTOAS`
 - `https://github.com/WenboCodes/PTOAS`
 - forks of `https://github.com/mouliangyu/PTOAS`, especially active forks
-- forks that are themselves forked from active forks, not only direct forks of upstream
+- forks that are themselves forked from active forks, not only direct forks of
+  upstream, but daily explorer should stop at fork depth 2
 - local fork: `$HOME/PTOAS/PTOAS_Markham`
 
 PTOAS source-of-truth rule:
@@ -122,7 +124,9 @@ PTOAS source-of-truth rule:
 - Do not treat `$HOME/PTOAS/PTOAS_Markham` or its `origin` remote as the authoritative PTOAS source.
 - In that local repo, `origin` is a personal fork, not upstream.
 - The local branch `mani/fix_ptodsl` is useful for builds, experiments, and local reference, but it may be far behind the real active upstream/fork ecosystem.
-- For design truth, Codex must check upstream PTOAS plus relevant active fork networks: direct forks, forks-of-forks, branches, issue pages, and PRs.
+- For design truth, Codex must check upstream PTOAS plus relevant active fork
+  networks: direct forks, forks-of-forks, branches, issue pages, and PRs.
+  The scheduled explorer bot should not crawl beyond fork depth 2.
 - If local PTOAS behavior disagrees with upstream/fork evidence, report the mismatch and avoid silently building plans on the local fork.
 
 NPU-IR tracking should include:

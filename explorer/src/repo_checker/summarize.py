@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 import json
 import os
+from pathlib import Path
 import re
 from typing import Any
 
@@ -32,6 +33,13 @@ def _json_from_text(text: str) -> dict[str, Any]:
     return json.loads(candidate)
 
 
+def _agent_contract() -> str:
+    path = Path(__file__).resolve().parents[2] / "AGENT.md"
+    if not path.exists():
+        return ""
+    return path.read_text()
+
+
 def summarize_changes(
     model: str,
     repo_changes: tuple[RepoChanges, ...],
@@ -46,6 +54,7 @@ def summarize_changes(
         from openai import OpenAI
 
         client = OpenAI()
+        agent_contract = _agent_contract()
         response = client.responses.create(
             model=model,
             input=[
@@ -54,7 +63,9 @@ def summarize_changes(
                     "content": (
                         "You are a careful repo intelligence agent. Summarize only new changes "
                         "in the payload. Focus on PTOAS state, branch movement, issues, PRs, "
-                        "risk, and what changed technically. Return strict JSON only."
+                        "risk, and what changed technically. Follow the explorer agent contract "
+                        "below. Return strict JSON only.\n\n"
+                        f"{agent_contract}"
                     ),
                 },
                 {
@@ -102,4 +113,3 @@ def _fallback_summary(payload: dict, note: str) -> DailySummary:
         daily_markdown="\n".join(body),
         should_write_daily_report=importance >= 7,
     )
-

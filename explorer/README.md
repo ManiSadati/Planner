@@ -4,6 +4,9 @@ This folder contains the first scaffold for a daily repo watcher. It is designed
 
 - scan the local PTOAS and AscendNPU-IR forks;
 - track new branch heads and commits since the last scan;
+- cap fork discovery at direct forks and forks-of-forks;
+- summarize branches from metadata first: file counts, line counts, locations,
+  and bounded Markdown excerpts;
 - track new or updated GitHub issues and PRs for `hw-native-sys/PTOAS`;
 - call OpenAI once per daily run to summarize only new changes;
 - update `reports/README.md` with the current PTOAS state;
@@ -13,6 +16,7 @@ Nothing is scheduled or executed yet.
 
 ## Layout
 
+- `AGENT.md`: operating contract for the scheduled API-based explorer bot.
 - `config.json`: repo paths, model, report paths, and change thresholds.
 - `docs/branch-triage-policy.md`: branch/file scoring policy for avoiding missed design branches without chasing AI-generated noise.
 - `src/repo_checker/`: collector, state manager, OpenAI summarizer, and report writer.
@@ -50,3 +54,12 @@ bash scripts/install_systemd_timer.sh
 ```
 
 The first run bootstraps state by default and does not summarize old history because `initial_backfill` is `false`.
+After that baseline, newly seen branches are inspected once with the same
+metadata-first limits.
+
+## Current Limits
+
+Automatic GitHub/GitCode fork discovery is not implemented yet. The current
+runner watches configured local repos/remotes plus configured GitHub issues and
+PRs. `max_fork_depth=2` is the required limit for the fork-discovery collector
+when that piece is added.

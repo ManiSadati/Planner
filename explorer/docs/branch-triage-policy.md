@@ -1,6 +1,6 @@
 # Explorer Branch Triage Policy
 
-Last updated: 2026-08-07
+Last updated: 2026-08-10
 
 Purpose: prevent explorer from missing important branch-local design work while also avoiding noise from AI-generated branches and helper docs.
 
@@ -20,6 +20,17 @@ Old branches can contain durable design intent. Recent branches can be AI churn.
 - links from issues, PRs, or prior bridge docs.
 
 No single signal is enough by itself.
+
+## Fork Depth Limit
+
+Daily explorer should crawl at most two fork levels from each watched root:
+
+1. direct forks;
+2. forks of those direct forks.
+
+Do not crawl third-level fork descendants in the unattended daily job. If a
+second-level fork points to another promising fork network, record the source
+and flag it for Codex-led review instead of expanding the daily scope.
 
 ## Daily Vs Backfill
 
@@ -160,6 +171,28 @@ When explorer sees a branch for the first time in a watched repo, it should:
 
 This prevents old but important branches from being missed just because they were created before the daily window.
 
+## Payload And Diff Limits
+
+Daily explorer should be metadata-first. For each changed or first-seen branch,
+collect:
+
+- total changed file count;
+- added/deleted line counts from `git diff --numstat` or API equivalent;
+- Markdown file count and Markdown added/deleted line counts;
+- top changed path locations, usually one or two directory levels;
+- a bounded sample of changed file paths, prioritizing `.md` and `.markdown`
+  files.
+
+Do not ask the model to read large raw diffs. A branch with thousands of files
+or millions of changed lines should produce a compact metrics record and, if it
+has strong signals, a Codex review target. Markdown excerpts are allowed only
+when both the number of changed Markdown files and the number of changed
+Markdown lines are below configured limits.
+
+For source-code-heavy branches, daily explorer should usually send file paths,
+locations, counts, and commit/PR context. Codex can do the deeper source review
+when the metadata indicates bridge relevance.
+
 ## Suggested Scoring
 
 Use scoring for deterministic triage before any OpenAI call.
@@ -230,14 +263,23 @@ branch_or_pr
 base_ref
 head_sha
 head_date
+fork_depth
 first_seen_at
 last_seen_at
 classification
 score
 positive_signals
 negative_signals
+changed_file_count
+added_lines
+deleted_lines
+markdown_file_count
+markdown_added_lines
+markdown_deleted_lines
+top_locations
 changed_files_sample
 important_files
+diff_excerpt_policy
 skip_reason
 needs_codex_backfill
 ```
@@ -260,6 +302,8 @@ Always keep these in the watch inventory:
 - Do not decide design truth from a fork branch without comparing upstream/fork relation.
 - Do not hide skipped branches. Record the skip reason.
 - Do not use the OpenAI API key to compensate for missing deterministic collection.
+- Do not crawl deeper than direct forks and forks-of-forks in the daily bot.
+- Do not send giant branch diffs to OpenAI; send metrics and review targets.
 
 ## Implementation Notes
 
@@ -267,8 +311,10 @@ The daily agent should run in two phases:
 
 1. Deterministic collection and scoring:
    - list watched repos/forks/branches;
+   - cap fork discovery at depth 2;
    - compare first-seen or changed branches;
-   - gather changed files and line counts;
+   - gather changed-file counts, top locations, Markdown counts, and line
+     counts before any text diff;
    - score and classify candidates.
    - use an optional GitHub token when available so PR file-list collection does
      not fail silently under unauthenticated API rate limits.

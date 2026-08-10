@@ -33,9 +33,12 @@ class CheckerConfig:
     timezone: str
     model: str
     big_change_threshold: int
+    max_fork_depth: int
     max_commits_per_branch: int
     max_diff_files_per_branch: int
     max_diff_chars_per_branch: int
+    max_markdown_files_for_diff_excerpt: int
+    max_markdown_changed_lines_for_diff: int
     initial_backfill: bool
     env_files: tuple[Path, ...]
     repos: tuple[RepoConfig, ...]
@@ -83,9 +86,16 @@ def load_config(config_path: Path) -> CheckerConfig:
         timezone=data.get("timezone", "UTC"),
         model=data.get("model", "gpt-5"),
         big_change_threshold=int(data.get("big_change_threshold", 7)),
+        max_fork_depth=int(data.get("max_fork_depth", 2)),
         max_commits_per_branch=int(data.get("max_commits_per_branch", 40)),
         max_diff_files_per_branch=int(data.get("max_diff_files_per_branch", 80)),
         max_diff_chars_per_branch=int(data.get("max_diff_chars_per_branch", 12000)),
+        max_markdown_files_for_diff_excerpt=int(
+            data.get("max_markdown_files_for_diff_excerpt", 8)
+        ),
+        max_markdown_changed_lines_for_diff=int(
+            data.get("max_markdown_changed_lines_for_diff", 1200)
+        ),
         initial_backfill=bool(data.get("initial_backfill", False)),
         env_files=tuple(_resolve(root, value) for value in data.get("env_files", ())),
         repos=tuple(repos),
