@@ -47,6 +47,12 @@ set +a
 PYTHONPATH=src python3 -m repo_checker --config config.json
 ```
 
+For a one-off lookback report without changing the normal daily state cursor:
+
+```bash
+PYTHONPATH=src python3 -m repo_checker --config config.json --since-days 4 --preserve-state
+```
+
 When you are ready to schedule it for 7am Eastern, Monday through Saturday:
 
 ```bash

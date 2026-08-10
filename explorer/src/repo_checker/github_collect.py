@@ -133,14 +133,20 @@ def _bootstrap_timestamp(latest: str | None, errors: tuple[str, ...]) -> str | N
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def collect_github_changes(repo: RepoConfig, previous_state: dict) -> tuple[GitHubChanges | None, dict]:
+def collect_github_changes(
+    repo: RepoConfig,
+    previous_state: dict,
+    since_override: str | None = None,
+) -> tuple[GitHubChanges | None, dict]:
     github_repo = repo.upstream
     if not github_repo or not (repo.track_github_issues or repo.track_github_prs):
         return None, previous_state
 
     base = f"https://api.github.com/repos/{github_repo}"
-    previous_issue_since = previous_state.get("issues_last_seen_updated_at")
-    previous_pr_since = previous_state.get("prs_last_seen_updated_at")
+    state_issue_since = previous_state.get("issues_last_seen_updated_at")
+    state_pr_since = previous_state.get("prs_last_seen_updated_at")
+    previous_issue_since = since_override or state_issue_since
+    previous_pr_since = since_override or state_pr_since
     errors: list[str] = []
     issues: list[GitHubItem] = []
     prs: list[GitHubItem] = []
@@ -179,7 +185,7 @@ def collect_github_changes(repo: RepoConfig, previous_state: dict) -> tuple[GitH
     except Exception as exc:  # noqa: BLE001
         errors.append(f"prs: {exc}")
 
-    if not previous_issue_since and not previous_pr_since:
+    if not since_override and not previous_issue_since and not previous_pr_since:
         # Bootstrap mode records cursors without summarizing historical issue/PR backlog.
         error_tuple = tuple(errors)
         next_state = {
@@ -189,7 +195,16 @@ def collect_github_changes(repo: RepoConfig, previous_state: dict) -> tuple[GitH
         return GitHubChanges(repo=github_repo, issues=(), prs=(), errors=error_tuple), next_state
 
     next_state = {
-        "issues_last_seen_updated_at": _latest_timestamp(tuple(issues), previous_issue_since),
-        "prs_last_seen_updated_at": _latest_timestamp(tuple(prs), previous_pr_since),
+        "issues_last_seen_updated_at": _latest_timestamp(
+            tuple(issues),
+            state_issue_since or previous_issue_since,
+        ),
+        "prs_last_seen_updated_at": _latest_timestamp(
+            tuple(prs),
+            state_pr_since or previous_pr_since,
+        ),
     }
-    return GitHubChanges(repo=github_repo, issues=tuple(issues), prs=tuple(prs), errors=tuple(errors)), next_state
+    return (
+        GitHubChanges(repo=github_repo, issues=tuple(issues), prs=tuple(prs), errors=tuple(errors)),
+        next_state,
+    )

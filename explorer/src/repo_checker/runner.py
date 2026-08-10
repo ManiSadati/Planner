@@ -11,7 +11,12 @@ from .state import CheckerState, utc_now_iso
 from .summarize import DailySummary, summarize_changes
 
 
-def run(config_path: Path, dry_run: bool = False) -> None:
+def run(
+    config_path: Path,
+    dry_run: bool = False,
+    since_override: str | None = None,
+    preserve_state: bool = False,
+) -> None:
     config = load_config(config_path)
     load_env_files(config.env_files)
 
@@ -25,12 +30,21 @@ def run(config_path: Path, dry_run: bool = False) -> None:
     for repo in config.repos:
         previous_repo_state = state.repos.get(repo.id, {})
         if repo.track_branches:
-            changes, repo_state = collect_git_changes(repo, config, previous_repo_state)
+            changes, repo_state = collect_git_changes(
+                repo,
+                config,
+                previous_repo_state,
+                since_override=since_override,
+            )
             repo_changes.append(changes)
             next_repo_states[repo.id] = repo_state
 
         previous_github_state = state.github.get(repo.id, {})
-        github, github_state = collect_github_changes(repo, previous_github_state)
+        github, github_state = collect_github_changes(
+            repo,
+            previous_github_state,
+            since_override=since_override,
+        )
         if github is not None:
             github_changes.append(github)
             next_github_states[repo.id] = github_state
@@ -54,8 +68,8 @@ def run(config_path: Path, dry_run: bool = False) -> None:
         return
 
     write_reports(config, summary, repo_changes_tuple, github_changes_tuple)
-    state.repos = next_repo_states
-    state.github = next_github_states
-    state.last_run_at = utc_now_iso()
-    state.save(config.state_path)
-
+    if not preserve_state:
+        state.repos = next_repo_states
+        state.github = next_github_states
+        state.last_run_at = utc_now_iso()
+        state.save(config.state_path)

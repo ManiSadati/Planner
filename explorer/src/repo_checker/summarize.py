@@ -20,10 +20,96 @@ class DailySummary:
     should_write_daily_report: bool
 
 
+def _truncate(value: str, limit: int) -> str:
+    if len(value) <= limit:
+        return value
+    return value[:limit] + "\n[truncated]"
+
+
 def _compact_payload(repo_changes: tuple[RepoChanges, ...], github_changes: tuple[GitHubChanges, ...]) -> dict:
+    compact_repo_changes = []
+    for repo in repo_changes:
+        compact_branches = []
+        for branch in repo.branch_changes:
+            compact_branches.append(
+                {
+                    "ref": branch.ref,
+                    "base_ref": branch.base_ref,
+                    "base_sha": branch.base_sha,
+                    "old_sha": branch.old_sha,
+                    "new_sha": branch.new_sha,
+                    "subject": branch.subject,
+                    "committer_date": branch.committer_date,
+                    "lookback_since": branch.lookback_since,
+                    "is_new_branch": branch.is_new_branch,
+                    "commits": [
+                        {
+                            "sha": commit.sha[:12],
+                            "timestamp": commit.timestamp,
+                            "author": commit.author,
+                            "subject": commit.subject,
+                        }
+                        for commit in branch.commits[:12]
+                    ],
+                    "changed_files_sample": branch.changed_files[:40],
+                    "file_summary": asdict(branch.file_summary),
+                    "diff_stat_excerpt": "\n".join(branch.diff_stat.splitlines()[:20]),
+                    "diff_excerpt": _truncate(branch.diff_excerpt, 4000),
+                }
+            )
+        compact_repo_changes.append(
+            {
+                "repo_id": repo.repo_id,
+                "repo_name": repo.repo_name,
+                "branch_changes": compact_branches,
+                "errors": repo.errors,
+            }
+        )
+
+    compact_github_changes = []
+    for github in github_changes:
+        compact_github_changes.append(
+            {
+                "repo": github.repo,
+                "issues": [
+                    {
+                        "number": issue.number,
+                        "title": issue.title,
+                        "state": issue.state,
+                        "author": issue.author,
+                        "url": issue.url,
+                        "created_at": issue.created_at,
+                        "updated_at": issue.updated_at,
+                        "labels": issue.labels,
+                        "body_excerpt": _truncate(issue.body, 400),
+                    }
+                    for issue in github.issues
+                ],
+                "prs": [
+                    {
+                        "number": pr.number,
+                        "title": pr.title,
+                        "state": pr.state,
+                        "author": pr.author,
+                        "url": pr.url,
+                        "created_at": pr.created_at,
+                        "updated_at": pr.updated_at,
+                        "labels": pr.labels,
+                        "body_excerpt": _truncate(pr.body, 400),
+                        "file_count": len(pr.files),
+                        "files_sample": pr.files[:30],
+                        "additions": pr.additions,
+                        "deletions": pr.deletions,
+                    }
+                    for pr in github.prs
+                ],
+                "errors": github.errors,
+            }
+        )
+
     return {
-        "repo_changes": [asdict(change) for change in repo_changes],
-        "github_changes": [asdict(change) for change in github_changes],
+        "repo_changes": compact_repo_changes,
+        "github_changes": compact_github_changes,
     }
 
 

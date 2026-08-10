@@ -45,6 +45,7 @@ class BranchChange:
     new_sha: str
     subject: str
     committer_date: str
+    lookback_since: str | None
     commits: tuple[CommitInfo, ...]
     changed_files: tuple[str, ...]
     file_summary: FileChangeSummary
@@ -140,6 +141,11 @@ def _base_for_ref(
 
 def _merge_base(repo: RepoConfig, base_sha: str, new_sha: str) -> str | None:
     out = _git(repo, "merge-base", base_sha, new_sha, check=False).strip()
+    return out or None
+
+
+def _commit_before(repo: RepoConfig, ref: str, since: str) -> str | None:
+    out = _git(repo, "rev-list", "-1", f"--before={since}", ref, check=False).strip()
     return out or None
 
 
@@ -291,6 +297,7 @@ def collect_git_changes(
     repo: RepoConfig,
     config: CheckerConfig,
     previous_repo_state: dict,
+    since_override: str | None = None,
 ) -> tuple[RepoChanges, dict]:
     errors = list(_fetch(repo))
     current_heads = _branch_heads(repo)
@@ -301,12 +308,14 @@ def collect_git_changes(
 
     for ref, head in sorted(current_heads.items()):
         old = previous_heads.get(ref)
-        old_sha = old.get("sha") if old else None
+        old_sha = _commit_before(repo, ref, since_override) if since_override else None
+        if not since_override:
+            old_sha = old.get("sha") if old else None
         new_sha = head["sha"]
         if old_sha == new_sha:
             continue
         is_new_branch = old_sha is None
-        if is_new_branch and is_bootstrap and not config.initial_backfill:
+        if not since_override and is_new_branch and is_bootstrap and not config.initial_backfill:
             continue
 
         base_ref, configured_base_sha = _base_for_ref(ref, current_heads)
@@ -323,6 +332,7 @@ def collect_git_changes(
                 new_sha=new_sha,
                 subject=head["subject"],
                 committer_date=head["date"],
+                lookback_since=since_override,
                 commits=_commits(repo, revision_range, config.max_commits_per_branch),
                 changed_files=_changed_files(
                     repo,
