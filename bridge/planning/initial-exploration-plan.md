@@ -14,6 +14,8 @@ This is Codex-led work, not scheduled explorer-agent work. Do not use the OpenAI
 - `bridge/memory/project-state.md`: updated durable state.
 - `bridge/memory/upstream-watch.md`: updated upstream/fork watch notes.
 - `bridge/planning/npuir-to-ptoas-mapping.md`: source-backed mapping table.
+- `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`: reviewed
+  prototype context for the AVE-to-VMI vector bridge branch.
 - `PTOAS/design/*.md`: Planner-side PTOAS design summaries.
 - `PTOAS/coding-guide/*.md`: PTOAS coding/build/pipeline guide notes.
 - `NPUIR/design/*.md`: Planner-side NPU-IR design summaries.
@@ -99,6 +101,10 @@ Additional local-source findings:
 - These are local `mani/fuse-explore` findings only. Before claiming
   compatibility with the current Ascend upstream, fetch or inspect
   `https://gitcode.com/Ascend/AscendNPU-IR`.
+- `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` is reviewed prototype context,
+  not a branch to continue directly. It supports the vector-side boundary idea,
+  but must be ported or reimplemented against current AscendNPU-IR and current
+  PTOAS VMI. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
 
 Answer:
 

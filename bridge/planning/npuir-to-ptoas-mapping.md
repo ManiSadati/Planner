@@ -6,6 +6,12 @@ Scope: local-first mapping draft from Stage 2 PTOAS context, Stage 3 local
 NPU-IR source scan, and Stage 4 local PTO-ISA source scan. This table has not
 yet been reconciled with current Ascend upstream or a fresh PR/branch scan.
 
+Prototype review note: `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` was reviewed
+as vector-side prototype context. It supports the idea of an HIVMAVE-to-VMI pass
+before `convert-hivmave-to-ave-intrin`, but should not be continued directly or
+treated as implementation authority. See
+`bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
+
 Status meanings:
 
 - `confirmed`: directly established by local source and unlikely to change per

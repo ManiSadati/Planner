@@ -40,6 +40,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Stage 3 NPU-IR context has a local source-backed baseline: see `NPUIR/design/lowering-pipeline.md` and `NPUIR/coding-guide/repo-and-validation.md`.
 - Stage 4 PTO-ISA context has a local source-backed baseline: see `PTO-ISA/design/virtual-isa-and-bridge-targets.md` and `PTO-ISA/coding-guide/repo-and-validation.md`.
 - First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
+- `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` has been reviewed as vector-pass prototype context. Do not continue it directly; port selected ideas into a fresh current-baseline branch if used. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
 
 ## Open Technical Risks
 
@@ -78,6 +79,10 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - `hivm.hir.nd2nz` is GM-to-CBUF ND-to-NZ data movement with template-backed layout and copy-intrinsic behavior. It is closer to PTO tile/DMA/MTE mapping than to VMI arithmetic.
 - Sync ownership is an explicit bridge dimension. NPU-IR can decompose `sync_block` and generate `set_flag`/`wait_flag`/`sync_block_set`/`sync_block_wait` before final lowering; PTOAS level2 auto-sync versus level3/manual-sync must be chosen per row.
 - Candidate operation families for the first mapping table: `ave.hir.vload`, `ave.hir.masked_store`, `ave.hir.pge`, `ave.hir.vf*`; `hivm.hir.load`, `hivm.hir.store`, `hivm.hir.nd2nz`, `hivm.hir.pointer_cast`, `hivm.hir.set_flag`, `hivm.hir.sync_block*`, and `hivm.hir.mmadL1`.
+- The Soyu-Wilson `codex/ave-to-vmi` branch adds a narrow `HIVMAVEToVMI`
+  prototype and useful unsupported-op diagnostics. It is not a full bridge:
+  it covers only AVE/vector rows, uses a local textual bridge dialect, lacks
+  PTOAS parse/verify/run tests, and does not address HIVM DMA/cube/sync rows.
 
 ## Current PTO-ISA Understanding
 
