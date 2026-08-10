@@ -7,3 +7,15 @@
 
 Human intent lives in `human/`. If a bridge note conflicts with `human/`, the human document wins and Codex should report the mismatch.
 
+## Current Status
+
+- Explorer bot is installed as a user systemd timer and runs daily at 7:00am Eastern.
+- Latest configured-scope PTOAS report: `explorer/reports/README.md`.
+- Latest big-change report: `explorer/reports/daily/2026-08-10.md`.
+- Durable state summary: `bridge/memory/project-state.md`.
+- Upstream/fork watch list: `bridge/memory/upstream-watch.md`.
+- Current mapping draft: `bridge/planning/npuir-to-ptoas-mapping.md`.
+
+The configured PTOAS watcher scope is current as of 2026-08-10. Full automatic
+direct-fork/fork-of-fork discovery and GitCode issue/PR tracking are still
+pending.

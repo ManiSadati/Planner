@@ -17,7 +17,7 @@ may matter, and what should be reviewed by Codex or the human.
 
 ## Schedule And Scope
 
-- Run once per day at 7:00am Eastern time, Monday through Saturday.
+- Run once per day at 7:00am Eastern time.
 - Process only new or newly modified activity since the previous successful
   scan.
 - Inspect first-seen branches once even when their head commit is older than

@@ -50,7 +50,7 @@ Status: complete enough to move to Stage 3. See:
 - `explorer/reports/backfill/2026-08-07-ptoas-stage2-snapshot.md`
 - `explorer/reports/backfill/2026-08-07-ptoas-reexploration.md`
 
-Follow-up note: after human verification caught the missed `WenboCodes/PTOAS:new-vf-fusion-design` branch, Codex reran focused branch triage. The follow-up added the branch-triage policy, captured Wenbo VMI-level VF fusion context, recorded legacy zhendong tile-fusion docs as hazard context, and recorded mouliangyu branch-local VMI contract context. A fresh PR-file pass is still deferred because the unauthenticated GitHub API hit a rate limit.
+Follow-up note: after human verification caught the missed `WenboCodes/PTOAS:new-vf-fusion-design` branch, Codex reran focused branch triage. The follow-up added the branch-triage policy, captured Wenbo VMI-level VF fusion context, recorded legacy zhendong tile-fusion docs as hazard context, and recorded mouliangyu branch-local VMI contract context. A later four-day explorer lookback used the GitHub token successfully and produced current configured-scope PTOAS reports at `explorer/reports/README.md` and `explorer/reports/daily/2026-08-10.md`.
 
 Answer:
 
@@ -147,6 +147,8 @@ Answer:
 
 ## Stage 5: One-Month Ecosystem Backfill
 
+Status: partially covered by the 2026-08-10 four-day configured-scope explorer lookback. The current PTOAS watcher scope is up to date enough for near-term planning, but the full one-month ecosystem backfill and automatic depth-2 fork discovery are still pending.
+
 Review recent design-relevant activity for:
 
 - PTOAS upstream and named forks;
@@ -160,6 +162,17 @@ Focus on:
 - issues and PRs with design implications;
 - work that could conflict with the bridge plan;
 - work that confirms or updates the current hypothesis.
+
+Current 2026-08-10 PTOAS watch items that should feed mapping-table review:
+
+- LLVM19 / VPTO `feature-vpto` migration;
+- cross-block versus intra-block sync API split;
+- implicit tmp materialization pass ordering;
+- PTO Common ops and `PTOLowerScalarToStandard`;
+- VPTO scheduler framework;
+- SoftLibService / late SoftLib expansion;
+- FP4 L1-to-L0 S4 staging;
+- large elementwise 1D/2D TileLib refactor in the Markham fork.
 
 Do not summarize routine CI churn, typo fixes, or unrelated cleanup unless it changes design assumptions.
 

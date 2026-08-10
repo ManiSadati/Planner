@@ -67,7 +67,7 @@ The scheduled explorer agent should stay narrow. It should report what changed s
 
 Daily monitoring target:
 
-- Run at 7:00am Eastern time, Monday through Saturday.
+- Run at 7:00am Eastern time every day.
 - Use the OpenAI API key only for the daily automated summarization agent.
 - Summarize only new or newly modified activity since the last successful scan.
 - Update the general explorer overview.

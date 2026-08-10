@@ -33,7 +33,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 
 - `AGENT.md` is approved as the current Codex contract.
 - `human/HighLevelOverview.md` is the human-owned project overview.
-- `explorer/` exists but has not run a real daily scan yet.
+- `explorer/` is installed as a user systemd timer and scheduled daily at 7:00am Eastern time.
 - Initial Codex-led exploration has started.
 - Stage 1 local repo baseline is complete: see `bridge/planning/local-repo-baseline.md`.
 - Stage 2 PTOAS context is complete enough for NPU-IR exploration: see `PTOAS/design/lowering-pipeline.md`, `PTOAS/design/ecosystem-inventory-2026-08-07.md`, `PTOAS/coding-guide/pipeline-and-validation.md`, and `explorer/reports/backfill/2026-08-07-ptoas-reexploration.md`.
@@ -41,12 +41,31 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Stage 4 PTO-ISA context has a local source-backed baseline: see `PTO-ISA/design/virtual-isa-and-bridge-targets.md` and `PTO-ISA/coding-guide/repo-and-validation.md`.
 - First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
 - `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` has been reviewed as vector-pass prototype context. Do not continue it directly; port selected ideas into a fresh current-baseline branch if used. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
+- Latest configured-scope explorer lookback completed on 2026-08-10. Reports: `explorer/reports/README.md` and `explorer/reports/daily/2026-08-10.md`. The scan used the GitHub token and no longer hit the previous GitHub rate-limit failure.
+
+## Latest Explorer/PTOAS State
+
+As of the 2026-08-10 four-day lookback, the configured watcher scope is current enough for near-term bridge planning. Scope covered configured PTOAS local/remotes, `hw-native-sys/PTOAS` issues/PRs, and local AscendNPU-IR branch tracking. It did not yet cover automatic direct-fork/fork-of-fork discovery or GitCode issue/PR tracking.
+
+Latest PTOAS signals:
+
+- upstream `hw-native-sys/PTOAS` main advanced with implicit tmp materialization, TFILLPAD unification, VPTO vscatter memory-effect fixes, and broad IR/emitter/test updates;
+- `codex/downgrade-llvm19` and PR #1156 make LLVM 19 / VPTO `feature-vpto` the major toolchain watch item;
+- PR #1204 and `codex/sync-block-interfaces` split cross-block and intra-block sync APIs;
+- PR #1189 introduces PTO Common ops and `PTOLowerScalarToStandard`, which may affect bridge import/export assumptions;
+- PR #1202 adds an analysis-only VPTO scheduler framework;
+- issue #1200 and PR #1203 add explicit FP4 L1-to-L0 S4 staging;
+- PR #1193 adds SoftLibService / late SoftLib expansion, while PR #1196 landed native integer vdiv TileLib support;
+- local Markham fork `origin/main` now has in-process PTODSL materialization through TileLibService;
+- local Markham branch `origin/elemntwise-1d-2d-versions` is a large elementwise 1D/2D TileLib refactor and should be treated as relevant but not authoritative source-of-truth.
+
+Immediate review targets before implementation: LLVM19 environment alignment, sync API split, implicit tmp pass ordering, PTO Common ops, SoftLibService pass ordering, and VPTO scheduler implications.
 
 ## Open Technical Risks
 
 - The exact NPU-IR interception point is not confirmed.
 - PTOAS VMI/VPTO pipeline is active and moving. Current design centerpieces are `ExpandTileOp`, PTODSL TileLib expansion, VMI layout assignment, and `VMIToVPTO`.
-- PTOAS local branch state must not be confused with upstream/fork design state. The 2026-08-07 ecosystem snapshot found active upstream PRs/issues in VMI, VPTO, PTODSL scalar/control flow, sync, memory planning, gather/scatter, and L1/L0 movement.
+- PTOAS local branch state must not be confused with upstream/fork design state. The 2026-08-10 configured-scope scan found active upstream/fork movement in LLVM19 migration, sync interface split, implicit tmp materialization, PTO Common ops, VPTO scheduler work, SoftLib, FP4 staging, VMI/TileLib, and PTODSL behavior.
 - DMA and cube-template mappings may not be clean one-to-one mappings at the late HIVM-AVE level.
 - Synchronization and memory-planning ownership between NPU-IR and PTOAS must be kept explicit.
 - Performance parity is a requirement, not a nice-to-have.
