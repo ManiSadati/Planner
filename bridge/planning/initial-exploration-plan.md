@@ -1,6 +1,6 @@
 # Initial Exploration Plan
 
-Last updated: 2026-08-07
+Last updated: 2026-08-10
 
 ## Objective
 
@@ -46,6 +46,9 @@ Status: complete enough to move to Stage 3. See:
 - `PTOAS/design/lowering-pipeline.md`
 - `PTOAS/coding-guide/pipeline-and-validation.md`
 - `explorer/reports/backfill/2026-08-07-ptoas-stage2-snapshot.md`
+- `explorer/reports/backfill/2026-08-07-ptoas-reexploration.md`
+
+Follow-up note: after human verification caught the missed `WenboCodes/PTOAS:new-vf-fusion-design` branch, Codex reran focused branch triage. The follow-up added the branch-triage policy, captured Wenbo VMI-level VF fusion context, recorded legacy zhendong tile-fusion docs as hazard context, and recorded mouliangyu branch-local VMI contract context. A fresh PR-file pass is still deferred because the unauthenticated GitHub API hit a rate limit.
 
 Answer:
 
@@ -55,9 +58,47 @@ Answer:
 - Where is `expandtile` in the pipeline, and what IR exists immediately before and after it?
 - What synchronization and memory-planning passes are required versus optional when input already carries planning information?
 
+Before writing mapping-table rows for vector operations, use the complete
+`docs/isa/vmi-isa/00-10` file set, not only the overview/load-store/predicate
+subset.
+
+Important planning take: current upstream TileLib templates are not VMI-based
+by default, but branch-local design evidence points toward PTODSL/TileOp
+expansion into logical VMI. The mapping table should therefore distinguish:
+
+- preferred semantic target for future-compatible design, usually VMI for vector
+  work;
+- current upstream implementation target or fallback needed to compile today;
+- information that must be preserved so a later VMI-based TileLib/fusion path is
+  still usable.
+
 ## Stage 3: NPU-IR Design Context
 
-Status: next.
+Status: in progress. Initial local source scan is recorded in:
+
+- `NPUIR/design/lowering-pipeline.md`
+- `NPUIR/coding-guide/repo-and-validation.md`
+
+Finding so far: `convert-hivmave-to-ave-intrin` is useful for vector-side
+mapping, but it is not sufficient as the only bridge boundary. The driver runs
+`convert-hivm-to-std` before `convert-hivmave-to-ave-intrin`, and the regbase
+`HIVMToStandard` conversion lowers many DMA, cube, vector, sync-lock, SIMT, and
+custom HIVM ops to external library calls. Mapping table rows should therefore
+record both a vector/HIVMAVE boundary and an earlier HIVM boundary where needed.
+
+Additional local-source findings:
+
+- The HIVM pipeline performs memory planning, lower-to-loops, sync pipeline
+  insertion/decomposition, memref-ext lowering, and FFTS metadata work before
+  late conversion. "Before `convert-hivm-to-std`" should be split into finer
+  rows when sync or memory ownership matters.
+- `hivm.hir.mmadL1`/`mma*` are cube/template rows, not VMI-only vector rows.
+- `hivm.hir.nd2nz` is a GM-to-CBUF ND-to-NZ template-backed DMA/layout row.
+- `sync_block`, `set_flag`, `wait_flag`, `sync_block_set`, and
+  `sync_block_wait` need an explicit sync-ownership column in the mapping table.
+- These are local `mani/fuse-explore` findings only. Before claiming
+  compatibility with the current Ascend upstream, fetch or inspect
+  `https://gitcode.com/Ascend/AscendNPU-IR`.
 
 Answer:
 
@@ -68,6 +109,28 @@ Answer:
 - Which stage preserves the most useful structure for PTOAS/PTO-ISA mapping?
 
 ## Stage 4: PTO-ISA Context
+
+Status: local source-backed baseline complete enough for an initial mapping-table
+draft. See:
+
+- `PTO-ISA/design/virtual-isa-and-bridge-targets.md`
+- `PTO-ISA/coding-guide/repo-and-validation.md`
+
+Finding so far: PTO-ISA is a tile-level virtual ISA with explicit valid-region,
+tile-location, layout, GlobalTensor, event, and backend-legality concepts. It is
+a plausible semantic target for NPU-IR tile/DMA/cube/sync rows, while PTOAS VMI
+remains the preferred future-compatible target for logical vector semantics when
+the bridge enters PTOAS through VPTO/VMI.
+
+Important local-source implications:
+
+- `mmadL1`/`mma*` should be compared against `TMATMUL`, `TMATMUL_ACC`,
+  `TMATMUL_BIAS`, and `TMATMUL_MX`, with surrounding `TLOAD`/`TMOV`/`TSTORE`.
+- `nd2nz` should be compared against `TLOAD` Mat ND-to-NZ paths or `TMOV`
+  ND-to-NZ movement depending on source/destination storage at the bridge point.
+- `set_flag`/`wait_flag` should be compared against PTO `Event<SrcOp,DstOp>` /
+  `TSYNC`, but only after pipe pair and event-token semantics are explicit.
+- `sync_block*` may map to `SYNCALL` only when participant-set semantics match.
 
 Answer:
 
@@ -96,7 +159,16 @@ Do not summarize routine CI churn, typo fixes, or unrelated cleanup unless it ch
 
 ## Stage 6: Mapping Table
 
-Create the first source-backed mapping table after Stages 1-5.
+Status: local-first draft created. See:
+
+- `bridge/planning/npuir-to-ptoas-mapping.md`
+
+Important caveat: the draft is useful for planning, but it is not implementation
+authority until Stage 5 upstream/fork reconciliation and example IR dumps are
+added for at least one vector row, one DMA/layout row, one cube row, and one
+sync row.
+
+Finalize the source-backed mapping table after Stages 1-5.
 
 Initial rows should include at least:
 

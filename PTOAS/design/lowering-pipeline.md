@@ -17,8 +17,9 @@ For the bridge, the key PTOAS boundary is:
 tile-native PTO IR
   -> ExpandTileOp
   -> helper inline/fold
-  -> VMI semantic pipeline
-  -> physical VPTO IR
+  -> VPTO authoring IR, possibly including pto.vmi.* ops
+  -> VMI semantic pipeline for any remaining VMI ops
+  -> physical VPTO IR / existing VPTO micro ops
   -> VPTO LLVM/device emission
 ```
 
@@ -105,6 +106,22 @@ That last point matters because the human overview's rough mapping mentioned `hi
 
 For VPTO tile-op expansion, PTODSL TileLib is the default backend.
 
+Important nuance: `ExpandTileOp` is the tile-op expansion boundary, not a
+guarantee that every expanded tile op becomes VMI. Current TileLib helpers can
+contain existing VPTO/vector-style ops such as `pto.vlds`, `pto.vadd`, and
+`pto.vsts`. Separately, PTOAS also accepts and tests direct `pto.vmi.*` surface
+ops. The VMI semantic pipeline always runs in the VPTO backend, but it is only
+substantive for functions that contain VMI ops after tile expansion, helper
+inlining, or direct user/frontend generation.
+
+Planning takeaway: current upstream implementation and likely design direction
+are not the same thing. On current upstream `988d50e24`, `ptodsl/ptodsl/tilelib`
+does not use `pto.vmi.*` in its templates, while PTODSL itself exposes a VMI
+namespace. WenboCodes' `new-vf-fusion-design` branch is the strongest signal
+that TileOp/PTODSL expansion may move toward VMI template bodies. For the
+NPU-IR bridge, prefer mappings that preserve enough information for logical VMI
+when possible, but record current compile-time fallback requirements explicitly.
+
 The PTODSL path has two Python-daemon interactions:
 
 ```text
@@ -118,7 +135,7 @@ TileOp in MLIR
        replace TileOp with func.call
   -> PTOInlineLibCall
   -> FoldTileBufIntrinsics
-  -> VPTO-facing IR
+  -> VPTO-facing IR, with VMI ops only if the helper/frontend produced them
 ```
 
 The specialization key must include op name, architecture, tile/view/vector/scalar operand metadata, and forwarded context attrs. This is a core correctness rule because different shapes/strides/layouts can require different rendered helper bodies.
@@ -183,6 +200,23 @@ Key ideas to keep visible:
 
 Bridge implication: if NPU-IR lowering erases shaped access, loop, mask, or accumulator-lifetime facts before PTOAS sees them, this future VMI fusion direction becomes harder or impossible to exploit.
 
+## Branch Watch: Legacy Tile-Fusion And VMI Contracts
+
+Focused re-exploration found older branch-local docs that are useful for context but should not override current upstream/mainline evidence.
+
+`zhendong404/PTOAS` tile-fusion branches describe an older A5 Level-3 OpLib/tile-fusion path. Important ideas include `pto.fusion_region`, tile-fusion planning before structure is erased, DFG/lifetime analysis, template lowering, register passing to remove UB store/load handoffs, sync placement, and register-pressure/cost-model hazards.
+
+However, those docs also rely on older pipeline pieces such as OpLib concrete templates, `PTOViewToMemref`, `pto.simd.*`, and EmitC-style bridging. For current bridge planning, treat them as hazard context, not as the active PTOAS architecture.
+
+`mouliangyu/PTOAS:vmi-per-block-cast` contains a branch-only `vmi-dialect-design.md` that reinforces the current VMI contract:
+
+- VMI is a logical semantic vector layer, not a physical VPTO dialect.
+- Producers should emit VMI ops or VMI compositions after entering VMI.
+- Physical layout choices and target fallbacks belong to explicit layout assignment/lowering, not hidden producer-side assumptions.
+- After layout assignment, VMI data and masks should carry enough concrete layout information for `VMIToVPTO` without re-solving hidden context.
+
+Bridge implication: the NPU-IR-to-PTOAS conversion should preserve logical vector semantics cleanly and avoid hard-coding physical VPTO layout too early. If a mapping requires a physical choice, the mapping table should call that out as a risk instead of burying it in code.
+
 ## VMI Semantic Pipeline
 
 VMI is the logical vector layer before physical VPTO. It represents logically contiguous vector registers and masks, while layout assignment decides how those values are split across physical 256B vector registers and predicate registers.
@@ -227,6 +261,30 @@ The design rule is strict:
 - after `vmi-to-vpto`, no `pto.vmi.*`, `!pto.vmi.*`, or residual conversion casts should remain.
 
 ## VMI Concepts Relevant To NPU-IR Mapping
+
+VMI ISA folder coverage check: on 2026-08-07, Codex verified the local
+`upstream/main` VMI ISA directory has these files and that the current local
+branch has no diff from `upstream/main` under `docs/isa/vmi-isa`:
+
+```text
+00-architecture-overview.md
+01-load-store.md
+02-index-gen.md
+03-eltwise-compute.md
+04-broadcast.md
+05-reduce.md
+06-convert.md
+07-sfu.md
+08-predicate-ops.md
+09-data-rearrange.md
+10-appendices.md
+```
+
+The Stage 2 summary initially cited the most directly relevant files
+(`00`, `01`, and `08`), but the mapping table should use the full folder. The
+extra files matter for NPU-IR rows covering index generation, eltwise ops,
+broadcast, reductions, conversion, SFU/fused ops, gather/scatter, data
+rearrange, `vselr`, and A5 merge-mode emulation.
 
 VMI types:
 
@@ -330,5 +388,9 @@ Before implementing the conversion pass, cross-check these active areas against 
 - `https://github.com/hw-native-sys/PTOAS/issues`
 - `https://github.com/hw-native-sys/PTOAS/pulls`
 - `https://github.com/hw-native-sys/PTOAS/branches`
+- `https://github.com/hw-native-sys/PTOAS/tree/main/docs/isa/vmi-isa`
 - `https://github.com/mouliangyu/PTOAS`
 - `https://github.com/WenboCodes/PTOAS/tree/new-vf-fusion-design/docs/new-vf-fusion-design`
+- `https://raw.githubusercontent.com/zhendong404/PTOAS/tile-fusion-stage2/docs/tile_fusion/oplib_lowering_tile_fusion_design_v1.md`
+- `https://raw.githubusercontent.com/zhendong404/PTOAS/rewrite/tile-fusion-2-pr-ready-20260319/docs/tile_fusion/tile_fusion_design_spec.md`
+- `https://raw.githubusercontent.com/mouliangyu/PTOAS/vmi-per-block-cast/docs/designs/vmi-dialect-design.md`

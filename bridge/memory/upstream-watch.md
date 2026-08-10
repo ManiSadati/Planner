@@ -40,6 +40,7 @@ Explorer/backfill work must compare upstream, active forks, forks-of-forks, bran
 ## Current Watch Status
 
 - PTOAS Stage 2 snapshot produced: `explorer/reports/backfill/2026-08-07-ptoas-stage2-snapshot.md`.
+- PTOAS focused re-exploration produced: `explorer/reports/backfill/2026-08-07-ptoas-reexploration.md`.
 - PTOAS ecosystem inventory produced: `PTOAS/design/ecosystem-inventory-2026-08-07.md`.
 - Explorer branch triage policy produced: `explorer/docs/branch-triage-policy.md`.
 - No daily explorer report has been produced yet.
@@ -56,6 +57,8 @@ Current high-priority watch areas:
 - active direct forks and fork-of-fork branches are moving, but several default branches are behind upstream, so compare branch heads before trusting fork design state;
 - current upstream issues/PRs touch VMI/VPTO lowering, PTODSL scalar/control flow, sync/allocation, gather/scatter, L1/L0 loads, quant, and possible LLVM19/VPTO branch adaptation.
 - `WenboCodes/PTOAS` branch `new-vf-fusion-design` contains important VMI-level VF fusion docs and should be tracked as design context even though it is not upstream `main`.
+- older `zhendong404/PTOAS` tile-fusion branches contain useful legacy design context around fusion planning, OpLib/template lowering, UB handoff removal, sync placement, and register pressure, but should not be treated as current architecture without new upstream evidence.
+- `mouliangyu/PTOAS:vmi-per-block-cast` contains branch-only VMI contract context; it reinforces logical VMI producer boundaries and explicit layout/lowering ownership.
 
 Bridge-relevant live upstream PR/issue topics:
 
@@ -68,3 +71,8 @@ Bridge-relevant live upstream PR/issue topics:
 - VMI-level VF fusion ideas from `WenboCodes/PTOAS:new-vf-fusion-design`: shaped pointers, multidimensional VMI load/store indices, post-fusion mem2reg, `N x VL` tile-shape constraints, and accumulator-lifetime/cost-model tradeoffs.
 
 When the mapping table starts, re-check these topics if more than a few days have passed.
+
+Known explorer limitation from focused re-exploration:
+
+- unauthenticated GitHub API rate limiting blocked a fresh PR file-list pass;
+- future explorer implementation should support an optional GitHub token and should record rate-limit failures explicitly rather than silently dropping PR triage.

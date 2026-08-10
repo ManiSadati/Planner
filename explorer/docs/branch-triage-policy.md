@@ -199,6 +199,27 @@ Suggested classification:
 | 1-3 | Low priority | Store state; do not summarize unless requested. |
 | 0 or less | Likely noise | Store skip reason; do not summarize. |
 
+## False Positive Control
+
+The first focused re-exploration showed that old divergent branches can look
+artificially important if their compare includes inherited AI docs or stale
+process files. Explorer should avoid deciding from a short file sample.
+
+Implementation rules:
+
+- score from the complete changed-file list available from the compare API;
+- keep relevant source/docs counts separate from AI/process-doc counts;
+- record ahead/behind status and mark heavily diverged compares as lower
+  confidence until a better base or merge-base is available;
+- downweight branches where most changed files are `.claude/`, `.cursor/`,
+  `.github/`, `AGENT*`, `CLAUDE*`, `openspec/`, `adr/`, or generated workflow
+  files unless relevant source, PR, issue, or human design docs also exist;
+- do not let `adr/` files alone create priority, but allow ADR files to support
+  priority when the same branch also has an RFC, design overview, or relevant
+  source changes;
+- distinguish "legacy design context" from "current source of truth" when a
+  branch is far behind upstream but contains useful human-written docs.
+
 ## Required Output Per Candidate
 
 Explorer should store this for each branch or PR candidate:
@@ -249,6 +270,8 @@ The daily agent should run in two phases:
    - compare first-seen or changed branches;
    - gather changed files and line counts;
    - score and classify candidates.
+   - use an optional GitHub token when available so PR file-list collection does
+     not fail silently under unauthenticated API rate limits.
 
 2. AI summarization:
    - receive only `Investigate` and selected `Watch` candidates;

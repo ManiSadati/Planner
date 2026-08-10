@@ -37,6 +37,12 @@ The current working hypothesis is:
 - AscendNPU-IR lowers high-level inputs toward HIVM-AVE / AVE intrinsics and then CCE-oriented code.
 - PTOAS/PTO-ISA can serve as an open lower-level target, especially through PTO/VMI for vector-side semantics and PTO tile abstractions for tile/cube/DMA behavior.
 - The likely integration point is around `convert-hivmave-to-ave-intrin`, but some constructs may need to be intercepted earlier, possibly around `HIVMToStandard`, if CCE template calls hide information needed for PTO mapping.
+- Current upstream PTOAS has a PTODSL `pto.vmi.*` surface, but current upstream
+  TileLib templates are not yet VMI-based by default. Branch evidence, especially
+  `WenboCodes/PTOAS:new-vf-fusion-design`, points toward TileOp/PTODSL expansion
+  moving to logical VMI so VMI-level fusion and `mem2reg` can work before physical
+  VPTO lowering. Bridge planning should preserve the facts VMI would need, while
+  clearly marking what current upstream can compile today.
 
 The first engineering planning artifact should be a mapping table:
 
@@ -98,7 +104,7 @@ Initial exploration should produce or seed:
 - `bridge/memory/project-state.md`
 - `bridge/memory/upstream-watch.md`
 - `bridge/planning/initial-exploration-plan.md`
-- `explorer/reports/backfill-YYYY-MM-DD.md`
+- `explorer/reports/backfill/YYYY-MM-DD.md`
 - Planner-side summaries under `PTOAS/`, `NPUIR/`, and `PTO-ISA/` as needed
 
 PTOAS tracking should include:

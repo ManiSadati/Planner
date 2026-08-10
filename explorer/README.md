@@ -21,6 +21,7 @@ Nothing is scheduled or executed yet.
 - `.repo-checker-state/state.json`: created on first run and ignored by git.
 - `reports/README.md`: generated status report target.
 - `reports/daily/`: generated daily big-change reports.
+- `reports/backfill/`: Codex-led one-time exploration and re-exploration reports.
 
 ## Intended Setup
 

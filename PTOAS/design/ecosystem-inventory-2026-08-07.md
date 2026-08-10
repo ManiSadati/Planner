@@ -109,6 +109,23 @@ Bridge impact:
 - It is highly relevant design context because it frames future PTOAS/VMI fusion around the same performance concerns we care about: avoiding UB round-trips, preserving structured access information, making masks first-class, and keeping physical layout decisions in `pto.as`.
 - For the NPU-IR mapping table, this strengthens the need to preserve loop structure, shaped access information, masks, and reduce accumulator lifetime if we want PTOAS/VMI to recover deep fusion opportunities.
 
+## Focused Re-Exploration Addendum
+
+Collected: 2026-08-07 20:48:38 UTC.
+
+After the missed Wenbo branch, Codex reran PTOAS branch triage using `explorer/docs/branch-triage-policy.md`. The follow-up confirmed that the new policy would surface `WenboCodes/PTOAS:new-vf-fusion-design` as an `Investigate` branch despite its age, because it has a human-looking branch name, a design-specific docs folder, relevant VMI/VF/fusion terms, and a large coherent docs diff.
+
+The follow-up also found useful but older branch-local design context:
+
+| Branch family | Status for Planner | Notes |
+| --- | --- | --- |
+| `WenboCodes/PTOAS:new-vf-fusion-design` | High-value watch item | Keep as future VMI-level fusion context. It is not current implementation truth, but its shaped pointer, multidimensional access, mask, `N x VL`, and VMI `mem2reg` ideas directly affect bridge performance planning. |
+| `zhendong404/PTOAS:tile-fusion-stage2` and related tile-fusion branches | Legacy design archaeology | Contains branch-only OpLib/tile-fusion docs about `pto.fusion_region`, template lowering, scheduling, DFG/lifetime, UB handoff removal, and loop/sync hazards. Much of the concrete pipeline is older than current `ExpandTileOp`/PTODSL TileLib/VMI/VPTO architecture. |
+| `mouliangyu/PTOAS:vmi-per-block-cast` | VMI contract context | Contains branch-only `vmi-dialect-design.md`, reinforcing that VMI producers should emit logical VMI semantics while layout assignment owns physical layout/VPTO lowering. |
+| `mouliangyu/PTOAS:vmi-examples` | Supporting context | Reinforces lane-stride and layout themes; many related docs are already present in the local checkout. |
+
+Explorer implementation lesson: old divergent branches can inflate scores because compare results include inherited AI docs, `openspec/`, `.claude/`, or other process files. Future explorer runs should score from the complete changed-file list, separate relevant source/design files from AI/process paths, record ahead/behind divergence, and classify old useful branches as "legacy context" rather than current design truth when appropriate.
+
 ## Recent Upstream Issues To Watch
 
 Issue titles updated since 2026-07-07 that are design-relevant:
@@ -186,3 +203,6 @@ PR titles updated since 2026-07-07 that are design-relevant:
 - GitHub API PR snapshot: `https://api.github.com/repos/hw-native-sys/PTOAS/pulls?state=all&sort=updated&direction=desc&per_page=100`
 - Compare checks: `https://github.com/hw-native-sys/PTOAS/compare/main...mouliangyu:main`, `https://github.com/hw-native-sys/PTOAS/compare/main...zhendong404:main`, `https://github.com/hw-native-sys/PTOAS/compare/main...liuzidi:feature-vpto-backend`
 - WenboCodes VF fusion branch docs: `https://github.com/WenboCodes/PTOAS/tree/new-vf-fusion-design/docs/new-vf-fusion-design`
+- Focused re-exploration report: `explorer/reports/backfill/2026-08-07-ptoas-reexploration.md`
+- Zhendong tile-fusion design docs: `https://raw.githubusercontent.com/zhendong404/PTOAS/tile-fusion-stage2/docs/tile_fusion/oplib_lowering_tile_fusion_design_v1.md`, `https://raw.githubusercontent.com/zhendong404/PTOAS/rewrite/tile-fusion-2-pr-ready-20260319/docs/tile_fusion/tile_fusion_design_spec.md`
+- Mouliangyu VMI dialect branch doc: `https://raw.githubusercontent.com/mouliangyu/PTOAS/vmi-per-block-cast/docs/designs/vmi-dialect-design.md`
