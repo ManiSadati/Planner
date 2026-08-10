@@ -4,4 +4,5 @@ Description=PTOAS daily repo checker
 [Service]
 Type=oneshot
 WorkingDirectory=%h/Planner/explorer
+Environment=TMPDIR=%h/Planner/explorer/.tmp
 ExecStart=/usr/bin/env bash -lc 'cd "$HOME/Planner/explorer" && set -a; [ -f .venv ] && . ./.venv; [ -f .env ] && . ./.env; set +a; PYTHONPATH=src python3 -m repo_checker --config config.json'

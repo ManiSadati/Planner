@@ -1,8 +1,8 @@
 [Unit]
-Description=Run PTOAS repo checker Monday-Saturday at 7am Eastern
+Description=Run PTOAS repo checker daily at 7am Eastern
 
 [Timer]
-OnCalendar=Mon..Sat *-*-* 07:00:00 America/New_York
+OnCalendar=*-*-* 07:00:00 America/New_York
 Persistent=true
 Unit=ptoas-repo-checker.service
 
