@@ -142,6 +142,11 @@ Before starting the first code patch, collect one or two real IR examples:
 - preferably one `hivm.hir.nd2nz` example for the second wave;
 - the corresponding post-`HIVMToStandard` library-call names for comparison.
 
+The full Python/Triton-to-NPU-IR lowering path should be run on an A5 machine,
+not on the Codex-accessible server. If these real examples are not already in
+Planner, Codex should ask the human to generate early MLIR / early NPU-IR dumps
+on the A5 server and place them in a Planner-accessible examples folder.
+
 The goal is not to exhaustively test the whole compiler yet. The goal is to
 make sure the first bridge row matches real NPU-IR, not just operation
 definitions.

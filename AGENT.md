@@ -216,6 +216,14 @@ When proposing NPU-IR verification, Codex should separate:
 - compile-only or lit-style checks that may run without A5 hardware;
 - A5 hardware checks that require the other server and human feedback.
 
+The full AscendNPU-IR Python/Triton lowering workflow should be treated as
+A5-machine-only. The Codex-accessible server does not have A5 hardware. For
+source-backed bridge work, the human may need to run Python/Triton lowering on
+an A5 server, dump early MLIR / early NPU-IR examples, and place those dumps in
+Planner for Codex to inspect locally. If such an examples folder does not exist
+and real IR examples are needed, Codex should explicitly ask the human for them
+instead of assuming it can generate them locally.
+
 For conversion work, pay special attention to:
 
 - synchronization mapping;

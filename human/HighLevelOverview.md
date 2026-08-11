@@ -102,4 +102,6 @@ once you have the those docs in palce the explorer should be complete to update 
 
 then the taks would be to make the conversion happenning. lets treat this fork as the main development for NPURI to ptoas conversion. https://gitcode.com/manisadati/AscendNPU-IR
 
+One important thing is that NPUIR workflow from python file of triton lowering should only be done in servers with A5 machines. The server that codex has access to doesnt have A5 machine. So the alternative is to go on a A5 machine, lower the python file to mlir (probably early stages of the pipeline of  NPUIR) and then lower it to other IRs and apply passes in the server that codex has access to so that it would be easier to take a look at the IRs. For this there is going to be a folder of very early IRs of some examples and then codex can work on them. Right now there is no such folder if you need it you have to bug the human ordering you!
+
 

@@ -13,6 +13,7 @@ Human intent lives in `human/`. If a bridge note conflicts with `human/`, the hu
 - Latest configured-scope PTOAS report: `explorer/reports/README.md`.
 - Latest big-change report: `explorer/reports/daily/2026-08-11.md`.
 - Durable state summary: `bridge/memory/project-state.md`.
+- A5/early-IR workflow memory: `bridge/memory/a5-ir-workflow.md`.
 - DMA template mapping memory: `bridge/memory/dma-template-mapping.md`.
 - Upstream/fork watch list: `bridge/memory/upstream-watch.md`.
 - Current mapping draft: `bridge/planning/npuir-to-ptoas-mapping.md`.

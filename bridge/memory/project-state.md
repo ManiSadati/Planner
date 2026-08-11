@@ -27,6 +27,8 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 
 - PTOAS can be built and run on this server.
 - AscendNPU-IR can be coded on this server, but full A5 validation may require another server with actual A5 hardware.
+- The full AscendNPU-IR Python/Triton lowering workflow should be treated as A5-machine-only. The Codex-accessible server can inspect code and analyze saved IR dumps, but should not assume it can lower Python/Triton examples locally.
+- There is not yet a dedicated folder of early NPU-IR examples. If real examples are needed, Codex should ask the human to generate early MLIR / early NPU-IR dumps on an A5 server and place them in Planner.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
 
 ## Planner Status
@@ -39,6 +41,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Stage 2 PTOAS context is complete enough for NPU-IR exploration: see `PTOAS/design/lowering-pipeline.md`, `PTOAS/design/ecosystem-inventory-2026-08-07.md`, `PTOAS/coding-guide/pipeline-and-validation.md`, and `explorer/reports/backfill/2026-08-07-ptoas-reexploration.md`.
 - Stage 3 NPU-IR context has a local source-backed baseline: see `NPUIR/design/lowering-pipeline.md` and `NPUIR/coding-guide/repo-and-validation.md`.
 - Stage 4 PTO-ISA context has a local source-backed baseline: see `PTO-ISA/design/virtual-isa-and-bridge-targets.md` and `PTO-ISA/coding-guide/repo-and-validation.md`.
+- A5/early-IR workflow is tracked at `bridge/memory/a5-ir-workflow.md`.
 - First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
 - DMA/template rewrite planning exists at `bridge/planning/dma-template-rewrite-plan.md`, with compact memory at `bridge/memory/dma-template-mapping.md`.
 - `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` has been reviewed as vector-pass prototype context. Do not continue it directly; port selected ideas into a fresh current-baseline branch if used. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
