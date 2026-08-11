@@ -7,6 +7,11 @@ machine, then copy the generated early IR dumps back into Planner.
 The goal is to cover the operation families we need to map, starting from simple
 cases and moving toward realistic fused kernels.
 
+Some A5-generated MLIR dumps are currently checked in beside the source fixtures
+as `*_kernel.mlir`. These are dumps right after
+`AppendTargetDeviceSpec (hacc-append-device-spec)`, not original Python/Triton
+source.
+
 ## Example Set
 
 | File | Main purpose | Expected bridge signals |
@@ -36,6 +41,10 @@ bridge/examples/npuir-early-ir/<example-name>/
 
 Do not use synthetic IR as proof for bridge correctness when a real A5-generated
 dump is needed.
+
+For local replay from the current `*_kernel.mlir` files after NPU-IR is built,
+see `bridge/planning/npuir-device-spec-replay.md` and
+`bridge/tools/replay_npuir_from_device_spec.sh`.
 
 ## Priority Order
 
