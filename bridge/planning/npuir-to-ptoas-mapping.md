@@ -1,6 +1,6 @@
 # NPU-IR To PTOAS Mapping Draft
 
-Last updated: 2026-08-10
+Last updated: 2026-08-11
 
 Scope: local-first mapping draft from Stage 2 PTOAS context, Stage 3 local
 NPU-IR source scan, and Stage 4 local PTO-ISA source scan. This table has not
@@ -11,6 +11,10 @@ as vector-side prototype context. It supports the idea of an HIVMAVE-to-VMI pass
 before `convert-hivmave-to-ave-intrin`, but should not be continued directly or
 treated as implementation authority. See
 `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
+
+DMA rewrite note: the current DMA/template-specific plan is tracked in
+`bridge/planning/dma-template-rewrite-plan.md`, with compact memory in
+`bridge/memory/dma-template-mapping.md`.
 
 Status meanings:
 
@@ -66,5 +70,7 @@ Status meanings:
 - Reconcile this table with current Ascend upstream and the `manisadati` fork.
 - Add source examples or IR dumps for at least one vector row, one DMA/layout
   row, one cube row, and one sync row.
+- Use `bridge/planning/dma-template-rewrite-plan.md` for the first DMA
+  implementation slice before editing CCE-template replacement code.
 - Split rows into implementation issues once the bridge entry point is chosen:
   VMI-first, PTOAS tile-first, PTO-AS/Virtual-ISA-first, or mixed.

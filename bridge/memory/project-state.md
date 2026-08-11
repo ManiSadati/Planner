@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-08-10
+Last updated: 2026-08-11
 
 ## Current Goal
 
@@ -40,14 +40,15 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Stage 3 NPU-IR context has a local source-backed baseline: see `NPUIR/design/lowering-pipeline.md` and `NPUIR/coding-guide/repo-and-validation.md`.
 - Stage 4 PTO-ISA context has a local source-backed baseline: see `PTO-ISA/design/virtual-isa-and-bridge-targets.md` and `PTO-ISA/coding-guide/repo-and-validation.md`.
 - First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
+- DMA/template rewrite planning exists at `bridge/planning/dma-template-rewrite-plan.md`, with compact memory at `bridge/memory/dma-template-mapping.md`.
 - `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` has been reviewed as vector-pass prototype context. Do not continue it directly; port selected ideas into a fresh current-baseline branch if used. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
-- Latest configured-scope explorer lookback completed on 2026-08-10. Reports: `explorer/reports/README.md` and `explorer/reports/daily/2026-08-10.md`. The scan used the GitHub token and no longer hit the previous GitHub rate-limit failure.
+- Latest configured-scope explorer lookback completed on 2026-08-11. Reports: `explorer/reports/README.md` and `explorer/reports/daily/2026-08-11.md`. The scan used the GitHub token and no longer hit the previous GitHub rate-limit failure.
 - GitHub fork-discovery state was bootstrapped on 2026-08-10 for PTOAS:
   74 forks and 801 branch heads recorded, with no bootstrap errors.
 
 ## Latest Explorer/PTOAS State
 
-As of the 2026-08-10 four-day lookback, the configured watcher scope is current enough for near-term bridge planning. Scope covered configured PTOAS local/remotes, `hw-native-sys/PTOAS` issues/PRs, and local AscendNPU-IR branch tracking. GitHub direct-fork/fork-of-fork discovery is implemented and bootstrapped for configured GitHub repos. GitCode issue/PR tracking is still pending.
+As of the 2026-08-11 daily report and the 2026-08-10 four-day lookback, the configured watcher scope is current enough for near-term bridge planning. Scope covered configured PTOAS local/remotes, `hw-native-sys/PTOAS` issues/PRs, and local AscendNPU-IR branch tracking. GitHub direct-fork/fork-of-fork discovery is implemented and bootstrapped for configured GitHub repos. GitCode issue/PR tracking is still pending.
 
 Latest PTOAS signals:
 
@@ -98,6 +99,7 @@ Immediate review targets before implementation: LLVM19 environment alignment, sy
 - `convert-hivmave-to-ave-intrin` remains a plausible vector-side boundary, but it already makes hardware vector-length, predicate-width, and intrinsic-selection decisions. It is not the whole bridge boundary.
 - `hivm.hir.mmadL1`/`mma*` are structured cube/template operations. `mmadL1` carries matrix operands, real `m/k/n`, L0C init, sync-related args, unit-flag mode, transpose/HF32/I4/bias attributes, then lowers toward `mma_tile` templates. It should not be treated as a VMI-only vector row.
 - `hivm.hir.nd2nz` is GM-to-CBUF ND-to-NZ data movement with template-backed layout and copy-intrinsic behavior. It is closer to PTO tile/DMA/MTE mapping than to VMI arithmetic.
+- DMA/template rewriting should start before `convert-hivm-to-std` from structured HIVM DMA ops, not by parsing final CCE library-call names as the main source. First recommended proof of concept is strict GM->UB `hivm.hir.load` plus UB->GM `hivm.hir.store`, no padding/atomic/layout conversion, emitting a mapping/export record or minimal PTOAS/VPTO test.
 - Sync ownership is an explicit bridge dimension. NPU-IR can decompose `sync_block` and generate `set_flag`/`wait_flag`/`sync_block_set`/`sync_block_wait` before final lowering; PTOAS level2 auto-sync versus level3/manual-sync must be chosen per row.
 - Candidate operation families for the first mapping table: `ave.hir.vload`, `ave.hir.masked_store`, `ave.hir.pge`, `ave.hir.vf*`; `hivm.hir.load`, `hivm.hir.store`, `hivm.hir.nd2nz`, `hivm.hir.pointer_cast`, `hivm.hir.set_flag`, `hivm.hir.sync_block*`, and `hivm.hir.mmadL1`.
 - The Soyu-Wilson `codex/ave-to-vmi` branch adds a narrow `HIVMAVEToVMI`
