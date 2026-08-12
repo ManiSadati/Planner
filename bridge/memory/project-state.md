@@ -32,7 +32,8 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - The early-IR folder currently contains workflow documentation unless the human has added actual dumps. If real examples are needed, Codex should ask the human to generate early MLIR / early NPU-IR dumps on an A5 server and place them in Planner.
 - Current A5-generated `*_kernel.mlir` files are dumps right after `AppendTargetDeviceSpec`; local replay from that boundary is planned in `bridge/planning/npuir-device-spec-replay.md` and scripted by `bridge/tools/replay_npuir_from_device_spec.sh`. The current replay endpoint is `convert-hivmave-to-ave-intrin`; compiler stages after that are not required for this bridge investigation. A nonzero replay exit caused by missing `hivmc-a5` is expected on the non-A5 server if the target-pass dump was captured.
 - First local replay result is recorded in `bridge/memory/npuir-device-spec-replay-results-2026-08-11.md`. All six current examples reached `convert-hivmave-to-ave-intrin`; the endpoint confirms that DMA/cube are already helper/template calls by then, so the first bridge analysis/export pass should run earlier while structured HIVM ops are still available.
-- Active implementation focus is DMA conversion through `dma_copy_kernel`. The immediate planning target is `bridge/planning/dma-copy-conversion-exploration.md`: locate the conversion sweet spot, trace each major GM->UB load / UB->GM store syntax change across passes, identify NPU-IR DMA template implementations, and compare template-level versus instruction-level PTOAS mappings.
+- Active implementation focus is DMA conversion through `dma_copy_kernel`. The conversion sweet spot has been selected: after `hivm-mark-disable-load` and before `convert-hivm-to-std`. The supporting source-backed trace is `bridge/memory/dma-copy-conversion-trace.md`.
+- Next code step: add a dry-run AscendNPU-IR bridge/export pass on `mani/DMA` that records simple rank-1 contiguous `hivm.hir.load` GM->UB and `hivm.hir.store` UB->GM mappings, preserves surrounding explicit sync, and emits rejection reasons instead of changing production lowering.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
 - The A5 installation/runtime workflow is tracked in `bridge/memory/npu_ir_installation.md`; the non-A5 Codex-server build/replay workflow is tracked separately in `bridge/memory/npuir-codex-server-build.md`.
 - Current Codex-server AscendNPU-IR build status: `$HOME/AscendNPU-IR` is on `mani/DMA` tracking `wilsoncxfeng/master` at `08031590`; the pinned LLVM submodule is present at `third-party/llvm-project`; the local Release build completed and installed `bishengir-compile` / `bishengir-opt`.
@@ -53,6 +54,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
 - DMA/template rewrite planning exists at `bridge/planning/dma-template-rewrite-plan.md`, with compact memory at `bridge/memory/dma-template-mapping.md`.
 - Focused DMA-copy conversion exploration plan exists at `bridge/planning/dma-copy-conversion-exploration.md`.
+- Focused DMA-copy conversion trace exists at `bridge/memory/dma-copy-conversion-trace.md`. It confirms low-level VPTO `pto.mte_gm_ub` / `pto.mte_ub_gm` plus explicit `pto.set_flag` / `pto.wait_flag` as the most concrete first PTOAS target for the simple DMA row.
 - `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` has been reviewed as vector-pass prototype context. Do not continue it directly; port selected ideas into a fresh current-baseline branch if used. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
 - Latest configured-scope explorer lookback completed on 2026-08-11. Reports: `explorer/reports/README.md` and `explorer/reports/daily/2026-08-11.md`. The scan used the GitHub token and no longer hit the previous GitHub rate-limit failure.
 - GitHub fork-discovery state was bootstrapped on 2026-08-10 for PTOAS:
@@ -78,7 +80,9 @@ Immediate review targets before implementation: LLVM19 environment alignment, sy
 
 ## Open Technical Risks
 
-- The exact NPU-IR interception point is not confirmed.
+- The DMA-copy interception point is confirmed for the first slice: after
+  `hivm-mark-disable-load`, before `convert-hivm-to-std`. Other operation
+  families still need their own boundary checks.
 - PTOAS VMI/VPTO pipeline is active and moving. Current design centerpieces are `ExpandTileOp`, PTODSL TileLib expansion, VMI layout assignment, and `VMIToVPTO`.
 - PTOAS local branch state must not be confused with upstream/fork design state. The 2026-08-10 configured-scope scan found active upstream/fork movement in LLVM19 migration, sync interface split, implicit tmp materialization, PTO Common ops, VPTO scheduler work, SoftLib, FP4 staging, VMI/TileLib, and PTODSL behavior.
 - DMA and cube-template mappings may not be clean one-to-one mappings at the late HIVM-AVE level.
@@ -112,7 +116,8 @@ Immediate review targets before implementation: LLVM19 environment alignment, sy
 - `convert-hivmave-to-ave-intrin` remains a plausible vector-side boundary, but it already makes hardware vector-length, predicate-width, and intrinsic-selection decisions. It is not the whole bridge boundary.
 - `hivm.hir.mmadL1`/`mma*` are structured cube/template operations. `mmadL1` carries matrix operands, real `m/k/n`, L0C init, sync-related args, unit-flag mode, transpose/HF32/I4/bias attributes, then lowers toward `mma_tile` templates. It should not be treated as a VMI-only vector row.
 - `hivm.hir.nd2nz` is GM-to-CBUF ND-to-NZ data movement with template-backed layout and copy-intrinsic behavior. It is closer to PTO tile/DMA/MTE mapping than to VMI arithmetic.
-- DMA/template rewriting should start before `convert-hivm-to-std` from structured HIVM DMA ops, not by parsing final CCE library-call names as the main source. First recommended proof of concept is strict GM->UB `hivm.hir.load` plus UB->GM `hivm.hir.store`, no padding/atomic/layout conversion, emitting a mapping/export record or minimal PTOAS/VPTO test.
+- DMA/template rewriting should start after `hivm-mark-disable-load` and before `convert-hivm-to-std` from structured HIVM DMA ops, not by parsing final CCE library-call names as the main source. First recommended proof of concept is strict GM->UB `hivm.hir.load` plus UB->GM `hivm.hir.store`, preserving explicit NPU-IR sync and emitting a mapping/export record before replacing any lowering path.
+- In `dma_copy_kernel`, structured DMA turns into `load_gm_to_ubuf_1d_float` / `store_ubuf_to_gm_1d_float` at `convert-hivm-to-std`. Current regbase template evidence routes the contiguous C310/A5 path to `copy_gm_to_ubuf_align_v2` and `copy_ubuf_to_gm_align_v2`. PTOAS has corresponding low-level VPTO MTE wrappers and copy lowering.
 - Sync ownership is an explicit bridge dimension. NPU-IR can decompose `sync_block` and generate `set_flag`/`wait_flag`/`sync_block_set`/`sync_block_wait` before final lowering; PTOAS level2 auto-sync versus level3/manual-sync must be chosen per row.
 - Candidate operation families for the first mapping table: `ave.hir.vload`, `ave.hir.masked_store`, `ave.hir.pge`, `ave.hir.vf*`; `hivm.hir.load`, `hivm.hir.store`, `hivm.hir.nd2nz`, `hivm.hir.pointer_cast`, `hivm.hir.set_flag`, `hivm.hir.sync_block*`, and `hivm.hir.mmadL1`.
 - The Soyu-Wilson `codex/ave-to-vmi` branch adds a narrow `HIVMAVEToVMI`

@@ -23,9 +23,11 @@ under:
 bridge/examples/npuir-early-ir/replay/dma_copy_kernel/
 ```
 
-The first objective is not to rewrite code. The first objective is to locate
-the conversion sweet spot and record the concrete IR syntax at each major
-DMA-load/store transition.
+The initial exploration objective is complete. The source-backed trace is
+recorded in `bridge/memory/dma-copy-conversion-trace.md`.
+
+Current next step: implement a dry-run AscendNPU-IR bridge/export pass after
+`hivm-mark-disable-load` and before `convert-hivm-to-std`.
 
 ## Core Question
 
@@ -41,25 +43,28 @@ Candidate boundaries:
 | Template/library-call level after `HIVMToStandard` | calls such as `load_gm_to_ubuf_1d_float` and `store_ubuf_to_gm_1d_float` | easy to match and close to current backend behavior | semantics are encoded in names/templates; harder to recover full shape/layout/flags |
 | Inside NPU-IR templates | actual implemented template instruction sequence | preserves tuned backend behavior | still coupled to CCE-template design; may be too late for PTOAS ownership |
 
-Working hypothesis: the first bridge-analysis/export pass should run after
-NPU-specific memory/sync facts are present but before structured DMA is lowered
-to template/library calls.
+Decision: the first bridge-analysis/export pass should run after
+`hivm-mark-disable-load` and before `convert-hivm-to-std`.
+
+Reason: at that boundary, `hivm.hir.load` / `hivm.hir.store` still carry
+structured DMA operands; `gm` / `ub` address spaces, UB pointer casts,
+double-buffering, dynamic valid length, and explicit MTE/V/MTE sync are visible.
+After `convert-hivm-to-std`, this becomes helper calls such as
+`load_gm_to_ubuf_1d_float` and `store_ubuf_to_gm_1d_float`.
 
 ## Trace To Build From `dma_copy_kernel`
 
-During exploration, fill this table with actual pass names, source locations,
-and syntax snippets from `compile.log`.
+The detailed table is filled in `bridge/memory/dma-copy-conversion-trace.md`.
+Summary:
 
-| Step | Pass boundary | Load representation | Store representation | What changed | Keep for mapping? |
-|---|---|---|---|---|---|
-| 0 | A5 dump after `hacc-append-device-spec` | TBD | TBD | frontend/linalg/memref input state | maybe source intent only |
-| 1 | first pass where GM->UB movement appears | TBD | TBD | identify first concrete movement syntax | yes |
-| 2 | first pass where `hivm.hir.load` / `hivm.hir.store` appears | TBD | TBD | structured HIVM DMA appears | likely yes |
-| 3 | after memory planning / buffer sizing | TBD | TBD | buffers/address spaces/sizes become concrete | likely yes |
-| 4 | after sync insertion/decomposition | TBD | TBD | pipe/event sync becomes explicit | likely yes |
-| 5 | immediately before `HIVMToStandard` | TBD | TBD | last structured-DMA point | likely sweet spot candidate |
-| 6 | immediately after `HIVMToStandard` | TBD | TBD | template/library-call boundary | comparison/fallback |
-| 7 | after `convert-hivmave-to-ave-intrin` | `func.call @load_gm_to_ubuf_1d_float` | `func.call @store_ubuf_to_gm_1d_float` | vector side is regbase-intrinsic; DMA is helper call | too late as primary source |
+| Step | Pass boundary | Load representation | Store representation | Mapping decision |
+|---|---|---|---|---|
+| 0 | `AppendTargetDeviceSpec` | `memref.copy` | `bufferization.materialize_in_destination` | source intent only |
+| 1 | `ConvertToHIVMOp` | first `hivm.hir.load` | first `hivm.hir.store` | structured but too early |
+| 2 | `PlanMemoryRegBase` | `hivm.hir.load` GM->UB | `hivm.hir.store` UB->GM | usable backup boundary |
+| 3 | `GraphSyncSolver` / `MarkDisableLoad` | structured DMA plus explicit sync | structured DMA plus explicit sync | selected boundary |
+| 4 | `ConvertHIVMToStandard` | `func.call @load_gm_to_ubuf_1d_float` | `func.call @store_ubuf_to_gm_1d_float` | comparison/fallback only |
+| 5 | `convert-hivmave-to-ave-intrin` | helper call remains | helper call remains | too late |
 
 For each major transition, record:
 
@@ -102,9 +107,26 @@ $HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/IR/LibraryFunctionOpInterface/
 $HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMDMAOps.td
 ```
 
+Current source-backed answer:
+
+- `HIVMDMAOps.td` defines `hivm.hir.load` as `PIPE_MTE2` and
+  `hivm.hir.store` as `PIPE_MTE3`.
+- `LibraryFunctionOpInterfaceImpl.cpp` constructs copy-like helper names from
+  op name, source/destination address spaces, rank, and dtype.
+- `Conversion/HIVMToStandard/regbase/HIVMToStandard.cpp` rewrites
+  `hivm::LoadOp` and `hivm::StoreOp` with
+  `CopyOpToLibraryCallPattern`.
+- Current regbase vector templates live in
+  `bishengir/lib/Template/lib/RegBase/Vector/Copy1D.cpp` and
+  `bishengir/lib/Template/include/RegBase/DMAUtils.h`.
+- The C310/A5 contiguous path lowers to `copy_gm_to_ubuf_align_v2` and
+  `copy_ubuf_to_gm_align_v2`.
+
 ## PTOAS Mapping Investigation
 
-There are two mapping tracks. Keep both until evidence rules one out.
+There are two mapping tracks. Keep both in the plan, but use low-level VPTO MTE
+ops for the first code patch because this is the most concrete PTOAS surface
+for the observed NPU-IR helper behavior.
 
 ### Track A: Convert From Template-Call Level
 
@@ -132,6 +154,10 @@ instructions inside the templates to PTOAS concepts:
 
 This track is more likely to preserve semantics and should be preferred if the
 structured-DMA boundary has enough information.
+
+Decision for first slice: structured DMA has enough information. Use
+`hivm.hir.load` / `hivm.hir.store` as source, preserve NPU-IR sync, and map the
+simple contiguous row to `pto.mte_gm_ub` / `pto.mte_ub_gm`.
 
 PTOAS/PTO source areas to inspect first:
 
@@ -185,13 +211,13 @@ rg -n "mte_gm_ub|mte_ub_gm|TLOAD|TSTORE|TSYNC|gm.*ub|ub.*gm" \
 
 ## Output Of The Exploration
 
-Create or update one result note after exploration:
+Result note:
 
 ```text
 bridge/memory/dma-copy-conversion-trace.md
 ```
 
-That note should contain:
+That note contains:
 
 - the filled pass-by-pass load/store trace table;
 - the selected sweet spot and rejected alternatives;
@@ -200,5 +226,6 @@ That note should contain:
 - instruction-level PTOAS mapping;
 - first code patch recommendation in `$HOME/AscendNPU-IR`.
 
-No NPU-IR code should be changed until this trace is filled from the real
-`dma_copy_kernel` log and source locations.
+NPU-IR code can now start, but the first patch should be dry-run/export only.
+Do not replace the production CCE-template lowering path until the generated
+mapping record and one PTOAS-facing test are reviewed.

@@ -4,29 +4,43 @@ Last updated: 2026-08-12
 
 ## Current Decision
 
-DMA/template rewriting should start from structured HIVM DMA ops before
-`convert-hivm-to-std`, not from the final CCE template/library-call layer and
-not from the AVE-to-VMI prototype.
+DMA/template rewriting should start from structured HIVM DMA ops after
+`hivm-mark-disable-load` and before `convert-hivm-to-std`, not from the final
+CCE template/library-call layer and not from the AVE-to-VMI prototype.
 
 Reason: before `convert-hivm-to-std`, NPU-IR still exposes source/destination
 memory spaces, dtype, rank, strides, padding, layout conversion, atomic mode,
 and sync context. After the conversion, much of that becomes encoded in
 library-call names and CCE template behavior.
 
-Active focused exploration is now `dma_copy_kernel`. The next required output is
-`bridge/memory/dma-copy-conversion-trace.md`, which should record every major
-load/store syntax transition, the selected sweet spot, and both template-level
-and instruction-level PTOAS mappings.
+The `dma_copy_kernel` trace is recorded in
+`bridge/memory/dma-copy-conversion-trace.md`.
+
+For the first code patch, prefer low-level VPTO MTE as the concrete PTOAS
+target:
+
+- `hivm.hir.load` GM->UB -> `pto.mte_gm_ub`
+- `hivm.hir.store` UB->GM -> `pto.mte_ub_gm`
+- `hivm.hir.set_flag` / `wait_flag` -> PTOAS explicit sync ops
+
+Keep tile-level `TLOAD` / `TSTORE` as the longer-term cleaner interface, but do
+not use it as the first proof of concept unless the tile/view ownership model is
+resolved.
 
 ## First Practical Target
 
 Start with:
 
-- `hivm.hir.load` GM->UB, contiguous 1D/2D, no padding;
+- `hivm.hir.load` GM->UB, contiguous 1D first;
 - `hivm.hir.store` UB->GM, contiguous, no atomic.
 
-Emit a strict mapping/export record first, then generate a minimal PTOAS/VPTO
-test from it.
+Emit a strict mapping/export record first, preserving surrounding explicit sync
+and rejection reasons. Then generate a minimal PTOAS/VPTO test from it.
+
+Padding nuance from `dma_copy_kernel`: the observed load carries
+`pad_mode = <PadValue>` and zero pad value, but left padding is zero and the
+tail-fill path is separate. The first pass should record this rather than
+rejecting every `PadValue` case blindly. Nonzero padding remains out of scope.
 
 ## Working DMA Categories
 
@@ -47,14 +61,11 @@ test from it.
 
 ## Review Decisions Still Open
 
-- Should the first bridge target be tile-level PTOAS/PTO-ISA style ops, or
-  low-level VPTO MTE ops?
-- Should memory planning and sync remain owned by NPU-IR for the first version?
-  If yes, target a level3-like path and preserve explicit addresses/sync.
-- Is GM->UB load/store acceptable as the first proof of concept, or should the
-  first slice be GM->L1 ND2NZ because it is closer to the real cube-template
-  path?
-- What exact IR dump should be used as the first source-backed example?
+- Exact dry-run output format: JSON, MLIR comments, or bridge dialect/module.
+- Exact pass-pipeline insertion point for the new pass in the current
+  AscendNPU-IR driver.
+- Exact PTOAS lit-test shape for dynamic event ids.
+- Whether the second DMA row should be GM->L1 ND2NZ or UB->UB / UB->L1.
 
 ## Do Not Forget
 

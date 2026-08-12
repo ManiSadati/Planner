@@ -1,6 +1,6 @@
 # NPU-IR To PTOAS Mapping Draft
 
-Last updated: 2026-08-11
+Last updated: 2026-08-12
 
 Scope: local-first mapping draft from Stage 2 PTOAS context, Stage 3 local
 NPU-IR source scan, and Stage 4 local PTO-ISA source scan. This table has not
@@ -14,7 +14,8 @@ treated as implementation authority. See
 
 DMA rewrite note: the current DMA/template-specific plan is tracked in
 `bridge/planning/dma-template-rewrite-plan.md`, with compact memory in
-`bridge/memory/dma-template-mapping.md`.
+`bridge/memory/dma-template-mapping.md`. The source-backed `dma_copy_kernel`
+trace is `bridge/memory/dma-copy-conversion-trace.md`.
 
 Status meanings:
 
@@ -32,8 +33,8 @@ Status meanings:
 | `ave.hir.masked_store` | MLIR vector store path creates a full-lane `ave.hir.pge` and `ave.hir.masked_store`; intrinsic lowering lowers masked store under 1-D/hardware-size assumptions. | Preferred: PTOAS VMI masked store/predicate store. PTO-ISA `TSTORE` is only a fallback for valid-region-style stores, not arbitrary masks. | After HIVMAVE normalization, before `convert-hivmave-to-ave-intrin`. | likely | PTO-ISA valid region is rectangular/prefix-like; VMI can better preserve predicate semantics. | N1, N2, N8, P7 | Do not collapse predicate masks into tile valid-region unless equivalence is proven. |
 | `ave.hir.pge` | Predicate generation lowers to hardware PGE-like intrinsic path with mask bit-width attributes. | PTOAS VMI predicate/mask op. PTO-ISA may represent simple masks through valid regions or mask tiles, but this needs case-by-case proof. | Before `convert-hivmave-to-ave-intrin`. | likely | Physical mask bit width may leak too early if intercepted after intrinsic lowering. | N2, N8, P2 | Preserve logical predicate coverage separately from physical mask granularity. |
 | `ave.hir.vf*` arithmetic, e.g. `ave.hir.vfadd` | `convert-arith-to-hivmave` maps arith/math ops to HIVMAVE vector ops; intrinsic lowering selects typed vector intrinsics by dtype and vector length. | PTOAS VMI arithmetic for future-compatible VPTO path. PTO-ISA tile ops such as `TADD` are possible only when the bridge chooses a tile-ISA entry point. | Before `convert-hivmave-to-ave-intrin`; possibly earlier after `convert-hfusion-to-vector` for MLIR-vector-like semantics. | likely | Need choose VMI vs tile entry point; reductions/broadcasts/selects may need separate rows. | N1, N2, P3, P6 | Good first vector prototype row if memory/sync is kept minimal. |
-| `hivm.hir.load` | Regbase `HIVMToStandard` includes load/store-related patterns and can lower structured HIVM ops toward library calls. | PTOAS tile load or PTO-ISA `TLOAD`, depending on selected bridge layer. | Before `convert-hivm-to-std`; exact point depends on memory-planning ownership. | likely | Need preserve memory scope, GlobalTensor-like shape/stride/layout, tile location, and valid region. | N3, N4, P3, P6 | If PTOAS owns memory planning, intercept earlier; if NPU-IR owns addresses, preserve manual placement facts. |
-| `hivm.hir.store` | Regbase `HIVMToStandard` includes store-related lowering and can erase structured memory/scope information into lower calls. | PTOAS tile store or PTO-ISA `TSTORE`. | Before `convert-hivm-to-std`; post-sync if preserving NPU-IR-authored sync. | likely | A5 `TSTORE` has different Vec vs Acc constraints, atomic/quantization modes, and valid-region assumptions. | N3, N4, P7 | Accumulator stores should be split from vector stores in the implementation table. |
+| `hivm.hir.load` | In `dma_copy_kernel`, remains structured through `hivm-mark-disable-load`; `convert-hivm-to-std` rewrites it to `load_gm_to_ubuf_1d_float`. Current regbase templates route the contiguous C310/A5 path to `copy_gm_to_ubuf_align_v2`. | First target: low-level VPTO `pto.mte_gm_ub` with explicit sync preserved. Longer-term target: PTOAS tile load / PTO-ISA `TLOAD` when tile/view ownership is resolved. | After `hivm-mark-disable-load`, before `convert-hivm-to-std`. | confirmed for simple GM->UB row | Need preserve memory scope, UB placement, dynamic valid length, dtype, stride, padding facts, and explicit sync ownership. | N3, N4, N9, P3, P6, P13 | First dry-run pass should match rank-1 contiguous GM->UB only and record zero-pad separately from unsupported nonzero padding. |
+| `hivm.hir.store` | In `dma_copy_kernel`, remains structured through `hivm-mark-disable-load`; `convert-hivm-to-std` rewrites it to `store_ubuf_to_gm_1d_float`. Current regbase templates route the contiguous C310/A5 path to `copy_ubuf_to_gm_align_v2`. | First target: low-level VPTO `pto.mte_ub_gm` with explicit sync preserved. Longer-term target: PTOAS tile store / PTO-ISA `TSTORE` when tile/view ownership is resolved. | After `hivm-mark-disable-load`, before `convert-hivm-to-std`. | confirmed for simple UB->GM row | A5 `TSTORE` has different Vec vs Acc constraints, atomic/quantization modes, and valid-region assumptions. Atomic store is out of scope for the first row. | N3, N4, N9, P7, P13 | Accumulator stores should be split from vector stores in the implementation table. |
 | `hivm.hir.nd2nz` | Regbase `HIVMToStandard` lowers `ND2NZOp` to a library call; template maps GM `(n,d)` to L1 `(n1,d1,d0,n0)` with `n0 * sizeof(T) = 32B`, `d0 = 16`. | PTO-ISA `TLOAD` Mat ND-to-NZ style path if source is GM; PTO-ISA `TMOV` ND-to-NZ path if source/destination are tiles; PTOAS tile/DMA row otherwise. | Before `convert-hivm-to-std`, probably after layout/memory facts are known. | likely | Need know whether the bridge sees GM-to-L1 movement or tile-to-tile movement. | N4, N5, P6, P8 | Not a VMI row. Preserve source layout, target L1/NZ layout, dtype, and shape. |
 | `hivm.hir.mmadL1` | Structured cube macro op lowers toward `mma_tile` library/template. Carries A/B/C operands, init condition, real `m/k/n`, sync args, unit-flag mode, transpose/HF32/I4/bias attributes. | PTO-ISA `TMATMUL`, `TMATMUL_ACC`, `TMATMUL_BIAS`, or `TMATMUL_MX`, plus surrounding `TLOAD`/`TMOV`/`TSTORE`. | Before `convert-hivm-to-std`; exact point depends on whether NPU-IR or PTOAS owns sync/memory planning. | likely | VMI-only mapping loses cube roles, accumulator init/source, unit-flag phase, and sync. | N4, N6, P4, P9 | Use this as first cube row, not `ave.hir.*`. |
 | Global `hivm.hir.matmul` / `mix_matmul` family | `HIVMToStandard` pattern list includes global matmul and mix matmul ops; library-call naming exists for global MMAD-like ops. | Either lower/decompose to PTO-ISA `TMATMUL*` tile rows or map to a higher PTOAS tile matmul op if one exists. | Unknown until decomposition path is traced on examples. | hypothesis | High-level global tiling/process-size semantics may not map one-to-one to `TMATMUL` without schedule decomposition. | N3, N6, P4 | Needs an example IR dump before implementation. |
@@ -52,6 +53,7 @@ Status meanings:
 - N6: `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/IR/LibraryFunctionOpInterface/LibraryFunctionOpInterfaceImpl.cpp:1104`, `:1204`; `$HOME/AscendNPU-IR/bishengir/lib/Template/lib/Cube/LocalMmad.cpp:314`
 - N7: `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVM/IR/HIVMSynchronizationOps.td:43`, `:87`, `:129`; `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/HIVMDecomposeOp.cpp:400`; `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/InjectSync/InjectSync.cpp:75`; `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/GraphSyncSolver/SyncSolverCodeGen.cpp:197`; `$HOME/AscendNPU-IR/bishengir/lib/Dialect/HIVM/Transforms/regbase/PlanMemory.cpp:171`
 - N8: `$HOME/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVMAVE/IR/HIVMAVEOps.td:35`, `:404`, `:444`, `:455`, `:542`, `:744`
+- N9: `bridge/memory/dma-copy-conversion-trace.md`
 - P1: `$HOME/pto-isa/docs/mkdocs/src/manual/01-overview.md:5`, `:14`, `:22`; `$HOME/pto-isa/docs/mkdocs/src/manual/08-virtual-isa-and-ir.md:8`, `:40`
 - P2: `$HOME/pto-isa/docs/mkdocs/src/manual/03-state-and-types.md:7`, `:18`, `:29`, `:40`
 - P3: `$HOME/pto-isa/include/pto/common/type.hpp:122`, `:169`, `:224`; `$HOME/pto-isa/include/pto/common/pto_tile.hpp:261`, `:1394`, `:1428`, `:1597`
@@ -64,13 +66,14 @@ Status meanings:
 - P10: `$HOME/pto-isa/docs/isa/TSYNC.md:8`; `$HOME/pto-isa/include/pto/common/pto_instr.hpp:47`, `:131`; `$HOME/pto-isa/include/pto/npu/a5/TSync.hpp:17`
 - P11: `$HOME/pto-isa/docs/isa/SYNCALL.md:1`; `$HOME/pto-isa/include/pto/common/type.hpp:267`
 - P12: `$HOME/pto-isa/docs/isa/MGATHER.md:1`; `$HOME/pto-isa/docs/isa/MSCATTER.md:1`; `$HOME/pto-isa/include/pto/npu/a5/MGather.hpp:425`, `:452`; `$HOME/pto-isa/include/pto/npu/a5/MScatter.hpp:391`, `:456`
+- P13: `$HOME/PTOAS/PTOAS_Markham/include/PTO/IR/VPTOOps.td`; `$HOME/PTOAS/PTOAS_Markham/lib/PTO/Transforms/VPTOExpandWrapperOps.cpp`; `$HOME/PTOAS/PTOAS_Markham/lib/PTO/Transforms/VPTOCANN900LLVMEmitter.cpp`
 
 ## Next Work
 
 - Reconcile this table with current Ascend upstream and the `manisadati` fork.
-- Add source examples or IR dumps for at least one vector row, one DMA/layout
-  row, one cube row, and one sync row.
-- Use `bridge/planning/dma-template-rewrite-plan.md` for the first DMA
+- Add source examples or IR dumps for at least one vector row, one cube row, and
+  one sync row. The first DMA row now has a source-backed trace.
+- Use `bridge/memory/dma-copy-conversion-trace.md` for the first DMA
   implementation slice before editing CCE-template replacement code.
 - Split rows into implementation issues once the bridge entry point is chosen:
   VMI-first, PTOAS tile-first, PTO-AS/Virtual-ISA-first, or mixed.

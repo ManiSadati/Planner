@@ -42,44 +42,50 @@ The two DMA planning docs are intentionally different:
 
 ## Short-Term Plan
 
-Immediate objective: decide the DMA conversion sweet spot for
+Immediate objective: implement the first dry-run DMA bridge/export pass for
 `dma_copy_kernel`.
 
-1. Regenerate or inspect the full `dma_copy_kernel` replay log with
+Current DMA decision: the first bridge boundary should be after
+`hivm-mark-disable-load` and before `convert-hivm-to-std`. At that point
+`hivm.hir.load` / `hivm.hir.store` are still structured, memory spaces are
+explicit, UB double-buffering is visible, and the relevant MTE/V/MTE sync
+sequence has already been emitted. The supporting trace is
+`bridge/memory/dma-copy-conversion-trace.md`.
+
+Completed exploration:
+
+1. Regenerated and inspected the full `dma_copy_kernel` replay log with
    `--mlir-disable-threading` and `--mlir-print-ir-after-all`.
-2. Trace GM->UB load and UB->GM store through every major representation change.
-3. Record the first appearance and last useful appearance of structured
-   `hivm.hir.load` / `hivm.hir.store`, if present.
-4. Identify the pass that converts structured DMA into template/library calls
+2. Traced GM->UB load and UB->GM store through the major representation changes.
+3. Recorded the first appearance and last useful appearance of structured
+   `hivm.hir.load` / `hivm.hir.store`.
+4. Identified the pass that converts structured DMA into template/library calls
    such as `load_gm_to_ubuf_1d_float` and `store_ubuf_to_gm_1d_float`.
-5. Find the NPU-IR DMA template declaration, selection logic, implementation,
+5. Found the NPU-IR DMA template declaration, selection logic, implementation,
    and the actual low-level instruction sequence used by those templates.
-6. Inspect PTOAS/PTO-ISA movement options for the same semantics:
+6. Inspected PTOAS/PTO-ISA movement options for the same semantics:
    `TLOAD`, `TSTORE`, VPTO MTE ops, and sync/event support.
-7. Write the result into `bridge/memory/dma-copy-conversion-trace.md`.
-8. Only after that, start the first AscendNPU-IR code patch.
+7. Wrote the result into `bridge/memory/dma-copy-conversion-trace.md`.
 
 Expected first code patch:
 
-- an AscendNPU-IR analysis/export pass or mode;
+- an AscendNPU-IR dry-run analysis/export pass or mode;
 - no broad rewrite yet;
 - strict matching for simple GM->UB load and UB->GM store;
 - clear rejection reasons for padding, atomics, layout conversion, unsupported
   rank/stride, and unclear sync ownership.
+- preserve NPU-IR-authored explicit sync for the first slice; do not combine it
+  with PTOAS auto-sync.
 
 ## Medium-Term Plan
 
 After the `dma_copy_kernel` trace is complete:
 
-1. Choose one first mapping target:
-   - tile-level PTOAS/PTO-ISA style `TLOAD` / `TSTORE`; or
-   - lower-level VPTO MTE ops; or
-   - a mixed export format that can compare both.
-2. Implement the narrow GM->UB / UB->GM bridge row in AscendNPU-IR.
-3. Generate a minimal PTOAS-facing test from the bridge record or emitted IR.
-4. Validate locally where possible.
-5. Send the necessary A5 validation command/log request to the human.
-6. Expand only after the first row is stable.
+1. Implement the narrow GM->UB / UB->GM bridge record in AscendNPU-IR.
+2. Generate a minimal PTOAS-facing test from the bridge record or emitted IR.
+3. Validate locally where possible.
+4. Send the necessary A5 validation command/log request to the human.
+5. Expand only after the first row is stable.
 
 Likely second-wave DMA rows:
 
@@ -105,14 +111,15 @@ The broader bridge should eventually handle:
 
 ## Current Blocking Questions
 
-- At which exact pass boundary does `dma_copy_kernel` still contain structured
-  DMA with enough scheduling/sync facts?
-- Are the current DMA templates simple wrappers around MTE operations, or do
-  they encode legality/alignment behavior that must be preserved explicitly?
-- Should the first PTOAS target be high-level `TLOAD`/`TSTORE` or low-level VPTO
-  MTE ops?
-- Should the first version preserve NPU-IR explicit sync, or should it hand
-  memory/sync ownership to PTOAS?
+- Where exactly in the current AscendNPU-IR pass pipeline should the dry-run
+  bridge/export pass be inserted so it runs after `hivm-mark-disable-load`?
+- What output format should the dry-run pass use first: JSON, MLIR comments, or
+  a small bridge dialect/module dump?
+- Should the first generated PTOAS test use low-level VPTO `pto.mte_gm_ub` /
+  `pto.mte_ub_gm` only, or also include a tile-level `TLOAD`/`TSTORE`
+  comparison?
+- How should dynamic event ids from NPU-IR be represented in the first PTOAS
+  sync test?
 
 ## Rule For Planning Updates
 

@@ -7,30 +7,33 @@ DMA path in AscendNPU-IR with something PTOAS can understand. This is based on
 local source inspection of `$HOME/AscendNPU-IR`, `$HOME/PTOAS/PTOAS_Markham`,
 and `$HOME/pto-isa`.
 
-Role: broad DMA/category strategy. For the current focused `dma_copy_kernel`
-trace, use `bridge/planning/dma-copy-conversion-exploration.md`.
+Role: broad DMA/category strategy. For the focused `dma_copy_kernel` trace, use
+`bridge/memory/dma-copy-conversion-trace.md`.
 
-Active focused exploration: `bridge/planning/dma-copy-conversion-exploration.md`.
-Use `dma_copy_kernel` first to locate the exact conversion sweet spot and trace
-each major load/store syntax change before changing NPU-IR code.
+Active focused trace: `bridge/memory/dma-copy-conversion-trace.md`.
+`dma_copy_kernel` has been used to locate the exact conversion sweet spot and
+trace the major load/store syntax changes.
 
 ## Short Version
 
 Do not start by rewriting every CCE DMA template.
 
-Start by intercepting structured HIVM DMA operations before
-`convert-hivm-to-std`, record the exact movement/layout semantics, and implement
-one narrow proof of concept that emits PTOAS-compatible DMA/tile movement.
+Start by intercepting structured HIVM DMA operations after
+`hivm-mark-disable-load` and before `convert-hivm-to-std`, record the exact
+movement/layout semantics, and implement one narrow proof of concept that emits
+PTOAS-compatible DMA/tile movement.
 
 Recommended first slice:
 
-- source op: `hivm.hir.load` from GM to UB, contiguous 1D or 2D, no padding;
+- source op: `hivm.hir.load` from GM to UB, contiguous 1D first, no nonzero
+  padding;
 - second op: `hivm.hir.store` from UB to GM, contiguous, no atomic;
-- bridge target: either PTOAS low-level VPTO MTE ops (`mte_gm_ub`,
-  `mte_ub_gm`) or PTO tile-level `TLOAD`/`TSTORE` style ops, depending on the
-  review decision below;
-- boundary: before `HIVMToStandard` lowers these ops into CCE-style library
-  calls.
+- first bridge target: PTOAS low-level VPTO MTE ops (`mte_gm_ub`,
+  `mte_ub_gm`) plus explicit sync;
+- longer-term bridge target: PTO tile-level `TLOAD`/`TSTORE` style ops once
+  tile/view ownership is resolved;
+- boundary: after `hivm-mark-disable-load` and before `HIVMToStandard` lowers
+  these ops into CCE-style library calls.
 
 This slice is intentionally small. It proves the bridge mechanics without
 starting with ND-to-NZ layout conversion, L0C fixpipe, atomics, or cube sync.
@@ -51,9 +54,10 @@ After that conversion, the bridge mostly sees names like:
 - fixpipe/cube template entry points
 
 Those names are useful as reference evidence, but they are not the best
-implementation boundary. The better boundary is the structured HIVM op, because
-it still carries source/destination memory spaces, shape, stride, dtype, rank,
-padding, layout, atomic mode, and sync context.
+implementation boundary. The better boundary is the structured HIVM op after
+NPU-IR memory/sync planning, because it still carries source/destination memory
+spaces, shape, stride, dtype, rank, padding, layout, atomic mode, and sync
+context.
 
 ## What The Human Should Review
 
@@ -61,9 +65,9 @@ These decisions should be made before code starts:
 
 | Review item | Choice | Why it matters |
 |---|---|---|
-| Primary bridge target | PTOAS tile ops / PTO-ISA style vs low-level VPTO MTE ops vs mixed | Tile ops preserve intent better. VPTO MTE maps closer to CCE intrinsics and may be easier for a first smoke test. |
-| Memory ownership | NPU-IR owns placement/sync vs PTOAS owns placement/sync | If NPU-IR owns addresses and explicit sync, target a level3-like path. If PTOAS owns memory planning and auto-sync, target a level2-like path. Mixing this implicitly is risky. |
-| First DMA row | GM->UB load/store vs GM->L1 ND2NZ vs UB->L1 | GM->UB is simplest. ND2NZ is more representative for cube/tile layout, but has more legality details. |
+| Primary bridge target | First patch uses low-level VPTO MTE; keep tile `TLOAD` / `TSTORE` as longer-term target | Tile ops preserve intent better, but VPTO MTE maps closest to the confirmed template behavior. |
+| Memory ownership | First patch preserves NPU-IR placement/sync | This avoids mixing NPU-IR explicit sync with PTOAS auto-sync. Later rows can choose level2-style ownership deliberately. |
+| First DMA row | GM->UB load/store | GM->UB / UB->GM is simplest and now source-backed by `dma_copy_kernel`. ND2NZ remains an important second-wave row. |
 | Output format for prototype | Real PTOAS IR immediately vs neutral mapping/export file first | A neutral export helps validate semantics quickly. Real IR proves compiler integration sooner. |
 | A5 validation loop | Local PTOAS compile only vs human-run A5 execution | PTOAS can be compiled locally. Full NPU-IR/A5 correctness still needs the A5 server loop. |
 
@@ -108,10 +112,12 @@ Use these rules when filling the implementation mapping table.
 ## First Implementation Step
 
 The first code step should be a small experimental pass or export mode in
-`$HOME/AscendNPU-IR`, before `HIVMToStandard`, with strict matching:
+`$HOME/AscendNPU-IR`, after `hivm-mark-disable-load` and before
+`HIVMToStandard`, with strict matching:
 
-1. Match only simple `hivm.hir.load` GM->UB and `hivm.hir.store` UB->GM.
-2. Reject padding, atomics, layout conversion, non-contiguous edge cases, and
+1. Match only simple rank-1 contiguous `hivm.hir.load` GM->UB and
+   `hivm.hir.store` UB->GM.
+2. Reject nonzero padding, atomics, layout conversion, non-contiguous edge cases, and
    unsupported ranks with a clear diagnostic.
 3. Emit a stable mapping record with:
    - source op name;
@@ -120,6 +126,7 @@ The first code step should be a small experimental pass or export mode in
    - rank/shape;
    - strides;
    - padding/atomic/layout flags;
+   - surrounding explicit sync;
    - selected PTOAS target;
    - rejection reason if unsupported.
 4. Use that record to generate or hand-check a minimal PTOAS/VPTO test.
@@ -142,12 +149,19 @@ This keeps the first implementation reversible and measurable.
 
 ## Immediate Evidence Needed
 
-Before starting the first code patch, collect one or two real IR examples:
+The first real IR example has been collected:
 
-- an IR dump before `convert-hivm-to-std` containing `hivm.hir.load` GM->UB;
-- an IR dump before `convert-hivm-to-std` containing `hivm.hir.store` UB->GM;
-- preferably one `hivm.hir.nd2nz` example for the second wave;
-- the corresponding post-`HIVMToStandard` library-call names for comparison.
+- `bridge/memory/dma-copy-conversion-trace.md` records `dma_copy_kernel`
+  before and after `convert-hivm-to-std`, including structured GM->UB
+  `hivm.hir.load`, structured UB->GM `hivm.hir.store`, and the corresponding
+  `load_gm_to_ubuf_1d_float` / `store_ubuf_to_gm_1d_float` helper calls.
+
+Still needed for second-wave rows:
+
+- one `hivm.hir.nd2nz` example;
+- one UB->UB or UB->L1 copy example;
+- one cube/fixpipe movement example;
+- a focused sync-only example if dynamic event handling is unclear.
 
 The full Python/Triton-to-NPU-IR lowering path should be run on an A5 machine,
 not on the Codex-accessible server. If these real examples are not already in
