@@ -25,19 +25,39 @@ analysis of saved IR files.
 
 ## Current State
 
-There is not yet a dedicated folder of early IR examples.
+Source Triton fixtures live in:
+
+```text
+bridge/triton-example/
+```
+
+The early-IR dump landing folder is:
+
+```text
+bridge/examples/npuir-early-ir/
+```
+
+It currently contains only workflow documentation unless the human has added
+actual A5-generated dumps.
+
+The current `*_kernel.mlir` files in `bridge/triton-example/` are A5-generated
+dumps right after `AppendTargetDeviceSpec (hacc-append-device-spec)`. They can
+be used as local replay inputs after NPU-IR is built here. See
+`bridge/planning/npuir-device-spec-replay.md`.
+
+Use `bridge/memory/npu_ir_installation.md` for the A5 install/runtime workflow.
+Use `bridge/memory/npuir-codex-server-build.md` for the non-A5 Codex-server
+build/replay workflow. Keep these paths separate: the A5 machine produces the
+runtime-backed dumps, while the Codex server replays saved dumps where possible.
+
+For local replay, the current endpoint is `convert-hivmave-to-ave-intrin`. We
+do not need compiler stages after that for the current bridge investigation.
 
 If conversion work needs real NPU-IR examples, Codex should explicitly ask the
 human to generate or place those IR dumps. Codex should not silently substitute
 synthetic examples for source-backed conclusions.
 
-## Suggested Future Folder
-
-Use a repo-relative folder name when it is created, for example:
-
-```text
-bridge/examples/npuir-early-ir/
-```
+## Dump Contents
 
 Each example should ideally include:
 

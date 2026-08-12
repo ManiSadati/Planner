@@ -28,8 +28,13 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - PTOAS can be built and run on this server.
 - AscendNPU-IR can be coded on this server, but full A5 validation may require another server with actual A5 hardware.
 - The full AscendNPU-IR Python/Triton lowering workflow should be treated as A5-machine-only. The Codex-accessible server can inspect code and analyze saved IR dumps, but should not assume it can lower Python/Triton examples locally.
-- There is not yet a dedicated folder of early NPU-IR examples. If real examples are needed, Codex should ask the human to generate early MLIR / early NPU-IR dumps on an A5 server and place them in Planner.
+- Triton source fixtures live in `bridge/triton-example/`; A5-generated early IR dumps should go under `bridge/examples/npuir-early-ir/`.
+- The early-IR folder currently contains workflow documentation unless the human has added actual dumps. If real examples are needed, Codex should ask the human to generate early MLIR / early NPU-IR dumps on an A5 server and place them in Planner.
+- Current A5-generated `*_kernel.mlir` files are dumps right after `AppendTargetDeviceSpec`; local replay from that boundary is planned in `bridge/planning/npuir-device-spec-replay.md` and scripted by `bridge/tools/replay_npuir_from_device_spec.sh`. The current replay endpoint is `convert-hivmave-to-ave-intrin`; compiler stages after that are not required for this bridge investigation. A nonzero replay exit caused by missing `hivmc-a5` is expected on the non-A5 server if the target-pass dump was captured.
+- First local replay result is recorded in `bridge/memory/npuir-device-spec-replay-results-2026-08-11.md`. All six current examples reached `convert-hivmave-to-ave-intrin`; the endpoint confirms that DMA/cube are already helper/template calls by then, so the first bridge analysis/export pass should run earlier while structured HIVM ops are still available.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
+- The A5 installation/runtime workflow is tracked in `bridge/memory/npu_ir_installation.md`; the non-A5 Codex-server build/replay workflow is tracked separately in `bridge/memory/npuir-codex-server-build.md`.
+- Current Codex-server AscendNPU-IR build status: `$HOME/AscendNPU-IR` is on `mani/DMA` tracking `wilsoncxfeng/master` at `08031590`; the pinned LLVM submodule is present at `third-party/llvm-project`; the local Release build completed and installed `bishengir-compile` / `bishengir-opt`.
 
 ## Planner Status
 
@@ -42,6 +47,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Stage 3 NPU-IR context has a local source-backed baseline: see `NPUIR/design/lowering-pipeline.md` and `NPUIR/coding-guide/repo-and-validation.md`.
 - Stage 4 PTO-ISA context has a local source-backed baseline: see `PTO-ISA/design/virtual-isa-and-bridge-targets.md` and `PTO-ISA/coding-guide/repo-and-validation.md`.
 - A5/early-IR workflow is tracked at `bridge/memory/a5-ir-workflow.md`.
+- Codex-server NPU-IR build/replay workflow is tracked at `bridge/memory/npuir-codex-server-build.md`.
 - First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
 - DMA/template rewrite planning exists at `bridge/planning/dma-template-rewrite-plan.md`, with compact memory at `bridge/memory/dma-template-mapping.md`.
 - `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` has been reviewed as vector-pass prototype context. Do not continue it directly; port selected ideas into a fresh current-baseline branch if used. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
@@ -93,7 +99,8 @@ Immediate review targets before implementation: LLVM19 environment alignment, sy
 
 ## Current NPU-IR Understanding
 
-- Local NPU-IR repo is `$HOME/AscendNPU-IR` on `mani/fuse-explore` at `4254b5dec90a4d3d92f581f3fe32b79ea1a82d9a`; its only configured remote is the `manisadati` GitCode fork.
+- Local NPU-IR repo is `$HOME/AscendNPU-IR`. It has `origin` pointing at the `manisadati` GitCode fork and a `wilsoncxfeng` remote pointing at `git@gitcode.com:wilsoncxfeng/AscendNPU-IR.git`.
+- Current DMA development branch: `mani/DMA`, based on and tracking `wilsoncxfeng/master` as of commit `08031590`.
 - Upstream source of truth is still `https://gitcode.com/Ascend/AscendNPU-IR`; compare with upstream before making compatibility claims.
 - Regbase late lowering runs `convert-hivm-to-std`, then `convert-hivmave-to-std`, then `convert-hivmave-to-ave-intrin`.
 - `lower-ave-pipeline` creates/optimizes HIVMAVE via `convert-vector-to-hivmave` and `convert-arith-to-hivmave` before final intrinsic lowering.
