@@ -12,9 +12,10 @@ At the start of each meaningful Planner task, Codex must read:
 
 1. `AGENT.md`
 2. `human/HighLevelOverview.md`
-3. Any directly relevant files under `human/`
-4. Relevant current files under `bridge/`
-5. Recent `explorer/` reports when the task may be affected by PTOAS or NPU-IR upstream changes
+3. `bridge/planning/README.md`
+4. Any directly relevant files under `human/`
+5. Relevant current files under `bridge/`
+6. Recent `explorer/` reports when the task may be affected by PTOAS or NPU-IR upstream changes
 
 If `human/` and `bridge/` disagree, `human/` wins. Codex should briefly report the mismatch instead of silently rewriting the human intent.
 

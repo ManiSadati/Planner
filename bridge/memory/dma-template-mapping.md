@@ -1,6 +1,6 @@
 # DMA Template Mapping Memory
 
-Last updated: 2026-08-11
+Last updated: 2026-08-12
 
 ## Current Decision
 
@@ -12,6 +12,11 @@ Reason: before `convert-hivm-to-std`, NPU-IR still exposes source/destination
 memory spaces, dtype, rank, strides, padding, layout conversion, atomic mode,
 and sync context. After the conversion, much of that becomes encoded in
 library-call names and CCE template behavior.
+
+Active focused exploration is now `dma_copy_kernel`. The next required output is
+`bridge/memory/dma-copy-conversion-trace.md`, which should record every major
+load/store syntax transition, the selected sweet spot, and both template-level
+and instruction-level PTOAS mappings.
 
 ## First Practical Target
 

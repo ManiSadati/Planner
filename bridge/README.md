@@ -18,8 +18,10 @@ Human intent lives in `human/`. If a bridge note conflicts with `human/`, the hu
 - A5 full install/runtime note: `bridge/memory/npu_ir_installation.md`.
 - Triton source fixtures: `bridge/triton-example/`.
 - A5-generated early IR dump folder: `bridge/examples/npuir-early-ir/`.
+- Planning overview and roadmap: `bridge/planning/README.md`.
 - NPU-IR device-spec replay plan: `bridge/planning/npuir-device-spec-replay.md`.
 - Latest NPU-IR replay result: `bridge/memory/npuir-device-spec-replay-results-2026-08-11.md`.
+- Active DMA-copy conversion exploration plan: `bridge/planning/dma-copy-conversion-exploration.md`.
 - DMA template mapping memory: `bridge/memory/dma-template-mapping.md`.
 - Upstream/fork watch list: `bridge/memory/upstream-watch.md`.
 - Current mapping draft: `bridge/planning/npuir-to-ptoas-mapping.md`.

@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-08-11
+Last updated: 2026-08-12
 
 ## Current Goal
 
@@ -32,6 +32,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - The early-IR folder currently contains workflow documentation unless the human has added actual dumps. If real examples are needed, Codex should ask the human to generate early MLIR / early NPU-IR dumps on an A5 server and place them in Planner.
 - Current A5-generated `*_kernel.mlir` files are dumps right after `AppendTargetDeviceSpec`; local replay from that boundary is planned in `bridge/planning/npuir-device-spec-replay.md` and scripted by `bridge/tools/replay_npuir_from_device_spec.sh`. The current replay endpoint is `convert-hivmave-to-ave-intrin`; compiler stages after that are not required for this bridge investigation. A nonzero replay exit caused by missing `hivmc-a5` is expected on the non-A5 server if the target-pass dump was captured.
 - First local replay result is recorded in `bridge/memory/npuir-device-spec-replay-results-2026-08-11.md`. All six current examples reached `convert-hivmave-to-ave-intrin`; the endpoint confirms that DMA/cube are already helper/template calls by then, so the first bridge analysis/export pass should run earlier while structured HIVM ops are still available.
+- Active implementation focus is DMA conversion through `dma_copy_kernel`. The immediate planning target is `bridge/planning/dma-copy-conversion-exploration.md`: locate the conversion sweet spot, trace each major GM->UB load / UB->GM store syntax change across passes, identify NPU-IR DMA template implementations, and compare template-level versus instruction-level PTOAS mappings.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
 - The A5 installation/runtime workflow is tracked in `bridge/memory/npu_ir_installation.md`; the non-A5 Codex-server build/replay workflow is tracked separately in `bridge/memory/npuir-codex-server-build.md`.
 - Current Codex-server AscendNPU-IR build status: `$HOME/AscendNPU-IR` is on `mani/DMA` tracking `wilsoncxfeng/master` at `08031590`; the pinned LLVM submodule is present at `third-party/llvm-project`; the local Release build completed and installed `bishengir-compile` / `bishengir-opt`.
@@ -39,6 +40,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 ## Planner Status
 
 - `AGENT.md` is approved as the current Codex contract.
+- `bridge/planning/README.md` is the planning overview Codex should read at the start of each meaningful Planner task.
 - `human/HighLevelOverview.md` is the human-owned project overview.
 - `explorer/` is installed as a user systemd timer and scheduled daily at 7:00am Eastern time.
 - Initial Codex-led exploration has started.
@@ -50,6 +52,7 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Codex-server NPU-IR build/replay workflow is tracked at `bridge/memory/npuir-codex-server-build.md`.
 - First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
 - DMA/template rewrite planning exists at `bridge/planning/dma-template-rewrite-plan.md`, with compact memory at `bridge/memory/dma-template-mapping.md`.
+- Focused DMA-copy conversion exploration plan exists at `bridge/planning/dma-copy-conversion-exploration.md`.
 - `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` has been reviewed as vector-pass prototype context. Do not continue it directly; port selected ideas into a fresh current-baseline branch if used. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
 - Latest configured-scope explorer lookback completed on 2026-08-11. Reports: `explorer/reports/README.md` and `explorer/reports/daily/2026-08-11.md`. The scan used the GitHub token and no longer hit the previous GitHub rate-limit failure.
 - GitHub fork-discovery state was bootstrapped on 2026-08-10 for PTOAS:

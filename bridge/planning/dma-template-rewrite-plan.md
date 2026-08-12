@@ -1,11 +1,18 @@
 # DMA Template Rewrite Plan
 
-Last updated: 2026-08-11
+Last updated: 2026-08-12
 
 Scope: first practical bridge plan for replacing the CCE template/library-call
 DMA path in AscendNPU-IR with something PTOAS can understand. This is based on
 local source inspection of `$HOME/AscendNPU-IR`, `$HOME/PTOAS/PTOAS_Markham`,
 and `$HOME/pto-isa`.
+
+Role: broad DMA/category strategy. For the current focused `dma_copy_kernel`
+trace, use `bridge/planning/dma-copy-conversion-exploration.md`.
+
+Active focused exploration: `bridge/planning/dma-copy-conversion-exploration.md`.
+Use `dma_copy_kernel` first to locate the exact conversion sweet spot and trace
+each major load/store syntax change before changing NPU-IR code.
 
 ## Short Version
 
