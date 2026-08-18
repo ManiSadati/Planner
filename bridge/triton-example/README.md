@@ -23,6 +23,7 @@ source.
 | `vector_elementwise.py` | Pure vector arithmetic with masks | vector load, predicate/mask, add/mul/relu, masked store |
 | `vector_dma_pipeline.py` | Multiple vector loads plus store | load/store DMA around vector arithmetic, scalar broadcast |
 | `vector_add.py` | Minimal two-input vector addition | two GM loads, vector add, GM store, simulator smoke test |
+| `vector_add_large.py` | 1000x2000 row-wise vector addition | multi-row launch, masked 2048-column vector tiles, large GM/UB movement |
 | `row_softmax.py` | Row-wise softmax | vector reductions, exp, divide, masks, load/store |
 | `rmsnorm.py` | Row-wise RMSNorm | reduction, sqrt/divide, weight load, vector scaling |
 | `flash_attention_tiny.py` | Single-block attention row | dot-like score computation, softmax, value accumulation |
