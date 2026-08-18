@@ -56,14 +56,10 @@ AVE operations or `unrealized_conversion_cast`.
 
 ## Current Next Step
 
-Refactor the existing `convert-hivmave-to-ptoas-vmi` pass from preflight-only
-validation into an MLIR dialect-conversion skeleton:
-
-1. Add the `TypeConverter` for the Phase 1 supported types.
-2. Add the `ConversionTarget` legality rules.
-3. Move local legality checks into conversion patterns.
-4. Keep the first slice focused on rejecting unsupported input cleanly before
-   broadening operation coverage.
+The exact Stage 1 artifact now has an automated conversion regression and has
+been manually validated through PTOAS `--emit-vpto`. The next step is to decide
+whether to wire PTOAS discovery into automated testing or move on to the next
+concrete kernel artifact.
 
 ## Decision 3: Phase 1 Conversion Skeleton Shape
 
@@ -77,7 +73,7 @@ strict full-lane slice directly to surface VMI:
 - all-active normal `ave.hir.masked_store` becomes unmasked `pto.vmi.store`.
 - supported `vector<Nxf16|bf16|f32>` values become `!pto.vmi.vreg<NxT>`.
 - supported `vector<Nxi1>` predicates become `!pto.vmi.mask<Nxpred>`.
-- rank-1 identity HIVM UB memrefs become PTO VEC memrefs.
+- accepted HIVM GM/UB memrefs become PTO pointers.
 
 Local pattern checks are kept for supported operation families whose attributes
 or masks can make the operation unsupported. Unmapped AVE operations have no
@@ -145,3 +141,133 @@ tail case where a masked arithmetic result is immediately consumed by a store
 using the same mask. General masked computation should not be claimed correct
 until PTOAS preserves arithmetic inactive-lane semantics or the bridge has a
 proven workaround.
+
+## Decision 6: Convert MemRef Metadata/View Chains To PTO Pointers
+
+`memref.extract_strided_metadata` and `memref.reinterpret_cast` are structural
+memref operations, but the Stage 1 target ABI is pointer-based. The bridge now
+folds accepted rank-one unit-stride metadata/view chains into PTO pointer
+operations instead of preserving memref descriptors:
+
+- accepted GM and UB memrefs convert to `!pto.ptr<element, gm|ub>`;
+- signless `i8` GM memrefs convert to `!pto.ptr<ui8, gm>` to match the proven
+  PTOAS hand-authored target;
+- `memref.extract_strided_metadata` on a static rank-one unit-stride GM/UB
+  memref is replaced with the converted source pointer plus constant
+  offset/size/stride values;
+- `memref.reinterpret_cast` with rank one, unchanged element type, and static
+  unit stride becomes either the source pointer for offset zero or `pto.addptr`
+  for a static/dynamic element offset;
+- non-unit strides, element-type changes, unsupported spaces, and higher ranks
+  remain unsupported.
+
+For a dynamic-layout memref function argument, the converted `!pto.ptr` is
+treated as the already-normalized logical base pointer. The original memref
+descriptor offset is intentionally not reconstructed because that state is not
+available after collapsing the ABI to PTO pointers. This is acceptable for the
+Stage 1 artifact, whose helper computes explicit element offsets in SSA.
+
+## Decision 7: Consume Only Semantically Matched Normalized AVE Attributes
+
+The bridge accepts the normalized AVE operation attributes generated in
+`lowered_vector_add_kernel.mlir`, but only through per-operation semantic
+allowlists:
+
+- `ave.hir.pge` may consume `functionType = #ave.func_dist_type<pb32>`.
+- `ave.hir.vload <NORM>` may consume
+  `functionType = #ave.func_dist_type<norm>`.
+- `ave.hir.masked_store <NORM_B16|NORM_B32>` may consume
+  `functionType = #ave.func_dist_type<norm>`.
+- `ave.hir.masked_store` may consume the unit attribute
+  `hivm.is_continuous` only on the accepted normal contiguous store path.
+
+The conversion does not require these attributes on hand-authored tests, but if
+they are present they must match the operation form. Unknown attributes and
+mismatched `functionType` values still reject the original AVE operation.
+
+This keeps Phase 1B strict while accepting the normal Ascend lowering output.
+After this change, the exact Stage 1 artifact proceeds past the previous
+`functionType` failure and the first remaining blocker is
+`hivm.hir.set_ctrl`, which belongs to the later synchronization/control phase.
+
+## Decision 8: Convert Existing PTO MTE Ops By Operand Remapping
+
+The lowered vector-add entry function already contains PTO MTE operations with
+HIVM/PTO memref operands. Dialect conversion does not automatically update
+these existing legal-dialect operations when their operands need type
+conversion, so the bridge owns a narrow same-op rewrite for:
+
+- `pto.mte_gm_ub`
+- `pto.mte_ub_gm`
+
+The rewrite keeps the original PTO op, attributes, transfer lengths, strides,
+and optional operands, but replaces operands with the converted values. The op
+is accepted only when its source and destination have become PTO pointer types.
+This prevents mixed memref/pointer MTE IR from reaching PTOAS while avoiding a
+new interpretation of DMA semantics in the AVE bridge.
+
+Together with the pointer-memory conversion:
+
+- `hivm.hir.pointer_cast(i64)` becomes `pto.castptr`;
+- `memref.memory_space_cast` is erased when both sides convert to the same PTO
+  pointer type;
+- zero-offset GM reinterpret casts fold to the original GM pointer;
+- MTE source/destination operands print as `!pto.ptr<..., gm|ub>`.
+
+## Decision 9: Lower Only Observed Static Sync And Control Forms
+
+Stage 1 synchronization/control conversion is intentionally limited to the
+forms present in `lowered_vector_add_kernel.mlir`:
+
+- `hivm.hir.set_flag[<PIPE_MTE2>, <PIPE_V>, <EVENT_ID0>]` maps to
+  `pto.set_flag[<PIPE_MTE2>, <PIPE_V>, <EVENT_ID0>]`.
+- `hivm.hir.wait_flag[<PIPE_MTE2>, <PIPE_V>, <EVENT_ID0>]` maps to
+  `pto.wait_flag[<PIPE_MTE2>, <PIPE_V>, <EVENT_ID0>]`.
+- `hivm.hir.set_flag[<PIPE_V>, <PIPE_MTE3>, <EVENT_ID0>]` maps to
+  `pto.set_flag[<PIPE_V>, <PIPE_MTE3>, <EVENT_ID0>]`.
+- `hivm.hir.wait_flag[<PIPE_V>, <PIPE_MTE3>, <EVENT_ID0>]` maps to
+  `pto.wait_flag[<PIPE_V>, <PIPE_MTE3>, <EVENT_ID0>]`.
+- `hivm.hir.pipe_barrier[<PIPE_ALL>]` maps to `pto.barrier <PIPE_ALL>`.
+
+Dynamic event IDs and static event IDs other than `EVENT_ID0` are rejected in
+this slice. Pipes other than `PIPE_MTE2`, `PIPE_MTE3`, `PIPE_V`, and
+`PIPE_ALL` are also rejected until a concrete artifact requires them.
+
+`hivm.hir.set_ctrl` is lowered as a read-modify-write sequence because the HIVM
+op updates one bit while PTO `pto.set_ctrl` writes the complete control value:
+
+1. `pto.get_ctrl : i64`
+2. `arith.ori` with `1 << idx` for `enable = true`, or `arith.andi` with
+   `~(1 << idx)` for `enable = false`
+3. `pto.set_ctrl`
+
+This preserves unrelated control bits and supports the observed bits 48 and
+60. Indices outside `[0, 63]` are rejected.
+
+## Decision 10: Rewrite Helper Calls With Converted Pointer ABI
+
+The Stage 1 artifact calls an outlined vector helper after UB
+`hivm.hir.pointer_cast` operations have been converted to PTO UB pointers.
+`func.call` therefore needs an explicit rewrite to use the converted operand
+types and callee signature. The bridge keeps the `no_inline` marker on the
+rewritten call and drops the source-only `hivm.vector_function` call attribute.
+
+This conversion is scoped to direct `func.call`; indirect calls are not
+supported in Stage 1.
+
+## Decision 11: Emit A Minimal PTOAS Kernel Contract
+
+Phase 1F removes the source-only Ascend metadata after successful dialect
+conversion and emits the minimal PTOAS contract proven by the hand-authored
+target:
+
+- module attributes become `pto.target_arch = "a5"` and
+  `pto.kernel_kind = #pto.kernel_kind<vector>`;
+- the original `hacc.entry` function is marked with `pto.kernel`;
+- helper functions keep `no_inline` when it was present;
+- source-only module, function, and argument attributes from HACC, HIVM, TT,
+  and DLTI are dropped.
+
+This pass does not yet claim a general Ascend-target-to-PTO-architecture
+mapping. The hard-coded `a5` contract is tied to the Stage 1
+`lowered_vector_add_kernel.mlir` artifact and the Phase 1A PTOAS validation.

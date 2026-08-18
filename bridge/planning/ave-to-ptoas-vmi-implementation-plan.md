@@ -1,723 +1,582 @@
-# AVE to PTOAS VMI Conversion: Final Implementation Plan
+# AVE to PTOAS VMI Conversion Implementation Plan
 
-Last reviewed: 2026-08-11
+Last revised: 2026-08-17
 
-Status: finalized planning baseline. No implementation is authorized by this
-document itself. Phase 0 contract checks must pass before conversion code is
-written.
+Status: Stage 1 conversion implemented and manually validated through PTOAS.
+Stage 1 is defined by one concrete end-to-end acceptance artifact,
+`AscendNPU-IR/lowered_vector_add_kernel.mlir`.
 
-## 1. Problem Summary
+## 1. Stage 1 Goal
 
-Add an MLIR conversion pass to AscendNPU-IR that converts the vector portion of
-AscendNPU-IR's HIVMAVE/AVE IR (`ave.hir.*`) into PTOAS producer-boundary VMI IR
-(`pto.vmi.*`). The pass is for Vector-core kernels only. Cube operations, DMA
-between GM/L1/L0/UB, synchronization, and mixed Cube/Vector orchestration are
-outside this pass.
-
-The source and target layers are close enough for a staged one-to-one lowering
-of common vector operations, but they are not type- or ABI-compatible by name
-alone. The bridge must also convert logical vector and predicate types, UB
-memory-space attributes, memory indices, function/control-flow type edges, and
-module/kernel metadata. It must reject every semantic case it does not preserve.
-
-## 2. Reviewed Baseline
-
-This plan was checked against the following local source-of-truth revisions:
-
-| Repository | Revision reviewed | Relevant source |
-| --- | --- | --- |
-| AscendNPU-IR | `master` at `08031590767ffd9e29a1a83e1f881c825af32dab` | `HIVMAVEOps.td`, `HIVMAVEAttrs.td`, `HIVMAVETypes.td`, conversion pass registration, regbase pipeline |
-| PTOAS | `elemntwise-1d-2d-versions` at `2f2ea5bcab5010f72b8973bd6c4461e2b8b3f866` | `VMIOps.td`, `VMITypeDefs.td`, `VMI.cpp`, VMI validation/lowering pipeline, VMI lit tests |
-| Planner | current worktree on 2026-08-11 | mapping draft, lowering summaries, prototype branch review |
-
-The PTOAS branch name is recorded deliberately: VMI is evolving quickly, so
-implementation must pin or revalidate the exact PTOAS revision used for the
-bridge build.
-
-Key source locations:
-
-- Ascend source operations and contracts:
-  `AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVMAVE/IR/`.
-- Ascend late regbase pipeline:
-  `AscendNPU-IR/bishengir/lib/Tools/bishengir-compile/regbase/PassPipeline.cpp`.
-- Ascend pass conventions:
-  `AscendNPU-IR/bishengir/include/bishengir/Conversion/Passes.td` and
-  `AscendNPU-IR/bishengir/lib/Conversion/CMakeLists.txt`.
-- PTOAS VMI operations and types: `PTOAS/include/PTO/IR/VMIOps.td` and
-  `PTOAS/include/PTO/IR/VMITypeDefs.td`.
-- PTOAS producer-boundary verifier:
-  `PTOAS/lib/PTO/Transforms/PTOValidateVMIIR.cpp`.
-- PTOAS semantic pipeline: `appendVMISemanticPipeline` in
-  `PTOAS/tools/ptoas/ptoas.cpp`.
-- PTOAS compiler-facing container contract: `PTOAS/docs/vpto-spec.md`.
-
-The reviewed Soyu-Wilson prototype remains reference material only. Its strict
-unsupported-op audit and interception boundary are useful, but its local
-unknown-op bridge dialect is not an acceptable final contract.
-
-## 3. Final Architecture Decisions
-
-### 3.1 Source boundary
-
-The semantic interception point is after the HIVMAVE optimization pipeline has
-run and before any of these late conversions:
-
-```text
-buildLowerAVEPipelines
-  -> [new vector-kernel legality check]
-  -> [new convert-hivmave-to-ptoas-vmi pass]
-  -> [PTOAS VMI output/container preparation]
-```
-
-The PTOAS path must branch before:
-
-```text
-convert-hivm-to-std
-convert-hivmave-to-std
-expand-strided-metadata
-convert-hivmave-to-ave-intrin
-```
-
-This is stricter than merely inserting the pass immediately before
-`convert-hivmave-to-ave-intrin`. `convert-hivm-to-std` can erase out-of-scope
-HIVM DMA/Cube/sync structure into library calls, making a vector-only legality
-check unreliable. `convert-hivmave-to-std` also rewrites selected AVE cases on
-some architectures. A dedicated PTOAS branch preserves diagnostics and avoids
-running CCE-specific lowering after VMI creation.
-
-The standalone conversion pass must still be independently invocable through
-`bishengir-opt` on an already normalized AVE module.
-
-### 3.2 Target contract
-
-Emit real PTOAS dialect operations and types, not string-named unknown
-operations and not a local shadow dialect. The target is surface VMI IR:
-
-- `!pto.vmi.vreg<NxT>` without a physical layout;
-- `!pto.vmi.mask<Nxpred>` without a physical layout;
-- native `pto.vmi.*` semantic operations;
-- only ordinary `builtin`, `func`, `scf`, `cf`, `memref`, and scalar support
-  operations around VMI values;
-- no `pto.vmi.ensure_*`, physical `!pto.vreg`/`!pto.mask`, or VPTO operations.
-
-PTOAS owns signless-integer normalization where supported, mask granularity
-assignment, physical vector layout assignment, and VMI-to-VPTO lowering. The
-Ascend pass must not preselect a physical VMI layout.
-
-### 3.3 Dependency model
-
-The production pass should use a typed PTO dialect built inside AscendNPU-IR
-from PTO TableGen sources copied from PTOAS. Do not link the pass against
-PTOAS's installed `libPTOIR.a`, and do not require `find_package(PTOAS)`.
-
-Guard this with an AscendNPU-IR build option such as
-`BISHENGIR_ENABLE_PTOAS_VMI`, defaulting to `OFF`, so the normal Ascend build
-does not acquire an unconditional PTO dialect/conversion dependency until the
-in-tree PTO dialect is available.
-
-The copied PTO dialect must be regenerated with AscendNPU-IR's MLIR TableGen
-and compiled against AscendNPU-IR's MLIR runtime. This avoids linking MLIR
-objects built against different LLVM/MLIR ABIs.
-
-A textual file may be used as an integration artifact between the two command
-line tools. A textual unknown-op shim is not the production implementation. If
-AscendNPU-IR cannot build against PTOAS's LLVM revision, stop and resolve the
-toolchain alignment or explicitly approve a separate textual-export
-architecture.
-
-### 3.4 Driver integration
-
-Add a mutually exclusive output/backend selection rather than a loose boolean
-that can coexist with `lower-to-llvm`. The intended behavior is:
-
-```text
-backend = cce/llvm       -> existing late pipeline, unchanged
-backend = ptoas-vmi      -> normalized HIVMAVE -> VMI -> textual MLIR output
-```
-
-For the first implementation milestone, register and test the pass in
-`bishengir-opt`. Integrate `bishengir-compile` only after the pass output passes
-PTOAS validation and the kernel/container ABI is settled.
-
-## 4. Scope
-
-### In scope
-
-- One-dimensional logical vector values on the Vector side.
-- AVE predicates and vector arithmetic with proven VMI semantics.
-- AVE UB vector loads and stores whose address can be represented as one PTOAS
-  element offset.
-- Type conversion across private function, block, SCF, and CF boundaries.
-- Conversion of HIVM UB memref memory-space attributes to PTO VEC/UB memory
-  space where the underlying storage is unchanged.
-- Strict diagnostics for unsupported AVE/HIVM operations and attributes.
-- PTOAS producer-boundary verification and VMI-to-VPTO smoke validation.
-
-### Out of scope
-
-- Cube and matrix operations, including `mmadL1` and `mma*`.
-- HIVM DMA and layout movement between memory levels, including `hivm.hir.load`,
-  `hivm.hir.store`, `nd2nz`, L1/L0 movement, and GM kernel data movement.
-- Synchronization and barriers, including `set_flag`, `wait_flag`,
-  `sync_block*`, and `ave.hir.membar`.
-- Mixed AIC/AIV modules and host-stub generation.
-- Selecting physical VMI register layouts or masks.
-- Approximating unsupported operations with math sequences unless a separate
-  semantic and numerical review approves that expansion.
-
-## 5. Pass Location and Structure
-
-Create the conversion under AscendNPU-IR using existing naming conventions:
-
-```text
-bishengir/include/bishengir/Conversion/HIVMAVEToPTOASVMI/
-  HIVMAVEToPTOASVMI.h
-
-bishengir/lib/Conversion/HIVMAVEToPTOASVMI/
-  HIVMAVEToPTOASVMI.cpp
-  CMakeLists.txt
-
-bishengir/test/Conversion/HIVMAVEToPTOASVMI/
-```
-
-Register a `ModuleOp` pass named:
-
-```text
-convert-hivmave-to-ptoas-vmi
-```
-
-Update, behind the PTOAS build option:
-
-- `bishengir/include/bishengir/Conversion/Passes.td`;
-- `bishengir/include/bishengir/Conversion/Passes.h`;
-- `bishengir/include/bishengir/Conversion/CMakeLists.txt`;
-- the relevant top-level CMake package discovery/configuration;
-- `bishengir/lib/Tools/bishengir-compile/regbase/PassPipeline.cpp` only in the
-  driver-integration phase.
-
-Use MLIR dialect conversion, not a greedy rename pass and not a separate
-operation-by-operation preflight verifier:
-
-1. Configure a `TypeConverter` for vectors, masks, and supported memrefs.
-2. Configure a `ConversionTarget` that marks AVE illegal, PTOAS VMI legal, and
-   structural dialects dynamically legal only when their types are converted and
-   acceptable to the producer-boundary contract.
-3. Add one conversion pattern per supported AVE operation family. Each pattern
-   performs only the local semantic checks required to preserve that operation,
-   such as `pge <ALL>`, `vload <NORM>`, all-active masks, UB memory, rank-1
-   offsets, and supported element types.
-4. Use `rewriter.notifyMatchFailure` and/or operation diagnostics from the
-   failing pattern so unsupported operations and attributes report at their
-   original locations.
-5. Add materializations only when they have defined semantics. Do not leave
-   `unrealized_conversion_cast` as successful output.
-6. Use standard Func/SCF/CF signature and region conversion patterns for
-   converted block arguments and yields.
-7. Let `applyFullConversion` reject the whole module when an AVE operation,
-   type, attribute, or region edge has no legal conversion.
-8. Keep only genuinely module-wide checks outside the conversion patterns, such
-   as mixed Cube/Vector legality, entry ABI/container rules, and final residual
-   assertions.
-
-Keep container/entry-point adaptation separate from operation conversion if it
-requires more than module attributes and memory-space type rewriting. A small
-second pass is preferable to coupling VMI op patterns to host/kernel ABI rules.
-
-## 6. Type and Memory Contract
-
-### 6.1 Data vectors
-
-Initial mapping:
-
-```text
-vector<NxT> -> !pto.vmi.vreg<NxT>
-```
-
-Phase 1 supports only rank-1 built-in vectors with `f16`, `bf16`, or `f32`
-elements and no AVE vector-layout encoding. Add integer and FP8 types only
-after PTOAS signedness and storage-type verification passes for each case.
-
-Do not initially accept:
-
-- rank-0 or rank-greater-than-1 vectors;
-- `!ave.pad_vec`;
-- vectors carrying AVE layout metadata;
-- vectors wider than the target PTOAS revision accepts;
-- `vector<Nxi1>` when it is data rather than a predicate.
-
-### 6.2 Masks
-
-Initial mapping:
-
-```text
-vector<Nxi1> used as an AVE predicate -> !pto.vmi.mask<Nxpred>
-```
-
-The mask lane count must equal the governed VMI vector lane count. Surface VMI
-uses `pred`; do not copy AVE's physical `b8`/`b16`/`b32` mask width into the
-surface type. PTOAS assigns concrete mask granularity later.
-
-`!ave.mask<...>` and predicate vectors with AVE layout/part metadata are
-deferred until their logical lane interpretation is proven. The AVE type mixes
-logical and physical-mask information, so copying its fields mechanically is
-unsafe.
-
-### 6.3 Memrefs and address spaces
-
-For an accepted AVE vector load/store, convert:
-
-```text
-memref<..., #hivm.address_space<ub>>
-  -> memref<..., #pto.address_space<vec>>
-```
-
-PTOAS VMI memory verifiers require UB-backed storage. Do not convert GM, L1,
-L0A, L0B, L0C, SSBUF, or unknown spaces in this pass.
-
-Phase 1 accepts only rank-1, identity/unit-stride UB memrefs and exactly one
-`index` operand. AVE indices and PTOAS offsets are treated as element offsets
-only after a source test confirms that contract.
-
-Later multidimensional support must compute a single element offset from
-strided memref metadata:
-
-```text
-linear = base_offset + sum(index[i] * stride[i])
-```
-
-Reject non-strided affine layouts, unsupported subviews, byte-based offsets,
-or dynamic metadata that cannot be represented without changing semantics.
-
-### 6.4 Function and control-flow boundaries
-
-- Entry functions must not expose VMI vector/mask values in their public ABI.
-- Private helper signatures may be converted if PTOAS inlining and validation
-  accept them.
-- Convert SCF/CF block arguments, loop-carried values, yields, branches, and
-  returns consistently through the `TypeConverter`.
-- Scalar `index`, integer, and floating-point values remain standard MLIR
-  types unless an individual VMI op requires a narrower type.
-- `ave.hir.plt` uses `index`, while `pto.vmi.plt` requires `i32`; this is not a
-  direct type conversion and remains deferred until range and truncation
-  semantics are established.
-
-## 7. Operation Mapping Plan
-
-### 7.1 Phase 1 vertical slice
-
-The first slice deliberately uses all-active compute and store masks so
-inactive-lane semantics cannot be lost.
-
-| AVE source | PTOAS VMI target | Phase 1 restrictions |
-| --- | --- | --- |
-| `ave.hir.pge <ALL>` | `pto.vmi.pset "PAT_ALL"` | Built-in predicate vector; lane count matches users |
-| `ave.hir.vload <NORM>` | `pto.vmi.vload` with `dist_mode = "continuous"` | One result; rank-1 unit-stride UB memref; one element offset |
-| `ave.hir.vadd` | `pto.vmi.vadd` | `f16`/`bf16`/`f32`; governing mask is statically all-active and omitted at target |
-| `ave.hir.vsub` | `pto.vmi.vsub` | Same restrictions as `vadd` |
-| `ave.hir.vmul` | `pto.vmi.vmul` | Same restrictions as `vadd` |
-| `ave.hir.vabs` | `pto.vmi.vabs` | Same restrictions as `vadd` |
-| `ave.hir.masked_store <NORM_B*>` | unmasked `pto.vmi.vstore` | Store pattern matches element width; mask is statically all-active |
-
-Representative source:
-
-```mlir
-%all = ave.hir.pge <ALL> : vector<64xi1>
-%a = ave.hir.vload <NORM> %lhs[%off]
-    : memref<64xf32, #hivm.address_space<ub>> into vector<64xf32>
-%b = ave.hir.vload <NORM> %rhs[%off]
-    : memref<64xf32, #hivm.address_space<ub>> into vector<64xf32>
-%sum = ave.hir.vadd %a, %b, %all : vector<64xf32>, vector<64xi1>
-ave.hir.masked_store <NORM_B32> %dst[%off], %all, %sum
-    : memref<64xf32, #hivm.address_space<ub>>, vector<64xi1>, vector<64xf32>
-```
-
-Expected semantic VMI body:
-
-```mlir
-%all = pto.vmi.pset "PAT_ALL" : !pto.vmi.mask<64xpred>
-%a = pto.vmi.vload %lhs[%off] {dist_mode = "continuous"}
-    : memref<64xf32, #pto.address_space<vec>> -> !pto.vmi.vreg<64xf32>
-%b = pto.vmi.vload %rhs[%off] {dist_mode = "continuous"}
-    : memref<64xf32, #pto.address_space<vec>> -> !pto.vmi.vreg<64xf32>
-%sum = pto.vmi.vadd %a, %b
-    : !pto.vmi.vreg<64xf32>, !pto.vmi.vreg<64xf32>
-      -> !pto.vmi.vreg<64xf32>
-pto.vmi.vstore %sum, %dst[%off]
-    : !pto.vmi.vreg<64xf32>, memref<64xf32, #pto.address_space<vec>>
-```
-
-The unused `%all` may be removed by canonicalization after all users are
-converted. The conversion itself must not depend on that cleanup for legality.
-
-### 7.2 Phase 2 predicates, tails, and basic control flow
-
-Add only after Phase 1 passes PTOAS validation:
-
-| AVE source | Candidate VMI target | Required proof |
-| --- | --- | --- |
-| `pge <VL1..VL128>` | `pto.vmi.pge "PAT_VL<n>"` | Active-lane count does not exceed logical mask length |
-| tail `masked_store` | `pto.vmi.masked_store`, or corrected unified `vstore` contract | Inactive lanes skip writes exactly as AVE does |
-| `preg.and/or/xor/not` | VMI mask logic ops | Governing-mask behavior and lane count match |
-| `vcmp`, `vcmps` | `pto.vmi.vcmp`, `pto.vmi.vcmps` | AVE comparison enum, seed mask, signedness, NaN behavior, and inactive result agree |
-| `vsel` | `pto.vmi.vsel` | False-value and inactive-lane behavior agree |
-| SCF/CF carrying vectors | structural SCF/CF with VMI types | Producer-boundary verifier and VMI layout assignment accept each construct |
-
-The current PTOAS source contains a documentation/implementation conflict for
-unified masked stores: `VMIvStoreOp` documentation describes `pmode="merge"`
-as skip-write, while its verifier rejects `merge`. The legacy
-`pto.vmi.masked_store` has a mask-governed contract and verifier. Do not choose
-between these forms until PTOAS owners confirm the intended producer surface or
-the verifier/documentation is fixed. Phase 1 avoids the conflict by accepting
-only all-active stores.
-
-### 7.3 Phase 3 arithmetic and conversions
-
-Add families in small, independently tested groups:
-
-- Direct candidates: `vdiv`, `vmin`, `vmax`, `vneg`, `vsqrt`, `vexp`, `vln`,
-  `vrelu`, `vand`, `vor`, `vxor`, `vnot`.
-- Signedness-sensitive candidates: `vsmax`, `vsmin`, `vumax`, `vumin`, right
-  shifts, and all integer comparisons.
-- Vector-scalar candidates: `vadds`, `vmuls`, `vmaxs`, `vmins`, `vshls`,
-  `vshrs`; verify PTOAS scalar-width constraints, especially shift counts.
-- Index/broadcast candidates: `vci`, `scalar_broadcast`, and `broadcast`.
-- Conversion candidates through `pto.vmi.vcvt`: `vextf`, `vextsi`, `vextui`,
-  `vtrunci`, `vtruncf`, `vfptosi`, `vfptoui`, `vsitofp`, and `vuitofp`.
-  Map rounding, saturation, signedness, part, and packing attributes explicitly.
-- Multiply/accumulate candidates: AVE `mull` to `pto.vmi.vmull` and `vmula` to
-  the appropriate VMI accumulator operation, after result width and accumulator
-  initialization are confirmed.
-
-Masked arithmetic must remain deferred even when the operation name matches,
-unless AVE inactive lanes are proven to match VMI `pmode` behavior. Full-lane
-masked forms may be lowered as unmasked operations.
-
-### 7.4 Deferred or currently unmapped
-
-| AVE source family | Reason for deferral |
-| --- | --- |
-| `pge <M3/M4/H/Q/ALLF>` | No confirmed one-op unified VMI mapping; grouped/false-mask construction needs proof |
-| `plt`, `pltm` | Result/update semantics and `index` versus `i32` contract differ |
-| `vrsqrt` | No confirmed exact VMI operation; expansion may change numerical behavior |
-| `vtrc`, `vrnd`, `vmod`, `vmodui`, `vdivfhp` | Rounding/remainder/high-precision semantics are not mapped |
-| `vabs_diff`, `vsadd`, `vssub`, `vprelu`, `vlrelus` | Exact saturation/activation semantics need PTOAS confirmation |
-| `vpack`, `vunpack`, `preg.cast` | Logical versus physical part/granularity semantics are unresolved |
-| `vslide` | No confirmed direct logical VMI mapping |
-| `vintlv`, `vdintlv` | VMI candidates exist, but lane/layout change contracts require dedicated tests |
-| `ave.reduction` | AVE result lane, mask, initializer, reassociation, and VMI group semantics require a separate design |
-| `vgather`, `vscatter` | Address space, index units/type, masking, OOB, and conflict behavior are unresolved |
-| non-`NORM` load/store modes | Each AVE dist mode needs an explicit mapping to VMI `dist_mode`, group, stride, unpack, broadcast, or channel operation |
-| `unaligned.masked.store`, `store_with_stride` | Alignment and block/repeat-stride units need proof |
-| `vector.layout_cast`, `!ave.pad_vec` | PTOAS must own physical layout; AVE logical content/part must first be reconstructed |
-| `membar` | Synchronization is outside the vector conversion pass |
-
-## 8. Container and Kernel ABI
-
-The conversion pass's operation-level output must first satisfy
-`pto-validate-vmi-ir`. End-to-end `ptoas` compilation additionally needs a
-compiler-facing VPTO container. The expected normalized form is:
-
-```mlir
-module attributes {pto.target_arch = "a5"} {
-  module attributes {pto.backend = "vpto",
-                     pto.kernel_kind = #pto.kernel_kind<vector>} {
-    func.func @kernel(...) attributes {pto.kernel} {
-      // Surface pto.vmi.* operations.
-      return
-    }
-  }
-}
-```
-
-Before implementing container wrapping, answer:
-
-- Which Ascend function attribute identifies the launched AIV entry point?
-- Are the bridge inputs already UB memrefs, or must a surrounding non-VMI layer
-  preserve GM-to-UB movement?
-- Should the bridge emit normalized compiler-facing submodules directly, or
-  emit `pto.section.vector` source form and let PTOAS normalize it?
-- How are Ascend memref arguments represented in PTOAS's external kernel ABI,
-  where `!pto.ptr<..., gm/ub>` may be required?
-
-Until these are resolved, Phase 1 is a pass-level VMI conversion, not a claim
-that an arbitrary Ascend vector kernel is a launchable PTOAS kernel.
-
-## 9. Phased Implementation
-
-### Phase 0: Freeze the build and semantic contract
-
-Tasks:
-
-1. Pin the AscendNPU-IR and PTOAS revisions used by CI.
-2. Copy or vendor the required PTO dialect TableGen sources into AscendNPU-IR
-   and build them with AscendNPU-IR's LLVM/MLIR tree.
-3. Confirm the in-tree PTO dialect target exports the C++ APIs used by the
-   bridge pass.
-4. Capture at least two real modules immediately after
-   `buildLowerAVEPipelines`: one full-lane vector kernel and one tail kernel.
-5. Inventory every remaining dialect/op in those modules before late Standard
-   lowering.
-6. Confirm AVE load/store indices are element offsets.
-7. Resolve the PTOAS unified masked-store conflict.
-8. Select and document the compiler-facing container and entry ABI.
-
-Exit criteria:
-
-- One shared LLVM ABI is demonstrated.
-- A hand-authored VMI version of the full-lane kernel passes
-  `pto-validate-vmi-ir` and lowers to VPTO.
-- The real pre-conversion IR contains no unexplained operation needed by the
-  first slice.
-- Every Phase 1 mapping has written semantic acceptance criteria.
-
-### Phase 1: Build the strict full-lane conversion slice
-
-Tasks:
-
-1. Add the optional PTOAS CMake integration and pass registration.
-2. Implement rank-1 float vector, predicate, and UB memref type conversion.
-3. Implement the dialect-conversion target and local pattern checks so
-   unsupported AVE/HIVM operations reject the whole module during conversion.
-4. Convert `pge <ALL>`, `vload <NORM>`, full-mask `vadd`/`vsub`/`vmul`/`vabs`,
-   and full-mask normal stores.
-5. Convert private Func/SCF/CF type edges needed by the captured kernel.
-6. Reject residual AVE/HIVM, unsupported attributes, and unrealized casts.
-7. Add Ascend lit tests and a PTOAS parse/verify/lower integration test.
-
-Exit criteria:
-
-- The representative load-add-store kernel converts without AVE residue.
-- PTOAS parses the emitted text, passes `pto-validate-vmi-ir`, assigns layout,
-  and lowers it to VPTO without VMI residue.
-- Every unsupported operation in the test corpus fails with a stable,
-  location-bearing diagnostic.
-- Existing CCE/LLVM pipelines are unchanged when PTOAS support is disabled.
-
-### Phase 2: Add tails, predicates, and control flow
-
-Tasks:
-
-1. Implement fixed `pge <VLn>` masks.
-2. Implement masked stores using the PTOAS-approved representation.
-3. Add predicate logic, compare, and select after semantic review.
-4. Add SCF/CF cases for loops, `if`, and branch joins carrying VMI values.
-5. Add multidimensional strided memref linearization only if required by a real
-   kernel and validated against PTOAS memref restrictions.
-
-Exit criteria:
-
-- A real tail kernel preserves skip-write behavior.
-- PTOAS mask granularity and layout assignment pass for each predicate path.
-- Negative tests cover lane mismatch, offset overflow/range, unsupported
-  layouts, and incompatible compare semantics.
-
-### Phase 3: Expand operation coverage
-
-Implement the Phase 3 groups from Section 7 one family at a time. For every
-family:
-
-1. Add a source/target mapping note with attributes and edge cases.
-2. Add positive float/integer/type-width tests as applicable.
-3. Add verifier-negative tests.
-4. Run the full PTOAS semantic pipeline.
-5. Do not mark the family supported until VMI-to-VPTO succeeds.
-
-Keep reductions, gather/scatter, complex distribution modes, and layout-changing
-operations as separate milestones because their blast radius is larger than a
-one-to-one elementwise conversion.
-
-### Phase 4: Integrate the compiler driver
-
-Tasks:
-
-1. Add the `ptoas-vmi` backend/output selection to compile configuration.
-2. Branch after `buildLowerAVEPipelines` and before late Standard/intrinsic
-   lowering.
-3. Add vector-kernel legality validation before any HIVM op can become a
-   library call.
-4. Add container/entry-point adaptation using the Phase 0 ABI decision.
-5. Emit textual MLIR suitable for the pinned PTOAS tool.
-6. Add an end-to-end test from representative Ascend input to emitted VPTO.
-
-Exit criteria:
-
-- `bishengir-compile` can select the PTOAS VMI path without running the CCE
-  intrinsic tail.
-- Cube, DMA, sync, mixed-core, and unsupported vector kernels fail before
-  partial output is emitted.
-- The default backend remains byte-for-byte or FileCheck-equivalent to its
-  pre-bridge behavior.
-
-### Phase 5: Hardware and performance validation
-
-Tasks:
-
-1. Compile representative kernels through both the existing CCE path and the
-   PTOAS path.
-2. Validate numerical results, tails, aliasing, and memory bounds on A5 hardware
-   or the approved simulator.
-3. Compare VPTO/instruction shape, register parts, mask setup, and memory access
-   count.
-4. Benchmark representative vector sizes and alignment cases.
-5. Record unsupported cases and performance regressions before broadening the
-   enabled kernel set.
-
-## 10. Test Strategy
-
-### Ascend pass tests
-
-Create focused lit files under
-`bishengir/test/Conversion/HIVMAVEToPTOASVMI/`:
-
-```text
-basic-f32-load-add-store.mlir
-basic-f16-bf16-arithmetic.mlir
-type-and-memory-space-conversion.mlir
-control-flow.mlir
-tail-mask-and-store.mlir
-unsupported-ops.mlir
-unsupported-memory.mlir
-unsupported-types-and-layouts.mlir
-```
-
-Checks must assert types, operation names, mask handling, attributes, offsets,
-and the absence of `ave.hir`, AVE types/layouts, and unrealized casts. Avoid
-tests that only check that a `pto.vmi` string appeared.
-
-### PTOAS contract tests
-
-Pipe or save the converted module and run, using tools built against the pinned
-LLVM revision:
+The first stage is complete when this command succeeds:
 
 ```bash
-bishengir-opt --convert-hivmave-to-ptoas-vmi input.mlir \
-  | pto-test-opt --pto-validate-vmi-ir
+AscendNPU-IR/build/bin/bishengir-opt \
+  AscendNPU-IR/lowered_vector_add_kernel.mlir \
+  --convert-hivmave-to-ptoas-vmi \
+  -o /tmp/lowered_vector_add_kernel.pto.mlir
 ```
 
-Then run the semantic lowering sequence or the PTOAS CLI:
+and PTOAS can consume the result and lower it through the VMI pipeline:
 
 ```bash
-ptoas --pto-arch=a5 --pto-backend=vpto --emit-vpto converted.pto -o -
+PTOAS/build/bin/ptoas \
+  --pto-arch=a5 \
+  --pto-backend=vpto \
+  --emit-vpto \
+  /tmp/lowered_vector_add_kernel.pto.mlir \
+  -o /tmp/lowered_vector_add_kernel.vpto.mlir
 ```
 
-The full check must confirm:
+The exact PTOAS binary path and architecture option may differ in the local
+build. The selected architecture must be verified from the source HACC/DLTI
+target metadata; `a5` is not assumed merely because it is shown above.
 
-- producer-boundary validation succeeds;
-- signless normalization, unified-to-legacy lowering, mask assignment, and
-  layout assignment succeed;
-- VMI-to-VPTO succeeds;
-- no `pto.vmi.*`, `!pto.vmi.*`, or `unrealized_conversion_cast` remains in
-  emitted VPTO.
+"Complete conversion" for Stage 1 means:
 
-Make cross-repository tests conditional on an explicitly discovered PTOAS test
-tool and lit feature. Missing PTOAS must skip only bridge integration tests, not
-silently weaken pass unit tests in a PTOAS-enabled build.
+- the whole module, not only the outlined vector helper, is accepted;
+- every `ave.hir.*` and `hivm.hir.*` operation is eliminated;
+- every HIVM memory-space type is converted to a PTO representation;
+- source-only AVE, HIVM, HACC, TT, and DLTI attributes are either mapped to a
+  defined PTOAS contract or removed after their meaning has been discharged;
+- vector computation is expressed as surface `pto.vmi.*` operations;
+- DMA, synchronization, pointer, and control-register behavior needed by this
+  kernel is expressed with non-VMI PTO operations;
+- function signatures and `func.call` sites agree after type conversion;
+- the result contains no `unrealized_conversion_cast`;
+- MLIR verification and PTOAS VMI-to-VPTO lowering both succeed.
 
-### Required negative cases
+This definition intentionally permits ordinary `builtin`, `arith`, `func`,
+`scf`, and the subset of `memref` operations accepted by PTOAS. It does not
+mean that every operation in the output has a `pto.vmi` prefix.
 
-- Any Cube, DMA, sync, or mixed-core operation.
-- Unsupported AVE operation or distribution mode.
-- Non-UB memory and unknown memory spaces.
-- Rank-greater-than-1 or non-unit-stride memory in Phase 1.
-- Multiple AVE load results in Phase 1.
-- Mask/data lane mismatch.
-- AVE padded vectors, layout casts, layout attributes, and mask parts.
-- Public kernel signatures exposing VMI values.
-- Unsupported element types or integer signedness.
-- Dynamic/byte offsets whose units cannot be proven.
-- Masked compute with non-all-active masks before `pmode` semantics are proven.
-- Residual AVE/HIVM ops or unrealized casts after conversion.
+## 2. Current Baseline
 
-### Regression checks
+The pass already exists in AscendNPU-IR at:
 
-- Run Ascend's conversion and dialect lit suites plus `check-bishengir`.
-- Run PTOAS `check-pto`, with emphasis on `test/lit/vmi_new`.
-- Run existing CCE pipeline tests with PTOAS support both disabled and enabled
-  but unselected.
-- Add at least one test proving the CCE path still reaches
-  `convert-hivmave-to-ave-intrin` and the PTOAS path does not.
+```text
+bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp
+```
 
-## 11. Assumptions
+The PTO dialect is built in-tree from sources under:
 
-- The bridge targets the PTOAS VMI revision represented by the pinned PTOAS
-  checkout, not an abstract or older VMI specification.
-- Vector kernels reach a stable normalized HIVMAVE form before the late Standard
-  and AVE intrinsic conversions.
-- PTOAS remains responsible for physical vector layout and mask granularity.
-- Initial AVE vector memory operations access UB, and GM/L1/L0 movement remains
-  outside this pass.
-- Phase 1 can be demonstrated with rank-1, unit-stride, full-lane floating-point
-  operations.
-- PTOAS A5/VPTO is the intended backend. If another architecture is required,
-  re-run the target operation and verifier audit.
+```text
+bishengir/include/PTOAS/PTO/IR/
+bishengir/lib/PTOAS/PTO/IR/
+```
 
-## 12. Open Questions and Blocking Decisions
+There is no external `libPTOIR.a` dependency and no PTOAS feature flag. The
+pass is always registered in `bishengir-opt`.
 
-Resolve these in order. Items 1-5 block production implementation; later items
-block only the corresponding coverage phase.
+Implemented and tested support currently includes:
 
-1. **PTO dialect import:** Which PTOAS `.td` files and support sources are
-   required to build the PTO dialect in AscendNPU-IR without linking
-   `libPTOIR.a`?
-2. **In-tree dialect target:** What will the copied PTO dialect library target be
-   named, and should `MLIRHIVMAVEToPTOASVMI` link it directly or depend on an
-   aggregate dialect library?
-3. **Kernel/container ABI:** Which Ascend functions become PTOAS `pto.kernel`
-   entries, and which PTOAS container form should the compiler emit?
-4. **Memory ownership:** What mechanism supplies UB buffers in the PTOAS kernel
-   when HIVM DMA is out of scope? Are bridge inputs already UB-resident?
-5. **Offset units:** Are AVE load/store indices element offsets at the selected
-   interception point for all accepted memrefs?
-6. **Masked store:** Should the bridge emit legacy `pto.vmi.masked_store`, or
-   will unified `pto.vmi.vstore` support skip-write/merge semantics?
-7. **Masked compute:** What are AVE inactive result lanes for each unary,
-   binary, ternary, compare, and vector-scalar family?
-8. **Integer signedness:** When AVE uses signless MLIR integers, which operation
-   or attribute is authoritative for signed/unsigned interpretation?
-9. **Predicate types:** How should `!ave.mask`, layout-bearing predicate vectors,
-   and `part` values be reconstructed as logical masks?
-10. **Control flow:** Which SCF/CF constructs occur in real normalized vector
-    kernels, and which are accepted by the pinned PTOAS layout pipeline?
-11. **PLT range:** Can AVE `index` values be proven to fit PTOAS `i32`, and do
-    both operations return the same next-remainder value?
-12. **Numerical modes:** How do AVE rounding, saturation, high-precision,
-    reciprocal, and conversion-part attributes map to PTOAS?
+- rank-1 `f16`/`bf16`/`f32` data vectors to `!pto.vmi.vreg`;
+- predicate vectors to `!pto.vmi.mask`;
+- accepted HIVM GM/UB memrefs to PTO pointers;
+- `ave.hir.pge` for `ALL` and fixed `VL*` patterns;
+- `ave.hir.vload`, selected unary/binary/vector-scalar arithmetic, and normal
+  masked stores;
+- `memref.extract_strided_metadata` and contiguous rank-1
+  `memref.reinterpret_cast` folded to PTO pointer operations;
+- `hivm.hir.pointer_cast`, redundant `memref.memory_space_cast`, and existing
+  PTO MTE op operand remapping for the exact pointer memory graph;
+- static `set_ctrl`, `set_flag`, `wait_flag`, and `PIPE_ALL` barrier
+  conversion for the exact artifact;
+- direct `func.call` conversion for the outlined vector helper;
+- Func/SCF structural type conversion for the focused tests.
 
-Every resolved answer should be added to the mapping documentation and encoded
-in a verifier or test. Do not leave semantic decisions only in code comments.
+The current pass converts the whole acceptance artifact through
+`bishengir-opt`, emits the PTOAS kernel/vector metadata contract, and the
+result lowers through PTOAS `--emit-vpto`. Phase 1G should turn this into an
+acceptance-style regression and record the exact handoff command.
 
-## 13. Risks and Mitigations
+## 3. Acceptance Artifact Inventory
+
+### 3.1 Outlined vector helper
+
+`@vector_add_kernel_outlined_vf_0` contains:
+
+- three static rank-1 UB memref arguments;
+- an `scf.for` over four 64-element chunks;
+- `memref.extract_strided_metadata` and `memref.reinterpret_cast` view chains;
+- two normal AVE vector loads;
+- full-lane `pge <ALL>` predicates;
+- one AVE vector add;
+- one full-lane normal masked store;
+- source attributes `functionType` and `hivm.is_continuous`;
+- source-only function attributes.
+
+The vector operations themselves are already covered. The remaining helper
+work is attribute handling and choosing a pointer/memref representation that
+also composes with the entry function and PTOAS ABI.
+
+### 3.2 Entry function
+
+`@vector_add_kernel` additionally contains:
+
+- dynamic GM memref arguments and source argument metadata;
+- three static rank-1 GM reinterpret casts;
+- three HIVM UB pointer casts from integer byte addresses;
+- HIVM-to-PTO `memref.memory_space_cast` operations;
+- existing `pto.mte_gm_ub` and `pto.mte_ub_gm` operations;
+- static `set_flag` and `wait_flag` synchronization;
+- three `set_ctrl` bit updates;
+- one `PIPE_ALL` barrier;
+- a call to the outlined helper;
+- source module, function, and argument attributes.
+
+These operations make a narrow amount of outer-kernel conversion part of Stage
+1. This is not a commitment to support general HIVM DMA, synchronization, or
+arbitrary kernel ABI conversion.
+
+## 4. Stage 1 Mapping Contract
+
+### 4.1 Confirmed mappings
+
+| Source | Target | Stage 1 restriction |
+| --- | --- | --- |
+| `vector<64xf32>` | `!pto.vmi.vreg<64xf32>` | Existing mapping |
+| `vector<64xi1>` predicate | `!pto.vmi.mask<64xpred>` | Existing mapping |
+| `ave.hir.pge <ALL>` | `pto.vmi.pset "PAT_ALL"` | Existing mapping |
+| `ave.hir.vload <NORM>` | `pto.vmi.load` | Contiguous UB source |
+| `ave.hir.vadd` | `pto.vmi.vadd` | Direct full-lane mask |
+| full-lane `masked_store <NORM_B32>` | `pto.vmi.store` | `f32`, contiguous UB destination |
+| HIVM static `set_flag` | `pto.set_flag` | Static pipe pair and `EVENT_ID0` |
+| HIVM static `wait_flag` | `pto.wait_flag` | Static pipe pair and `EVENT_ID0` |
+| `hivm.hir.pipe_barrier[PIPE_ALL]` | `pto.barrier #pto.pipe<PIPE_ALL>` | Explicit enum mapping |
+| existing `pto.mte_gm_ub` | preserve | Rewrite operands only |
+| existing `pto.mte_ub_gm` | preserve | Rewrite operands only |
+| `func.call` | converted `func.call` | Callee and caller signatures must match |
+
+HIVM and PTO pipe/event attributes are different typed attributes even when
+their printed enum names match. Conversion must construct PTO attributes
+explicitly; it must not copy source attributes by name or numeric value.
+
+### 4.2 Control-register mapping
+
+`hivm.hir.set_ctrl <enable> at ctrl[<idx>]` updates one bit. PTO
+`pto.set_ctrl` writes the complete `i64` control value. Each accepted HIVM op
+therefore maps to a read-modify-write sequence:
+
+```text
+current = pto.get_ctrl
+enable=true  -> updated = current OR  (1 << idx)
+enable=false -> updated = current AND NOT(1 << idx)
+pto.set_ctrl updated
+```
+
+Stage 1 accepts constant indices in `[0, 63]`, which covers bits 60 and 48 in
+the artifact. Tests must check the exact masks and verify that consecutive
+updates each read the current register state. Replacing these operations with
+constants is not valid because the unspecified control bits must be preserved.
+
+### 4.3 Source operation attributes
+
+Do not keep the current all-or-nothing extra-attribute check for accepted AVE
+operations. Handle attributes by semantic allowlist:
+
+- `functionType` may be consumed and dropped only when it agrees with the
+  already normalized operation and element width. For this artifact that means
+  `norm` on normal `f32` loads/stores and `pb32` on `f32` predicates.
+- `hivm.is_continuous` may be consumed and dropped only when the memory view is
+  proven rank-1 and unit-stride.
+- unknown AVE/HIVM attributes still reject the operation.
+
+This preserves strict rejection while accepting metadata produced by the
+normal Ascend lowering pipeline.
+
+### 4.4 Memory and pointer representation decision
+
+The preferred Stage 1 target is PTO pointers:
+
+```text
+GM kernel memref argument -> !pto.ptr<element, gm>
+UB helper memref argument -> !pto.ptr<element, ub>
+hivm.hir.pointer_cast(i64) -> pto.castptr i64 -> !pto.ptr<element, ub>
+```
+
+This aligns with PTOAS kernel examples and lets the existing MTE and VMI
+operations consume the same values. PTO `castptr`, MTE buffer operands, and VMI
+load/store all accept PTO pointer types.
+
+This preference must be proven before implementation by constructing the
+expected target form for the exact artifact and running PTOAS. If PTOAS
+requires a different ABI for the first two special `i8` arguments, record that
+explicitly rather than preserving a dynamic memref descriptor by accident.
+
+For the helper's view chain, the expected pointer interpretation is:
+
+```text
+extract base + reinterpret offset %iv, size 64, stride 1
+  -> pto.addptr %base, %iv
+```
+
+The conversion may fold the metadata/view pair only when:
+
+- the base result is the only live metadata result;
+- the reinterpret view is rank-1;
+- its element type is unchanged;
+- its stride is statically one;
+- its offset is an element offset accepted by `pto.addptr`;
+- size 64 is compatible with the VMI vector user.
+
+Any other metadata/view use remains unsupported in Stage 1. Existing generic
+UB-memref support may remain for focused unit tests, but the exact acceptance
+path must not produce unrealized memref descriptor casts.
+
+The entry function's zero-offset GM reinterpret casts should become the
+original converted GM pointer. The HIVM-to-PTO `memref.memory_space_cast`
+operations then become redundant and must be erased. Do not emit an identity
+memory-space cast merely to preserve source shape.
+
+### 4.5 Module and function contract
+
+The output must carry a PTOAS compiler-facing vector-kernel contract:
+
+- map the confirmed Ascend target to `pto.target_arch`;
+- mark the launched entry with `pto.kernel`;
+- place the kernel in a PTOAS-supported vector container, either the
+  recommended `pto.section.vector` source form or a normalized module carrying
+  `pto.kernel_kind = #pto.kernel_kind<vector>`;
+- keep the outlined function as a non-kernel helper if PTOAS accepts the call;
+- remove source attributes that PTOAS cannot parse and that no longer affect
+  semantics.
+
+The exact container form and target-architecture mapping are validation tasks,
+not assumptions. Prefer the least invasive form that the current PTOAS CLI
+accepts for this module.
+
+## 5. Ordered Implementation Phases
+
+### Phase 1A: Freeze the expected PTOAS target
+
+1. Create a hand-authored PTOAS version of the exact acceptance artifact.
+2. Use PTO pointers for GM and UB values and preserve the existing MTE ops.
+3. Represent the helper slice with `pto.addptr` and VMI load/add/store.
+4. Add PTO flags, waits, control read-modify-write sequences, and barrier.
+5. Select the container, entry marker, target architecture, and treatment of
+   the special sync/workspace arguments.
+6. Run PTOAS through `--emit-vpto` until this target succeeds without VMI or
+   unrealized-cast residue.
+
+Exit criterion: one reviewed target file proves the desired output contract.
+
+Phase 1A result as of 2026-08-17:
+
+- The hand-authored target is
+  `Planner/bridge/validation/lowered_vector_add_kernel.expected.pto`.
+- It uses module attributes `pto.target_arch = "a5"` and
+  `pto.kernel_kind = #pto.kernel_kind<vector>`.
+- The entry keeps the source eight-argument shape with five GM memrefs
+  converted to PTO GM pointers and the three scalar `i32` arguments preserved.
+- The two special `i8` GM arguments are represented as unused
+  `!pto.ptr<ui8, gm>` arguments in the target artifact.
+- The outlined helper remains a private `func.func` with `no_inline` and PTO UB
+  pointer arguments.
+- Helper metadata/reinterpret views are represented as `pto.addptr` with the
+  loop induction variable as an element offset.
+- HIVM `pointer_cast` byte offsets are represented by `pto.castptr`; the
+  nonzero `1024` byte UB address is intentionally not rewritten as an element
+  offset.
+- The file lowers successfully with:
+
+  ```bash
+  /home/m00967009/Workspace/PTOAS/build/tools/ptoas/ptoas \
+    --pto-arch=a5 \
+    --pto-backend=vpto \
+    --emit-vpto \
+    /home/m00967009/Workspace/Planner/bridge/validation/lowered_vector_add_kernel.expected.pto \
+    -o /tmp/lowered_vector_add_kernel.expected.vpto.mlir
+  ```
+
+- The emitted VPTO contains `pto.vlds`, `pto.vadd`, `pto.vsts`, MTE,
+  control-register, and barrier operations, with no `pto.vmi`, `!pto.vmi`, or
+  `unrealized_conversion_cast` residue.
+
+### Phase 1B: Accept normalized AVE attributes
+
+1. Replace the blanket extra-attribute rejection with per-operation
+   allowlists.
+2. Validate and consume `functionType` for the exact load, predicate, and store
+   forms in the artifact.
+3. Validate and consume `hivm.is_continuous` on the store.
+4. Add negative tests for mismatched and unknown attributes.
+
+Exit criterion: the outlined helper reaches memory/type conversion without
+weakening unsupported-attribute rejection.
+
+Phase 1B result as of 2026-08-17:
+
+- `functionType` is consumed by per-operation allowlist for accepted `pge`,
+  normal `vload`, and normal `masked_store` forms.
+- `hivm.is_continuous` is consumed only on the accepted normal masked-store
+  path.
+- Unknown and mismatched AVE operation attributes still reject conversion.
+- The focused `HIVMAVEToPTOASVMI` test directory passes.
+- Running the pass on `lowered_vector_add_kernel.mlir` now proceeds past the
+  previous `functionType` failure and first fails on `hivm.hir.set_ctrl` at
+  line 26, which is covered by Phase 1E.
+
+### Phase 1C: Convert the exact memory graph to PTO pointers
+
+1. Extend the type converter for the accepted GM and UB memref forms.
+2. Convert entry and helper function signatures to the target pointer ABI.
+3. Convert HIVM `pointer_cast` to `pto.castptr` for one `i64` address and a
+   static rank-1 result.
+4. Fold the accepted metadata/reinterpret view chain to `pto.addptr`.
+5. Fold zero-offset GM reinterpret casts to their source pointers.
+6. Remove redundant `memref.memory_space_cast` operations.
+7. Make the already-PTO MTE ops dynamically legal only when all buffer operands
+   have legal PTO types.
+8. Reject multi-address pointer casts, dynamic UB shapes, non-unit strides,
+   element-type changes, and live metadata results not represented in PTO.
+
+Exit criterion: all memory values in the artifact are PTO pointers and there
+are no HIVM memory spaces or unrealized casts.
+
+Phase 1C result as of 2026-08-17:
+
+- Accepted GM and UB memrefs now convert to PTO pointer types.
+- Signless `i8` GM memrefs convert to `!pto.ptr<ui8, gm>` for the special
+  sync/workspace arguments proven in Phase 1A.
+- `hivm.hir.pointer_cast` with one `i64` address converts to `pto.castptr`.
+- Supported rank-one unit-stride `memref.extract_strided_metadata` and
+  `memref.reinterpret_cast` chains fold to source pointers or `pto.addptr`.
+- Redundant `memref.memory_space_cast` operations erase when the converted
+  source and result pointer types match.
+- Existing `pto.mte_gm_ub` and `pto.mte_ub_gm` ops are preserved with remapped
+  PTO pointer operands.
+- Focused positive and negative lit tests cover pointer memory graph
+  conversion, MTE operand legalization, metadata folding, and malformed
+  pointer casts.
+- The `HIVMAVEToPTOASVMI` lit directory passes with 15 tests.
+- Running the pass on `lowered_vector_add_kernel.mlir` now first fails on
+  `hivm.hir.set_ctrl` at line 26, which is covered by Phase 1E.
+
+### Phase 1D: Convert calls and structural control flow
+
+1. Add the standard `func.call` type-conversion pattern.
+2. Make `func.call` dynamically legal only when its operand/result types match
+   the converted callee contract.
+3. Keep the existing Func/SCF conversions for the helper loop.
+4. Verify symbol resolution and helper visibility after conversion.
+
+Exit criterion: the helper signature, call operands, and SCF body are all
+legal under the same type converter.
+
+Phase 1D result as of 2026-08-17:
+
+- Direct `func.call` operations are rewritten with converted operand/result
+  types.
+- The rewritten helper call preserves `no_inline` and drops the source-only
+  `hivm.vector_function` call attribute.
+- `func.call` is dynamically legal only when its operand/result types are legal
+  and the source-only call marker is gone.
+- A focused call-conversion lit test covers the outlined-helper ABI shape.
+
+### Phase 1E: Convert synchronization and control operations
+
+1. Map the four static HIVM flag/wait operations to PTO operations using
+   explicit pipe and event enum conversion helpers.
+2. Map the `PIPE_ALL` barrier to `pto.barrier`.
+3. Lower each HIVM `set_ctrl` to `pto.get_ctrl`, `arith` bit manipulation, and
+   `pto.set_ctrl`.
+4. Mark only these HIVM operations illegal so any other residual HIVM op still
+   fails full conversion.
+5. Add positive and negative unit tests for every accepted enum and control-bit
+   form.
+
+Exit criterion: no `hivm.hir.*` operation remains in the artifact.
+
+Phase 1E result as of 2026-08-17:
+
+- `hivm.hir.set_ctrl` lowers to `pto.get_ctrl`, `arith.ori`/`arith.andi`, and
+  `pto.set_ctrl`.
+- Static `PIPE_MTE2 -> PIPE_V` and `PIPE_V -> PIPE_MTE3` flag/wait pairs using
+  `EVENT_ID0` lower to PTO `set_flag`/`wait_flag`.
+- `hivm.hir.pipe_barrier[<PIPE_ALL>]` lowers to `pto.barrier <PIPE_ALL>`.
+- Dynamic event IDs, non-`EVENT_ID0` static events, unsupported pipes, and
+  out-of-range control bits remain unsupported.
+- The focused `HIVMAVEToPTOASVMI` lit directory passes with 18 tests.
+- Running the pass on `lowered_vector_add_kernel.mlir` succeeds and writes
+  `/tmp/lowered_vector_add_kernel.phase1e.mlir`.
+- The generated artifact has no `ave.hir`, `hivm.hir`, `#hivm.address_space`,
+  or `unrealized_conversion_cast` residue. It still contains source-only
+  attributes, which are handled by Phase 1F.
+
+### Phase 1F: Adapt metadata and container
+
+1. Map the confirmed Ascend architecture to `pto.target_arch`.
+2. Mark `@vector_add_kernel` as the PTO kernel entry.
+3. Add the selected vector container contract.
+4. Preserve only generic attributes that PTOAS accepts and that remain useful.
+5. Remove consumed `hacc.*`, `hivm.*`, `tt.*`, and source DLTI attributes from
+   module, function, call, and argument dictionaries.
+6. Reject multiple or ambiguous entry functions rather than guessing.
+
+Exit criterion: PTOAS parses the generated text without registering Ascend
+dialects.
+
+Phase 1F result as of 2026-08-17:
+
+- Module metadata is replaced with `pto.target_arch = "a5"` and
+  `pto.kernel_kind = #pto.kernel_kind<vector>`.
+- The original `hacc.entry` function is marked with `pto.kernel`.
+- Source-only module, function, and argument attributes from HACC/HIVM/TT/DLTI
+  are removed.
+- Helper functions preserve `no_inline`.
+- A focused metadata/container lit test covers the cleanup behavior.
+- Running the pass on `lowered_vector_add_kernel.mlir` succeeds and writes
+  `/tmp/lowered_vector_add_kernel.phase1f.mlir`.
+- The generated artifact has no `hacc`, `hivm`, `tt.`, `dlti`,
+  `unrealized_conversion_cast`, `ave.hir`, `hivm.hir`, or HIVM address-space
+  residue.
+- PTOAS lowers the generated artifact successfully with:
+
+  ```bash
+  /home/m00967009/Workspace/PTOAS/build/tools/ptoas/ptoas \
+    --pto-arch=a5 \
+    --pto-backend=vpto \
+    --emit-vpto \
+    /tmp/lowered_vector_add_kernel.phase1f.mlir \
+    -o /tmp/lowered_vector_add_kernel.phase1f.vpto.mlir
+  ```
+
+- The emitted VPTO has no `pto.vmi`, `!pto.vmi`, or
+  `unrealized_conversion_cast` residue.
+
+### Phase 1G: End-to-end acceptance and regression
+
+1. Add the complete kernel as a lit acceptance test under
+   `bishengir/test/Conversion/HIVMAVEToPTOASVMI/`.
+2. Check the presence of pointer conversion, MTE, flags/waits, control updates,
+   barrier, helper call, loop, and VMI load/add/store.
+3. Check the absence of `ave.hir`, `hivm.hir`, HIVM address spaces,
+   source-only attributes, and `unrealized_conversion_cast`.
+4. Run MLIR verification on the converted module.
+5. Run the converted artifact manually through PTOAS `--emit-vpto` and record
+   the exact command. Add an automated cross-repository test only when the
+   PTOAS executable can be discovered reliably.
+6. Run the focused bridge lit suite and relevant Ascend conversion tests.
+
+Exit criterion: the exact Stage 1 commands in Section 1 succeed.
+
+Phase 1G result as of 2026-08-17:
+
+- Added the exact-artifact lit regression:
+  `bishengir/test/Conversion/HIVMAVEToPTOASVMI/lowered-vector-add-kernel.mlir`.
+- The test runs `lowered_vector_add_kernel.mlir` through
+  `--convert-hivmave-to-ptoas-vmi`.
+- It checks the PTOAS module/kernel contract, helper pointer ABI, entry pointer
+  ABI, MTE ops, sync/control ops, helper call, loop, and VMI load/add/store.
+- It checks absence of `ave.hir`, `hivm.hir`, HIVM address spaces,
+  source-only HACC/HIVM/TT/DLTI attrs, and `unrealized_conversion_cast`.
+- The focused `HIVMAVEToPTOASVMI` lit directory passes with 20 tests.
+- PTOAS lowering was manually validated in Phase 1F. Automated cross-repo
+  PTOAS execution remains deferred until the PTOAS binary can be discovered
+  reliably from AscendNPU-IR lit.
+
+## 6. Test Matrix
+
+### Positive tests
+
+- Exact `lowered_vector_add_kernel.mlir` end-to-end conversion.
+- AVE `functionType` values `norm` and `pb32` on their expected operations.
+- Contiguous `hivm.is_continuous` store.
+- GM and UB pointer conversion.
+- Zero and nonzero constant UB byte addresses.
+- Dynamic loop element offset lowered with `pto.addptr`.
+- Converted helper call and `scf.for`.
+- MTE2-to-V and V-to-MTE3 static flag/wait pairs.
+- Control bits 60 clear/set and bit 48 set.
+- `PIPE_ALL` barrier.
+
+### Negative tests
+
+- Mismatched `functionType` or continuity marker on a noncontiguous view.
+- Unknown AVE/HIVM operation attribute.
+- GM/UB memref element type unsupported by the chosen PTO pointer path.
+- Rank greater than one, dynamic UB shape, or non-unit stride.
+- Multi-address or malformed HIVM pointer cast.
+- Unsupported pipe, dynamic event, or event ID outside the Stage 1 subset.
+- Control index outside `[0, 63]`.
+- Call whose converted operands do not match the callee signature.
+- Residual AVE/HIVM operation or type.
+- Ambiguous kernel entry or unknown target-architecture mapping.
+
+### PTOAS checks
+
+The PTOAS handoff is accepted only when:
+
+- the module parses with PTOAS without Ascend dialect registration;
+- PTOAS producer-boundary verification succeeds;
+- VMI mask/layout assignment succeeds;
+- VMI-to-VPTO lowering succeeds;
+- emitted VPTO has no `pto.vmi.*`, `!pto.vmi.*`, or
+  `unrealized_conversion_cast` residue.
+
+## 7. Assumptions
+
+- The in-tree PTO dialect remains generated and linked with AscendNPU-IR's own
+  LLVM/MLIR build; no external PTOAS MLIR library is linked.
+- The copied PTO dialect matches the PTOAS CLI used for Stage 1 validation.
+- The acceptance artifact is the source of truth for Stage 1 operation and ABI
+  coverage.
+- The `scf.for` induction variable and AVE load/store indices in the artifact
+  are element offsets.
+- The vector helper is allowed to remain as a callable helper if PTOAS accepts
+  the hand-authored target. Otherwise Stage 1 must add inlining before claiming
+  success.
+- Existing PTO MTE operations in the artifact have already encoded the desired
+  transfer lengths and strides; this pass converts their buffer operands but
+  does not reinterpret those numeric operands.
+
+## 8. Open Questions
+
+These must be answered during Phase 1A before the corresponding implementation:
+
+1. Which exact PTO target architecture corresponds to `dav-c310` and
+   `Ascend910_9589` in the artifact? Phase 1A proved that `a5` is accepted by
+   PTOAS for this target shape, but the Ascend-target-to-PTO-arch mapping still
+   needs an explicit source-of-truth confirmation before the pass hard-codes it.
+2. Does PTOAS accept the eight-argument kernel ABI after converting all five
+   dynamic GM memrefs to PTO pointers, or must sync/workspace and dynamic-shape
+   arguments be transformed differently? Phase 1A answer: PTOAS accepts this
+   shape when the two special `i8` GM arguments are represented as
+   `!pto.ptr<ui8, gm>` and remain unused.
+3. Should the output use a `pto.section.vector` source function or a normalized
+   `pto.kernel_kind<vector>` module for the current PTOAS CLI? Phase 1A answer:
+   the normalized module attribute form is accepted.
+4. Does PTOAS accept a normal helper `func.call` from the vector kernel, or must
+   the outlined helper be inlined? Phase 1A answer: PTOAS accepts the private
+   `no_inline` helper call and lowers the VMI body in that helper.
+5. Are the `i64` values passed to HIVM `pointer_cast` byte addresses while
+   `pto.addptr` uses element offsets? The artifact uses `0` and `1024`; the
+   chosen conversion must preserve those units explicitly. Phase 1A target
+   keeps `pointer_cast` values as byte-address `pto.castptr` inputs and uses
+   `pto.addptr` only for element offsets derived from memref views.
+6. Which source module/function/argument attributes must survive for host ABI
+   generation, if any, and what are their PTO equivalents?
+
+Answers belong in the bridge design document and in tests, not only in code.
+
+## 9. Risks
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| VMI changes under the bridge | Build or verifier breakage | Pin PTOAS revision; run cross-repo contract tests; update mapping with each pin change |
-| LLVM ABI mismatch | Link-time or runtime corruption | One shared LLVM 21 toolchain; never link cross-major MLIR libraries |
-| Broad Standard lowering erases unsupported source ops | Invalid kernels appear vector-only | Branch before `convert-hivm-to-std`; perform legality audit first |
-| Masked operations silently change inactive lanes | Wrong numerical results or stores | Full-mask-only Phase 1; prove `pmode`/skip-write semantics before tails |
-| AVE physical layout leaks into VMI | PTOAS layout assignment conflict | Emit only surface VMI types; reject AVE layout/part cases initially |
-| Address-space attrs share numeric values but differ by dialect | PTOAS verifier rejects memory or accepts the wrong space | Explicit HIVM-UB to PTO-VEC attribute conversion; reject all other spaces |
-| Multidimensional indices are flattened incorrectly | Out-of-bounds or wrong-element access | Rank-1 first; use structured memref metadata and element-offset tests later |
-| Partial conversion leaves mixed AVE/VMI IR | Downstream failure far from source | AVE dialect illegal, residual-op audit, no unrealized casts |
-| Conversion passes but kernel ABI is not launchable | False end-to-end confidence | Separate producer-boundary and container gates; require PTOAS CLI test |
-| One-to-one IR mapping regresses performance | Correct but poor code | Compare emitted VPTO/instructions and benchmark before enabling broadly |
+| Pointer offset units are confused | Wrong UB/GM addresses | Prove byte versus element units in Phase 1A and test nonzero offsets |
+| Dynamic memref ABI is collapsed incorrectly | PTOAS entry ABI mismatch | Validate a hand-authored pointer ABI before changing the type converter |
+| Source attributes are dropped too broadly | Lost layout or ABI semantics | Per-op/per-scope allowlists and negative tests |
+| `set_ctrl` is lowered as a constant write | Unrelated control bits are corrupted | Required `get_ctrl` read-modify-write sequence |
+| Existing PTO MTE ops become legal with stale HIVM operands | Mixed invalid IR reaches PTOAS | Dynamic legality based on all operand/result types |
+| Helper calls are unsupported by PTOAS VMI lowering | End-to-end failure late in the pipeline | Test the target call shape in Phase 1A; inline only if required |
+| PTO dialect copy drifts from PTOAS | Parser/verifier incompatibility | Record PTOAS revision and run the exact end-to-end artifact |
+| Full conversion reports only the first blocker | Slow diagnosis | Keep focused unit tests per new operation/type family |
 
-## 14. Definition of Done
+## 10. Post-Stage-1 Work
 
-The bridge is complete for its declared vector subset when:
-
-- AscendNPU-IR contains a typed, optionally built
-  `convert-hivmave-to-ptoas-vmi` pass in the standard conversion hierarchy.
-- The driver has an explicit PTOAS VMI path that branches before late Standard
-  and AVE intrinsic lowering.
-- Supported kernels contain only valid surface VMI plus permitted structural
-  MLIR at the handoff.
-- Unsupported Cube, DMA, sync, memory, type, layout, and vector cases fail early
-  with actionable diagnostics.
-- Converted modules pass PTOAS producer-boundary verification and lower through
-  layout assignment and VMI-to-VPTO without residual VMI or casts.
-- At least one full-lane kernel and one tail kernel are numerically validated on
-  the approved target/simulator.
-- Existing Ascend CCE behavior is unchanged when the PTOAS backend is not
-  selected.
-- The supported operation/type/attribute matrix and remaining gaps are recorded
-  in Planner and match the tests.
+Broader AVE operation coverage, arbitrary DMA/synchronization forms, mixed
+Cube/Vector modules, general dynamic memref descriptors, additional data types,
+and compiler-driver pipeline integration are deferred until the exact vector-add
+kernel passes Stage 1. Subsequent stages should be driven by the next concrete
+lowered kernel artifact, not by adding operations speculatively.
