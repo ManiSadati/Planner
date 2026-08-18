@@ -1,8 +1,10 @@
 # Triton Bridge Examples
 
-These Python files are source fixtures for the NPU-IR-to-PTOAS bridge. They are
-not expected to run on the Codex-accessible server. Run/lower them on an A5
-machine, then copy the generated early IR dumps back into Planner.
+These Python files are source fixtures for the NPU-IR-to-PTOAS bridge. Real A5
+validation and authoritative early IR generation still happen on an A5
+machine. A CANN operator simulator is available on the Codex-accessible server
+for limited functional checks; see
+`bridge/memory/npuir-simulator-workflow.md`.
 
 The goal is to cover the operation families we need to map, starting from simple
 cases and moving toward realistic fused kernels.
@@ -20,6 +22,7 @@ source.
 | `dma_copy.py` | Pure copy with masked tail | GM->UB load, UB->GM store, simple DMA shape/stride |
 | `vector_elementwise.py` | Pure vector arithmetic with masks | vector load, predicate/mask, add/mul/relu, masked store |
 | `vector_dma_pipeline.py` | Multiple vector loads plus store | load/store DMA around vector arithmetic, scalar broadcast |
+| `vector_add.py` | Minimal two-input vector addition | two GM loads, vector add, GM store, simulator smoke test |
 | `row_softmax.py` | Row-wise softmax | vector reductions, exp, divide, masks, load/store |
 | `rmsnorm.py` | Row-wise RMSNorm | reduction, sqrt/divide, weight load, vector scaling |
 | `flash_attention_tiny.py` | Single-block attention row | dot-like score computation, softmax, value accumulation |
