@@ -15,7 +15,7 @@ pto_arch="${PTO_ARCH:-a5}"
 pto_backend="${PTO_BACKEND:-vpto}"
 target_pass="${TARGET_PASS:-convert-hivmave-to-ptoas-vmi}"
 
-use_bishengir_compile=0
+use_bishengir_compile=1
 emit_vpto=0
 emit_llvmir=0
 run_simulator=0
@@ -66,8 +66,12 @@ Runs Planner bridge testcases through:
   NPU-IR MLIR --convert-hivmave-to-ptoas-vmi -> PTOAS
 
 Options:
-  --from-bishengir-compile    Run compile-input.mlir through bishengir-compile and
-                              extract the dump after ${target_pass}.
+  --from-bishengir-compile    Run compile-input.mlir, compile_input.mlir, or
+                              input.mlir through
+                              bishengir-compile and extract the dump after
+                              ${target_pass} (default).
+  --from-bishengir-opt         Run input.mlir through bishengir-opt and the bridge
+                              pass directly.
   --emit-vpto                 Ask PTOAS to write final VPTO MLIR.
   --emit-llvmir               Ask PTOAS to write translated VPTO LLVM IR.
   --run-simulator, --sim      Run the testcase simulator fixture after VPTO emission.
@@ -92,8 +96,9 @@ Color output is enabled for terminals by default. Set NO_COLOR=1 to disable it
 or FORCE_COLOR=1 to enable it when output is redirected.
 
 If no emission/execution option is selected, --emit-vpto is used.
-If no case is named, every direct child of TESTCASE_ROOT containing input.mlir is run.
-In --from-bishengir-compile mode, each case must contain compile-input.mlir.
+If no case is named, every direct child of TESTCASE_ROOT containing input.mlir or
+a compile input is run in compile mode. Compile mode prefers compile-input.mlir,
+then compile_input.mlir, then input.mlir. Opt mode requires input.mlir.
 EOF
 }
 
@@ -110,6 +115,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --from-bishengir-compile|--use-bishengir-compile)
       use_bishengir_compile=1
+      shift
+      ;;
+    --from-bishengir-opt|--use-bishengir-opt)
+      use_bishengir_compile=0
       shift
       ;;
     --emit-vpto)
@@ -232,7 +241,10 @@ mkdir -p "${output_root}"
 if [[ ${#cases[@]} -eq 0 ]]; then
   shopt -s nullglob
   for case_dir in "${testcase_root}"/*; do
-    if [[ "${use_bishengir_compile}" == "1" && -f "${case_dir}/compile-input.mlir" ]]; then
+    if [[ "${use_bishengir_compile}" == "1" &&
+          ( -f "${case_dir}/compile-input.mlir" ||
+            -f "${case_dir}/compile_input.mlir" ||
+            -f "${case_dir}/input.mlir" ) ]]; then
       cases+=("$(basename "${case_dir}")")
     elif [[ "${use_bishengir_compile}" == "0" && -f "${case_dir}/input.mlir" ]]; then
       cases+=("$(basename "${case_dir}")")
@@ -262,10 +274,11 @@ run_logged() {
   shift
   if "$@" >"${log_file}" 2>&1; then
     return 0
+  else
+    local status=$?
+    log_error "command failed with exit code ${status}; see ${log_file}"
+    return "${status}"
   fi
-  local status=$?
-  log_error "command failed with exit code ${status}; see ${log_file}"
-  return "${status}"
 }
 
 extract_target_dump() {
@@ -308,6 +321,11 @@ extract_target_dump() {
     }
 
     /^\[/ {
+      flush_candidate()
+      next
+    }
+
+    /^(hivmc|error:|warning:|loc\()/ {
       flush_candidate()
       next
     }
@@ -367,6 +385,7 @@ for case_name in "${cases[@]}"; do
   case_dir="${testcase_root}/${case_name}"
   input_mlir="${case_dir}/input.mlir"
   compile_input_mlir="${case_dir}/compile-input.mlir"
+  compile_input_alt_mlir="${case_dir}/compile_input.mlir"
   case_out="${output_root}/${case_name}"
   vmi_mlir="${case_out}/${case_name}.vmi.mlir"
   vpto_mlir="${case_out}/${case_name}.vpto.mlir"
@@ -376,24 +395,34 @@ for case_name in "${cases[@]}"; do
     rm -rf "${case_out}"
   fi
 
-  if [[ "${use_bishengir_compile}" == "1" && ! -f "${compile_input_mlir}" ]]; then
-    log_error "missing testcase compile input: ${compile_input_mlir}"
+  if [[ "${use_bishengir_compile}" == "0" && ! -f "${input_mlir}" ]]; then
+    log_error "missing testcase input: ${input_mlir}"
     exit 1
   fi
 
-  if [[ "${use_bishengir_compile}" == "0" && ! -f "${input_mlir}" ]]; then
-    log_error "missing testcase input: ${input_mlir}"
+  compile_source_mlir="${compile_input_mlir}"
+  if [[ "${use_bishengir_compile}" == "1" &&
+        ! -f "${compile_source_mlir}" ]]; then
+    compile_source_mlir="${compile_input_alt_mlir}"
+  fi
+  if [[ "${use_bishengir_compile}" == "1" &&
+        ! -f "${compile_source_mlir}" ]]; then
+    compile_source_mlir="${input_mlir}"
+  fi
+  if [[ "${use_bishengir_compile}" == "1" &&
+        ! -f "${compile_source_mlir}" ]]; then
+    log_error "missing testcase compile input: ${compile_input_mlir}, ${compile_input_alt_mlir}, or ${input_mlir}"
     exit 1
   fi
 
   mkdir -p "${case_out}"
 
   if [[ "${use_bishengir_compile}" == "1" ]]; then
-    cp "${compile_input_mlir}" "${case_out}/compile-input.mlir"
+    cp "${compile_source_mlir}" "${case_out}/compile-input.mlir"
     log_info "${case_name}: bishengir-compile -> VMI dump"
     npuir_cmd=(
       "${bishengir_compile}"
-      "${compile_input_mlir}"
+      "${compile_source_mlir}"
       "${bishengir_compile_flags[@]}"
       "--save-temps=${case_out}/temps"
       "-o"

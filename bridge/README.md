@@ -63,23 +63,36 @@ variables described below.
 
 ### Input modes
 
-The default mode runs `input.mlir` with `bishengir-opt` and explicitly invokes
-the bridge pass:
+The default mode runs `compile-input.mlir` (or `compile_input.mlir` or
+`input.mlir` when the compile inputs are absent) through `bishengir-compile`,
+extracts the successful dump after the bridge pass, and sends it to PTOAS:
 
 ```bash
 cd /home/m00967009/Workspace/Planner
 bridge/tools/run_npuir_ptoas_bridge_tests.sh --emit-vpto vadd
 ```
 
-Use `--from-bishengir-compile` to start from a higher-level
-`compile-input.mlir`:
+The `vadd_large` testcase uses its high-level `input.mlir` through this default
+path:
 
 ```bash
 bridge/tools/run_npuir_ptoas_bridge_tests.sh \
-  --from-bishengir-compile \
+  --emit-vpto \
+  vadd_large
+```
+
+Use `--from-bishengir-opt` when the input is already at the AVE/HIVMAVE bridge
+boundary and should be passed directly to `bishengir-opt`:
+
+```bash
+bridge/tools/run_npuir_ptoas_bridge_tests.sh \
+  --from-bishengir-opt \
   --emit-vpto \
   vadd
 ```
+
+`--from-bishengir-compile` is retained as an explicit alias for the default
+mode.
 
 In this mode the script passes
 `--mlir-print-ir-after=convert-hivmave-to-ptoas-vmi` to
@@ -151,9 +164,10 @@ export BUILD_JOBS=16
 | `-h`, `--help` | Print command help. |
 
 If no emission or execution option is specified, the script defaults to
-`--emit-vpto`. If no testcase name is specified, it runs every direct child of
-the testcase root containing `input.mlir` (or `compile-input.mlir` in compile
-mode). Multiple testcase names may be supplied.
+`--emit-vpto`. If no testcase name is specified, compile mode runs every direct
+child of the testcase root containing `input.mlir` or a compile input. Compile
+mode prefers `compile-input.mlir`, then `compile_input.mlir`, then `input.mlir`;
+opt mode requires `input.mlir`. Multiple testcase names may be supplied.
 
 The equivalent environment overrides are `TESTCASE_ROOT`, `OUTPUT_ROOT`,
 `BISHENGIR_OPT`, `BISHENGIR_COMPILE`, `PTOAS_BIN`, `NPU_TARGET`, `PTO_ARCH`,
