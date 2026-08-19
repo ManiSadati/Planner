@@ -255,6 +255,53 @@ When proposing NPU-IR verification, Codex should separate:
 - compile-only or lit-style checks that may run without A5 hardware;
 - A5 hardware checks that require the other server and human feedback.
 
+## NPU-IR Bridge Pass And Validation Status
+
+On the long-term NPU-IR bridge branch, `wilsoncxfeng/master`, the current
+conversion passes are present in the regbase `bishengir-compile` pipeline, but
+they should be gated by `BISHENGIR_ENABLE_PTOAS_BRIDGE`. The default must be
+baseline NPU-IR behavior, meaning the bridge passes do not run unless explicitly
+enabled:
+
+```bash
+export BISHENGIR_ENABLE_PTOAS_BRIDGE=1
+```
+
+When enabled, the pass placement is:
+
+- `convert-hivm-templates-to-pto` runs after `hivm-mark-disable-load` and before
+  `convert-hivm-to-std`.
+- `convert-hivmave-to-ptoas-vmi` runs after `expand-strided-metadata` and before
+  `convert-hivmave-to-ave-intrin`.
+
+These passes also exist as standalone `bishengir-opt` pass names, so Codex can
+run targeted IR experiments with or without them by constructing an explicit
+`bishengir-opt` command. For full-pipeline before/after comparisons, run the
+same source once without `BISHENGIR_ENABLE_PTOAS_BRIDGE` and once with
+`BISHENGIR_ENABLE_PTOAS_BRIDGE=1`. A proper compiler command-line option or
+separate PTO-target pipeline may still be added later, but Codex should avoid ad
+hoc source edits to toggle the passes.
+
+For normal implementation and IR debugging, prefer the cheap path:
+
+1. Generate or reuse early NPU-IR MLIR dumps around
+   `AppendTargetDeviceSpec (hacc-append-device-spec)`. On Bluezone, use
+   `NPUIR/tools/dump_early_ir_from_triton.sh` to invoke the simulator compile
+   path and collect the generated early IR dumps.
+2. Replay those dumps locally with
+   `NPUIR/tools/replay_npuir_from_device_spec.sh` and
+   `--mlir-print-ir-after-all`.
+3. Inspect pass-by-pass IR changes from `compile.log` and the extracted target
+   dump.
+
+For result/performance comparison, use the heavier end-to-end simulator path
+only when needed:
+
+1. Run the Python/Triton testcase through `msprof op simulator`.
+2. Use the same SOC target, core count, inputs, and output comparison rules for
+   baseline NPU-IR and the NPU-IR-to-PTOAS path.
+3. Record simulator ticks/cycles separately from real A5 hardware runtime.
+
 The full AscendNPU-IR Python/Triton-to-hardware workflow should be treated as
 A5-hardware-dependent for final validation. The Codex-accessible server does
 not have A5 hardware, but it can run selected Python/Triton NPU-IR flows through
