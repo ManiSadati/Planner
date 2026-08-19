@@ -5,7 +5,7 @@ Last updated: 2026-08-11
 Latest replay result:
 
 ```text
-bridge/memory/npuir-device-spec-replay-results-2026-08-11.md
+NPUIR/coding-guide/device-spec-replay-results-2026-08-11.md
 ```
 
 ## Current Inputs
@@ -54,7 +54,7 @@ for the current bridge work.
 Use:
 
 ```text
-bash bridge/tools/replay_npuir_from_device_spec.sh
+bash NPUIR/tools/replay_npuir_from_device_spec.sh
 ```
 
 Default assumptions:
@@ -74,7 +74,7 @@ BISHENGIR_COMPILE=$HOME/AscendNPU-IR/build/install/bin/bishengir-compile
 NPU_TARGET=Ascend910_9589
 AICORE_LIBDEVICE_BC=$HOME/path/to/libdevice.10.bc
 OUTPUT_ROOT=bridge/examples/npuir-early-ir/replay
-bash bridge/tools/replay_npuir_from_device_spec.sh
+bash NPUIR/tools/replay_npuir_from_device_spec.sh
 ```
 
 `AICORE_LIBDEVICE_BC` is optional for early pass-dump work. It may become needed
@@ -110,7 +110,7 @@ small target file.
 To reduce log size and print only the target pass, run with:
 
 ```text
-PRINT_AFTER_ALL=0 bash bridge/tools/replay_npuir_from_device_spec.sh
+PRINT_AFTER_ALL=0 bash NPUIR/tools/replay_npuir_from_device_spec.sh
 ```
 
 ## Expected Local Failure Mode

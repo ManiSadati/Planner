@@ -43,10 +43,10 @@ actual A5-generated dumps.
 The current `*_kernel.mlir` files in `bridge/triton-example/` are A5-generated
 dumps right after `AppendTargetDeviceSpec (hacc-append-device-spec)`. They can
 be used as local replay inputs after NPU-IR is built here. See
-`bridge/planning/npuir-device-spec-replay.md`.
+`NPUIR/coding-guide/device-spec-replay.md`.
 
-Use `bridge/memory/npu_ir_installation.md` for the A5 install/runtime workflow.
-Use `bridge/memory/npuir-codex-server-build.md` for the non-A5 Codex-server
+Use `NPUIR/coding-guide/a5-installation.md` for the A5 install/runtime workflow.
+Use `NPUIR/coding-guide/codex-server-build.md` for the non-A5 Codex-server
 build/replay workflow. Keep these paths separate: the A5 machine produces the
 runtime-backed dumps, while the Codex server replays saved dumps where possible.
 

@@ -2,6 +2,10 @@
 
 Last updated: 2026-08-10
 
+Status: historical. This plan seeded the current bridge, PTOAS, NPU-IR,
+PTO-ISA, and explorer docs. Use `bridge/planning/README.md` and
+`bridge/memory/project-state.md` for current planning.
+
 ## Objective
 
 Build enough source-backed context to create the first trustworthy NPU-IR-to-PTOAS mapping table and implementation plan.
@@ -153,7 +157,8 @@ Review recent design-relevant activity for:
 
 - PTOAS upstream and named forks;
 - active forks under `mouliangyu/PTOAS`;
-- AscendNPU-IR upstream and `manisadati` fork;
+- AscendNPU-IR upstream, the Wilson implementation fork, and the human
+  `manisadati` fork when needed;
 - relevant GitHub mirrors if available.
 
 Focus on:

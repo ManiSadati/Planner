@@ -62,7 +62,7 @@ The setup is reproducible with:
 
 ```bash
 cd "$HOME/Planner"
-bash bridge/tools/setup_npuir_simulator_env.sh
+bash NPUIR/tools/setup_npuir_simulator_env.sh
 ```
 
 The setup applies a narrow compatibility patch to Triton Ascend 3.2.0:
@@ -112,7 +112,7 @@ Point `CANN_ROOT` at the shared or private CANN 9.1 installation:
 ```bash
 cd "$HOME/Planner"
 CANN_ROOT=/path/to/cann-9.1.0-beta.3 \
-  bash bridge/tools/run_vector_add_simulator.sh
+  bash NPUIR/tools/run_vector_add_simulator.sh
 ```
 
 Each run writes its Triton cache, IR dumps, CANN logs, and `msprof` profile under
@@ -122,7 +122,8 @@ For the large vector-add case, use:
 
 ```bash
 cd "$HOME/Planner"
-source bridge/tools/source_vector_add_large_simulator_env.sh
+export CANN_ROOT=/path/to/cann-9.1.0-beta.3
+source NPUIR/tools/source_vector_add_large_simulator_env.sh
 
 msprof op simulator \
   --kernel-name=vector_add_large_kernel \
@@ -136,11 +137,11 @@ Or run the wrapper:
 
 ```bash
 cd "$HOME/Planner"
-bridge/tools/run_vector_add_large_simulator.sh
+NPUIR/tools/run_vector_add_large_simulator.sh
 ```
 
 For the later LLVM/HIVM IR handed from `hivmc-a5` into CCE `bisheng`, see
-`bridge/memory/npuir-llvm-ir-capture.md`. That file is normally temporary and
+`NPUIR/coding-guide/llvm-ir-capture.md`. That file is normally temporary and
 needs to be copied while the compiler is running.
 
 ## Compatibility Details

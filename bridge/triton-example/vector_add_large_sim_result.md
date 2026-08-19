@@ -12,7 +12,8 @@ Command shape:
 
 ```bash
 cd "$HOME/Planner"
-source bridge/tools/source_vector_add_large_simulator_env.sh
+export CANN_ROOT=/path/to/cann-9.1.0-beta.3
+source NPUIR/tools/source_vector_add_large_simulator_env.sh
 
 msprof op simulator \
   --kernel-name=vector_add_large_kernel \
@@ -26,7 +27,7 @@ Equivalent wrapper:
 
 ```bash
 cd "$HOME/Planner"
-bridge/tools/run_vector_add_large_simulator.sh
+NPUIR/tools/run_vector_add_large_simulator.sh
 ```
 
 Functional result:

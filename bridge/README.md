@@ -28,16 +28,16 @@ or template-rewrite strategy is selected.
   NPU-IR-to-PTOAS runs have comparable commands, targets, core counts,
   tick/cycle interpretation, and host behavior.
 - Durable state summary: `bridge/memory/project-state.md`.
-- A5/early-IR workflow memory: `bridge/memory/a5-ir-workflow.md`.
-- Codex-server NPU-IR build/replay memory: `bridge/memory/npuir-codex-server-build.md`.
-- Codex-server CANN operator simulator workflow: `bridge/memory/npuir-simulator-workflow.md`.
-- NPU-IR LLVM IR capture workflow: `bridge/memory/npuir-llvm-ir-capture.md`.
-- A5 full install/runtime note: `bridge/memory/npu_ir_installation.md`.
+- A5/early-IR workflow memory: `NPUIR/coding-guide/a5-ir-workflow.md`.
+- Codex-server NPU-IR build/replay memory: `NPUIR/coding-guide/codex-server-build.md`.
+- Codex-server CANN operator simulator workflow: `NPUIR/coding-guide/simulator-workflow.md`.
+- NPU-IR LLVM IR capture workflow: `NPUIR/coding-guide/llvm-ir-capture.md`.
+- A5 full install/runtime note: `NPUIR/coding-guide/a5-installation.md`.
 - Triton source fixtures: `bridge/triton-example/`.
 - A5-generated early IR dump folder: `bridge/examples/npuir-early-ir/`.
 - Planning overview and roadmap: `bridge/planning/README.md`.
-- NPU-IR device-spec replay plan: `bridge/planning/npuir-device-spec-replay.md`.
-- Latest NPU-IR replay result: `bridge/memory/npuir-device-spec-replay-results-2026-08-11.md`.
+- NPU-IR device-spec replay plan: `NPUIR/coding-guide/device-spec-replay.md`.
+- Latest NPU-IR replay result: `NPUIR/coding-guide/device-spec-replay-results-2026-08-11.md`.
 - Active DMA-copy conversion exploration plan: `bridge/planning/dma-copy-conversion-exploration.md`.
 - DMA template mapping memory: `bridge/memory/dma-template-mapping.md`.
 - Upstream/fork watch list: `bridge/memory/upstream-watch.md`.
@@ -89,7 +89,7 @@ The default mode runs `compile-input.mlir` (or `compile_input.mlir` or
 extracts the successful dump after the bridge pass, and sends it to PTOAS:
 
 ```bash
-cd /home/m00967009/Workspace/Planner
+cd "$HOME/Planner"
 bridge/tools/run_npuir_ptoas_bridge_tests.sh --emit-vpto vadd
 ```
 

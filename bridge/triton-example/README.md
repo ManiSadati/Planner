@@ -4,7 +4,7 @@ These Python files are source fixtures for the NPU-IR-to-PTOAS bridge. Real A5
 validation and authoritative early IR generation still happen on an A5
 machine. A CANN operator simulator is available on the Codex-accessible server
 for limited functional checks; see
-`bridge/memory/npuir-simulator-workflow.md`.
+`NPUIR/coding-guide/simulator-workflow.md`.
 
 The goal is to cover the operation families we need to map, starting from simple
 cases and moving toward realistic fused kernels.
@@ -47,8 +47,8 @@ Do not use synthetic IR as proof for bridge correctness when a real A5-generated
 dump is needed.
 
 For local replay from the current `*_kernel.mlir` files after NPU-IR is built,
-see `bridge/planning/npuir-device-spec-replay.md` and
-`bridge/tools/replay_npuir_from_device_spec.sh`.
+see `NPUIR/coding-guide/device-spec-replay.md` and
+`NPUIR/tools/replay_npuir_from_device_spec.sh`.
 
 ## Priority Order
 

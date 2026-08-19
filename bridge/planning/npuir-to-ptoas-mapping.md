@@ -70,7 +70,8 @@ Status meanings:
 
 ## Next Work
 
-- Reconcile this table with current Ascend upstream and the `manisadati` fork.
+- Reconcile this table with current Ascend upstream and the active Wilson fork
+  branch.
 - Add source examples or IR dumps for at least one vector row, one cube row, and
   one sync row. The first DMA row now has a source-backed trace.
 - Use `bridge/memory/dma-copy-conversion-trace.md` for the first DMA

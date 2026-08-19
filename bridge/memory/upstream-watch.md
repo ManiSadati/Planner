@@ -1,6 +1,6 @@
 # Upstream Watch
 
-Last updated: 2026-08-10
+Last updated: 2026-08-19
 
 ## Purpose
 
@@ -33,9 +33,15 @@ Explorer/backfill work must compare upstream, active forks, forks-of-forks, bran
 ## NPU-IR Tracking Targets
 
 - upstream source of truth: `https://gitcode.com/Ascend/AscendNPU-IR`
-- main development fork: `https://gitcode.com/manisadati/AscendNPU-IR`
+- main bridge implementation fork: `https://gitcode.com/wilsoncxfeng/AscendNPU-IR`
+- human personal fork: `https://gitcode.com/manisadati/AscendNPU-IR`
 - local fork: `$HOME/AscendNPU-IR`
 - GitHub mirrors if found and useful
+
+Before code work, check the Wilson fork for the currently active branch instead
+of assuming `master` is already updated. `melika/ave-to-vmi`, `pto-dialect`,
+and `mani/DMA` are branch names seen during the current bridge work; only
+`soyu-wilson` prototype notes should be treated as historical by default.
 
 ## Current Watch Status
 
@@ -46,11 +52,12 @@ Explorer/backfill work must compare upstream, active forks, forks-of-forks, bran
 - Explorer bot is installed as a user systemd timer: daily at 7:00am Eastern.
 - Four-day configured-scope lookback report produced: `explorer/reports/daily/2026-08-10.md`.
 - Latest generated overview: `explorer/reports/README.md`.
+- Latest daily report: `explorer/reports/daily/2026-08-19.md`.
 - GitHub fork-discovery state bootstrapped for PTOAS: 74 forks and 801 branch
   heads recorded.
 - GitHub token is configured; the previous unauthenticated PR file-list rate-limit failure did not recur on rerun.
 
-## Latest PTOAS Snapshot
+## Historical PTOAS Snapshot
 
 Collected: 2026-08-10 18:50:12 UTC by one-off four-day explorer lookback.
 

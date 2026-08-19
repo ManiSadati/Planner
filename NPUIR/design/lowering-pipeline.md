@@ -1,12 +1,12 @@
 # AscendNPU-IR Lowering Pipeline
 
-Last updated: 2026-08-10
+Last updated: 2026-08-19
 
-Scope: initial Stage 3 local source scan of `$HOME/AscendNPU-IR`
-on branch `mani/fuse-explore` at
-`4254b5dec90a4d3d92f581f3fe32b79ea1a82d9a`. This pass did not fetch
-`https://gitcode.com/Ascend/AscendNPU-IR`, and the local repo currently has
-only the `manisadati` fork as `origin`.
+Scope: source-backed NPU-IR pipeline summary for bridge planning. The initial
+scan was done on an older local `manisadati` branch; current implementation
+work should use the Wilson fork and check its active branch before coding.
+Compatibility claims still need comparison against upstream
+`https://gitcode.com/Ascend/AscendNPU-IR`.
 
 ## Short Version
 

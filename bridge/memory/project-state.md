@@ -40,8 +40,8 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   performance results still require A5 hardware.
 - Triton source fixtures live in `bridge/triton-example/`; A5-generated early IR dumps should go under `bridge/examples/npuir-early-ir/`.
 - The early-IR folder currently contains workflow documentation unless the human has added actual dumps. If real examples are needed, Codex should ask the human to generate early MLIR / early NPU-IR dumps on an A5 server and place them in Planner.
-- Current A5-generated `*_kernel.mlir` files are dumps right after `AppendTargetDeviceSpec`; local replay from that boundary is planned in `bridge/planning/npuir-device-spec-replay.md` and scripted by `bridge/tools/replay_npuir_from_device_spec.sh`. The current replay endpoint is `convert-hivmave-to-ave-intrin`; compiler stages after that are not required for this bridge investigation. A nonzero replay exit caused by missing `hivmc-a5` is expected on the non-A5 server if the target-pass dump was captured.
-- First local replay result is recorded in `bridge/memory/npuir-device-spec-replay-results-2026-08-11.md`. All six current examples reached `convert-hivmave-to-ave-intrin`; the endpoint confirms that DMA/cube are already helper/template calls by then, so the first bridge analysis/export pass should run earlier while structured HIVM ops are still available.
+- Current A5-generated `*_kernel.mlir` files are dumps right after `AppendTargetDeviceSpec`; local replay from that boundary is planned in `NPUIR/coding-guide/device-spec-replay.md` and scripted by `NPUIR/tools/replay_npuir_from_device_spec.sh`. The current replay endpoint is `convert-hivmave-to-ave-intrin`; compiler stages after that are not required for this bridge investigation. A nonzero replay exit caused by missing `hivmc-a5` is expected on the non-A5 server if the target-pass dump was captured.
+- First local replay result is recorded in `NPUIR/coding-guide/device-spec-replay-results-2026-08-11.md`. All six current examples reached `convert-hivmave-to-ave-intrin`; the endpoint confirms that DMA/cube are already helper/template calls by then, so the first bridge analysis/export pass should run earlier while structured HIVM ops are still available.
 - Active implementation focus is DMA conversion through `dma_copy_kernel`. The conversion sweet spot has been selected: after `hivm-mark-disable-load` and before `convert-hivm-to-std`. The supporting source-backed trace is `bridge/memory/dma-copy-conversion-trace.md`.
 - AscendNPU-IR now has a standalone `convert-hivm-templates-to-pto` pass on
   `mani/DMA`.
@@ -60,9 +60,9 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   map the surrounding sync, and connect PTO wrapper/pointer lowering. Do not
   enable the conversion unconditionally in the existing CCE pipeline yet.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
-- The A5 installation/runtime workflow is tracked in `bridge/memory/npu_ir_installation.md`; the non-A5 Codex-server build/replay workflow is tracked in `bridge/memory/npuir-codex-server-build.md`; the simulator workflow is tracked in `bridge/memory/npuir-simulator-workflow.md`.
+- The A5 installation/runtime workflow is tracked in `NPUIR/coding-guide/a5-installation.md`; the non-A5 Codex-server build/replay workflow is tracked in `NPUIR/coding-guide/codex-server-build.md`; the simulator workflow is tracked in `NPUIR/coding-guide/simulator-workflow.md`.
 - Temporary LLVM IR capture after `hivmc-a5` and before CCE `bisheng` is
-  tracked in `bridge/memory/npuir-llvm-ir-capture.md`. The current CANN 9.1 beta
+  tracked in `NPUIR/coding-guide/llvm-ir-capture.md`. The current CANN 9.1 beta
   path requires watching the `-o` output directory for `kernel*.ll` while
   `bishengir-compile --save-linked-ir` is running.
 - Current Codex-server AscendNPU-IR build status: `$HOME/AscendNPU-IR` has a
@@ -82,9 +82,9 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Stage 2 PTOAS context is complete enough for NPU-IR exploration: see `PTOAS/design/lowering-pipeline.md`, `PTOAS/design/ecosystem-inventory-2026-08-07.md`, `PTOAS/coding-guide/pipeline-and-validation.md`, and `explorer/reports/backfill/2026-08-07-ptoas-reexploration.md`.
 - Stage 3 NPU-IR context has a local source-backed baseline: see `NPUIR/design/lowering-pipeline.md` and `NPUIR/coding-guide/repo-and-validation.md`.
 - Stage 4 PTO-ISA context has a local source-backed baseline: see `PTO-ISA/design/virtual-isa-and-bridge-targets.md` and `PTO-ISA/coding-guide/repo-and-validation.md`.
-- A5/early-IR workflow is tracked at `bridge/memory/a5-ir-workflow.md`.
-- Codex-server NPU-IR build/replay workflow is tracked at `bridge/memory/npuir-codex-server-build.md`.
-- Codex-server A5 simulator workflow is tracked at `bridge/memory/npuir-simulator-workflow.md`.
+- A5/early-IR workflow is tracked at `NPUIR/coding-guide/a5-ir-workflow.md`.
+- Codex-server NPU-IR build/replay workflow is tracked at `NPUIR/coding-guide/codex-server-build.md`.
+- Codex-server A5 simulator workflow is tracked at `NPUIR/coding-guide/simulator-workflow.md`.
 - First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
 - DMA/template rewrite planning exists at `bridge/planning/dma-template-rewrite-plan.md`, with compact memory at `bridge/memory/dma-template-mapping.md`.
 - Focused DMA-copy conversion exploration plan exists at `bridge/planning/dma-copy-conversion-exploration.md`.

@@ -183,7 +183,7 @@ Regenerate full logs, if needed:
 
 ```bash
 cd "$HOME/Planner"
-bash bridge/tools/replay_npuir_from_device_spec.sh
+bash NPUIR/tools/replay_npuir_from_device_spec.sh
 ```
 
 List pass boundaries in the full log:

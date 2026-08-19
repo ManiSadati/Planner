@@ -4,7 +4,7 @@
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo "Source this script instead of executing it:" >&2
-  echo "  source bridge/tools/source_vector_add_large_simulator_env.sh" >&2
+  echo "  source NPUIR/tools/source_vector_add_large_simulator_env.sh" >&2
   exit 1
 fi
 

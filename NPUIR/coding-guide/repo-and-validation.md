@@ -1,6 +1,6 @@
 # AscendNPU-IR Repo And Validation Notes
 
-Last updated: 2026-08-10
+Last updated: 2026-08-19
 
 Scope: initial local planning note for bridge development. Do not treat this as
 a full build recipe yet.
@@ -13,23 +13,25 @@ Local development repo:
 $HOME/AscendNPU-IR
 ```
 
-Current local branch at scan time:
+Historical local branch at the first scan:
 
 ```text
 mani/fuse-explore
 4254b5dec90a4d3d92f581f3fe32b79ea1a82d9a Add more info about autvectorizev2
 ```
 
-Current local remote at scan time:
+Historical local remote at the first scan:
 
 ```text
 origin git@gitcode.com:manisadati/AscendNPU-IR.git
 ```
 
-Important rule: this local repo tracks the bridge development fork, not the
-upstream source of truth. Before compatibility decisions, compare with:
+Current implementation rule: use the Wilson fork as the main bridge
+implementation source and check its current active branch before coding.
+Before compatibility decisions, compare with upstream:
 
 ```text
+https://gitcode.com/wilsoncxfeng/AscendNPU-IR
 https://gitcode.com/Ascend/AscendNPU-IR
 ```
 

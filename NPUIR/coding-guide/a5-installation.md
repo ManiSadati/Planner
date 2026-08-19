@@ -4,7 +4,7 @@ This note is for the A5 machine workflow: install/runtime setup, Triton Python
 lowering, and production of compiler dumps from an A5 environment.
 
 For the non-A5 Codex-server build/replay workflow, see
-`bridge/memory/npuir-codex-server-build.md`.
+`NPUIR/coding-guide/codex-server-build.md`.
 
 ## 0. SSH to Server
 
@@ -21,7 +21,7 @@ export no_proxy=127.0.0.1,*.huawei.com,localhost,local,.local
 
 ```bash
 cd "$HOME"
-git clone https://gitcode.com/manisadati/AscendNPU-IR.git
+git clone https://gitcode.com/wilsoncxfeng/AscendNPU-IR.git
 cd AscendNPU-IR
 ```
 

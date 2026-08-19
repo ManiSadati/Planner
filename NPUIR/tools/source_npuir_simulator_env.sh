@@ -5,26 +5,26 @@
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo "Source this script instead of executing it:" >&2
-  echo "  source bridge/tools/source_npuir_simulator_env.sh" >&2
+  echo "  source NPUIR/tools/source_npuir_simulator_env.sh" >&2
   exit 1
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLANNER_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-export CANN_ROOT="${CANN_ROOT:-${ASCEND_HOME_PATH:-/home/a84369921/Ascend/cann-9.1.0-beta.3}}"
+export CANN_ROOT="${CANN_ROOT:-${ASCEND_HOME_PATH:-}}"
 export NPU_IR_ROOT="${NPU_IR_ROOT:-$HOME/AscendNPU-IR}"
 export NPU_IR_SIM_VENV="${NPU_IR_SIM_VENV:-$HOME/.venv/npuir-sim-system}"
 export TMPDIR="${TMPDIR:-$HOME/tmp}"
 
 if [[ ! -f "$CANN_ROOT/set_env.sh" ]]; then
-  echo "CANN set_env.sh not found: $CANN_ROOT/set_env.sh" >&2
+  echo "Set CANN_ROOT to a CANN 9.1 installation containing set_env.sh." >&2
   return 1
 fi
 
 if [[ ! -x "$NPU_IR_SIM_VENV/bin/python" ]]; then
   echo "NPU-IR simulator venv not found: $NPU_IR_SIM_VENV" >&2
-  echo "Run bridge/tools/setup_npuir_simulator_env.sh first." >&2
+  echo "Run NPUIR/tools/setup_npuir_simulator_env.sh first." >&2
   return 1
 fi
 

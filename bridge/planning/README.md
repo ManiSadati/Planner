@@ -33,7 +33,7 @@ Current implementation bias:
 | `bridge/planning/README.md` | high-level plan index and short/long-term roadmap | active entry point |
 | `bridge/planning/dma-copy-conversion-exploration.md` | current focused investigation for `dma_copy_kernel` | active short-term work |
 | `bridge/planning/dma-template-rewrite-plan.md` | broader DMA category strategy and first PoC constraints | active strategy |
-| `bridge/planning/npuir-device-spec-replay.md` | how to replay A5-generated IR locally and inspect pass dumps | active support workflow |
+| `NPUIR/coding-guide/device-spec-replay.md` | how to replay A5-generated IR locally and inspect pass dumps | active support workflow |
 | `bridge/planning/npuir-to-ptoas-mapping.md` | cross-domain mapping draft from NPU-IR concepts to PTOAS/PTO-ISA | active but needs updates from DMA trace |
 | `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md` | review of Wilson/Soyu vector prototype branch | reference only |
 | `bridge/planning/local-repo-baseline.md` | local repo inventory and initial state | reference baseline |

@@ -13,7 +13,7 @@ Local evidence:
 - input fixture: `bridge/triton-example/dma_copy_kernel.mlir`
 - replay log: `bridge/examples/npuir-early-ir/replay/dma_copy_kernel/compile.log`
 - endpoint dump: `bridge/examples/npuir-early-ir/replay/dma_copy_kernel/after-convert-hivmave-to-ave-intrin.mlir`
-- replay wrapper: `bridge/tools/replay_npuir_from_device_spec.sh`
+- replay wrapper: `NPUIR/tools/replay_npuir_from_device_spec.sh`
 
 The replay was run with `--mlir-disable-threading` and
 `--mlir-print-ir-after-all`. The compiler still exits nonzero after the target

@@ -4,6 +4,9 @@ Last updated: 2026-08-07
 
 Scope: Stage 1 of `bridge/planning/initial-exploration-plan.md`.
 
+Status: historical baseline. Do not treat branch names or remotes in this file
+as current without re-checking the local repos.
+
 This baseline only records local repo state and where relevant source/docs appear to live. It does not resolve the NPU-IR-to-PTOAS mapping table yet.
 
 ## Summary

@@ -7,7 +7,7 @@ Last updated: 2026-08-17
 This note records the non-A5 server workflow for building AscendNPU-IR tools
 locally enough to replay saved MLIR / NPU-IR dumps.
 
-This is separate from `bridge/memory/npu_ir_installation.md`, which is the A5
+This is separate from `NPUIR/coding-guide/a5-installation.md`, which is the A5
 machine workflow for installing the runtime environment, running Triton Python
 kernels, and producing compiler dumps from real hardware/runtime context.
 
@@ -28,11 +28,11 @@ The Codex-accessible server should not be treated as sufficient for:
 - proving final binary correctness or performance.
 
 The validated simulator workflow is recorded separately in
-`bridge/memory/npuir-simulator-workflow.md`.
+`NPUIR/coding-guide/simulator-workflow.md`.
 
 ## Current Local Repo State
 
-As of 2026-08-11:
+Historical local build snapshot from 2026-08-11:
 
 ```text
 repo: $HOME/AscendNPU-IR
@@ -47,6 +47,9 @@ Configured remotes:
 origin: git@gitcode.com:manisadati/AscendNPU-IR.git
 wilsoncxfeng: git@gitcode.com:wilsoncxfeng/AscendNPU-IR.git
 ```
+
+Current code work should re-check the Wilson fork and active branch before
+using this snapshot as a base.
 
 Important submodule snapshots:
 
@@ -138,7 +141,7 @@ The template-enabled install also contains `meta_op.*.c220.bc`,
 `meta_op.*.c310.bc`, and `host.bc` under `build/install/lib`. These template
 libraries are required for end-to-end Triton compilation. On an existing build
 cache, passing `-t` to `build.sh` does not reconfigure CMake; use the explicit
-reconfiguration in `bridge/memory/npuir-simulator-workflow.md`.
+reconfiguration in `NPUIR/coding-guide/simulator-workflow.md`.
 
 Verified versions:
 
@@ -153,13 +156,13 @@ Use the replay wrapper:
 
 ```bash
 cd "$HOME/Planner"
-bash bridge/tools/replay_npuir_from_device_spec.sh
+bash NPUIR/tools/replay_npuir_from_device_spec.sh
 ```
 
 The replay plan is tracked in:
 
 ```text
-bridge/planning/npuir-device-spec-replay.md
+NPUIR/coding-guide/device-spec-replay.md
 ```
 
 The current bridge endpoint is `convert-hivmave-to-ave-intrin`. Final compiler

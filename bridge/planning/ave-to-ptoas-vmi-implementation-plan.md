@@ -281,11 +281,11 @@ Phase 1A result as of 2026-08-17:
 - The file lowers successfully with:
 
   ```bash
-  /home/m00967009/Workspace/PTOAS/build/tools/ptoas/ptoas \
+  "$HOME/PTOAS/build/tools/ptoas/ptoas" \
     --pto-arch=a5 \
     --pto-backend=vpto \
     --emit-vpto \
-    /home/m00967009/Workspace/Planner/bridge/validation/lowered_vector_add_kernel.expected.pto \
+    "$HOME/Planner/bridge/validation/lowered_vector_add_kernel.expected.pto" \
     -o /tmp/lowered_vector_add_kernel.expected.vpto.mlir
   ```
 
@@ -434,7 +434,7 @@ Phase 1F result as of 2026-08-17:
 - PTOAS lowers the generated artifact successfully with:
 
   ```bash
-  /home/m00967009/Workspace/PTOAS/build/tools/ptoas/ptoas \
+  "$HOME/PTOAS/build/tools/ptoas/ptoas" \
     --pto-arch=a5 \
     --pto-backend=vpto \
     --emit-vpto \
