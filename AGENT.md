@@ -29,6 +29,14 @@ If `human/` and `bridge/` disagree, `human/` wins. Codex should briefly report t
 
 `PTOAS/`, `NPUIR/`, and `PTO-ISA/` may contain Planner-side summaries of important design docs, pipeline notes, coding guides, and source links. Planner should not duplicate every low-level source document.
 
+Docs and scripts should live at the narrowest useful ownership boundary:
+
+- NPU-IR-only material belongs under `NPUIR/`.
+- PTOAS-only material belongs under `PTOAS/`.
+- PTO-ISA-only material belongs under `PTO-ISA/`.
+- Cross-repo bridge logic, comparison structure, shared testcases, and end-to-end
+  NPU-IR-to-PTOAS workflows belong under `bridge/`.
+
 ## Project Goal
 
 The main technical goal is to create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing the low-level CCEC-style backend segment where feasible.
@@ -37,6 +45,10 @@ The current working hypothesis is:
 
 - AscendNPU-IR lowers high-level inputs toward HIVM-AVE / AVE intrinsics and then CCE-oriented code.
 - PTOAS/PTO-ISA can serve as an open lower-level target, especially through PTO/VMI for vector-side semantics and PTO tile abstractions for tile/cube/DMA behavior.
+- DMA rows will often map to concrete PTO dialect movement operations such as
+  `pto.mte_gm_ub` / `pto.mte_ub_gm`. Some DMA and cube/template rows may not
+  have a clean direct mapping; those may require rewriting the NPU-IR template
+  lowering to emit PTO/PTOAS-compatible operations instead of CCE calls.
 - The likely integration point is around `convert-hivmave-to-ave-intrin`, but some constructs may need to be intercepted earlier, possibly around `HIVMToStandard`, if CCE template calls hide information needed for PTO mapping.
 - Current upstream PTOAS has a PTODSL `pto.vmi.*` surface, but current upstream
   TileLib templates are not yet VMI-based by default. Branch evidence, especially
@@ -133,11 +145,16 @@ PTOAS source-of-truth rule:
 NPU-IR tracking should include:
 
 - upstream source of truth: `https://gitcode.com/Ascend/AscendNPU-IR`
-- main development fork: `https://gitcode.com/manisadati/AscendNPU-IR`
+- main bridge implementation fork: `https://gitcode.com/wilsoncxfeng/AscendNPU-IR`
+- human personal fork: `https://gitcode.com/manisadati/AscendNPU-IR`
 - local fork: `$HOME/AscendNPU-IR`
 - GitHub mirrors, if available, as secondary tracking remotes
 
-Codex should treat upstream Ascend activity as important for compatibility, but it should also track the `manisadati` fork because that is where the bridge development happens.
+Codex should treat upstream Ascend activity as important for compatibility, but
+bridge implementation truth should come from the `wilsoncxfeng` fork. Codex
+must check which branch in that fork is currently most up to date before making
+branch assumptions. Normally that may be `master`, but current work may be on a
+different branch such as `melika/ave-to-vmi`.
 
 ## First Prompt Of The Day Behavior
 
@@ -194,7 +211,7 @@ Before editing AscendNPU-IR, PTOAS, or PTO-ISA code, Codex should inspect the re
 The main implementation target for the conversion work is:
 
 ```text
-https://gitcode.com/manisadati/AscendNPU-IR
+https://gitcode.com/wilsoncxfeng/AscendNPU-IR
 $HOME/AscendNPU-IR
 ```
 
@@ -204,7 +221,11 @@ Codex should avoid modifying PTOAS unless the human explicitly asks. The preferr
 
 This server can build and run PTOAS locally, so PTOAS commands and tests may be used here when they are relevant and safe.
 
-AscendNPU-IR development can happen on this server, but full validation may require another server with actual A5 hardware. Codex and the human will work in a loop:
+AscendNPU-IR development can happen on this server. The server can also run
+limited NPU-IR/Triton workloads through the CANN operator simulator, which is
+useful for functional checks, IR dumps, and rough simulator metrics. Full
+hardware runtime and authoritative performance validation still require another
+server with actual A5 hardware. Codex and the human will work in a loop:
 
 1. Codex inspects, plans, and edits locally.
 2. The human copies or runs the relevant change on the A5 server.
@@ -217,13 +238,15 @@ When proposing NPU-IR verification, Codex should separate:
 - compile-only or lit-style checks that may run without A5 hardware;
 - A5 hardware checks that require the other server and human feedback.
 
-The full AscendNPU-IR Python/Triton lowering workflow should be treated as
-A5-machine-only. The Codex-accessible server does not have A5 hardware. For
-source-backed bridge work, the human may need to run Python/Triton lowering on
-an A5 server, dump early MLIR / early NPU-IR examples, and place those dumps in
-Planner for Codex to inspect locally. If such an examples folder does not exist
-and real IR examples are needed, Codex should explicitly ask the human for them
-instead of assuming it can generate them locally.
+The full AscendNPU-IR Python/Triton-to-hardware workflow should be treated as
+A5-hardware-dependent for final validation. The Codex-accessible server does
+not have A5 hardware, but it can run selected Python/Triton NPU-IR flows through
+the CANN operator simulator. If simulator coverage is insufficient or real
+hardware behavior is needed, the human may need to run Python/Triton lowering
+on an A5 server, dump early MLIR / early NPU-IR examples, and place those dumps
+in Planner for Codex to inspect locally. If such an examples folder does not
+exist and real IR examples are needed, Codex should explicitly ask the human for
+them instead of assuming simulator results are authoritative.
 
 For conversion work, pay special attention to:
 

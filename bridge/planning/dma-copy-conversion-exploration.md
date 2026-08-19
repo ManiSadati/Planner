@@ -1,6 +1,6 @@
 # DMA Copy Conversion Exploration Plan
 
-Last updated: 2026-08-12
+Last updated: 2026-08-14
 
 ## Active Focus
 
@@ -26,8 +26,14 @@ bridge/examples/npuir-early-ir/replay/dma_copy_kernel/
 The initial exploration objective is complete. The source-backed trace is
 recorded in `bridge/memory/dma-copy-conversion-trace.md`.
 
-Current next step: implement a dry-run AscendNPU-IR bridge/export pass after
-`hivm-mark-disable-load` and before `convert-hivm-to-std`.
+Current result: AscendNPU-IR now has a standalone
+`convert-hivm-templates-to-pto` pass that converts the real `dma_copy_kernel`
+load and store after
+`hivm-mark-disable-load`. The generated local artifact is
+`bridge/examples/npuir-early-ir/replay/dma_copy_kernel/after-convert-hivm-templates-to-pto.mlir`.
+
+Current next step: choose a guarded compiler-pipeline entry for this conversion
+and map the surrounding explicit sync before attempting end-to-end PTO lowering.
 
 ## Core Question
 

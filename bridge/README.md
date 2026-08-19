@@ -1,27 +1,37 @@
 # Bridge
 
 `bridge/` contains the working documentation, validation artifacts, testcases,
-and tools for converting AscendNPU-IR vector IR into PTOAS VMI and lowering it
-through the PTOAS pipeline.
+comparison structure, and cross-repo tools for the AscendNPU-IR-to-PTOAS path.
 
 - `designs/`: design decisions and implementation constraints for the bridge.
 - `memory/`: durable facts, repository findings, risks, and workflow notes.
 - `planning/`: active plans, mapping tables, staged work, and exploration outputs.
 - `testcases/`: representative NPU-IR inputs and PTOAS simulator fixtures.
-- `tools/`: scripts that run NPU-IR, extract VMI, and invoke PTOAS.
+- `tools/`: cross-repo scripts that run NPU-IR, extract VMI, invoke PTOAS, or
+  compare the two paths.
 - `validation/`: hand-authored expected outputs and validation oracles.
 
-The primary scope is the vector-side bridge. Cube operations are outside the
-current scope unless a planning document explicitly expands it.
+Repo-specific docs or scripts should live under `NPUIR/`, `PTOAS/`, or
+`PTO-ISA/` instead of `bridge/`. `bridge/` should keep material that needs both
+sides or exists to compare them.
+
+The current practical scope is comparison infrastructure plus the first vector
+and DMA bridge rows. Cube/template work remains planning-only until a mapping
+or template-rewrite strategy is selected.
 
 ## Current Status
 
 - Explorer bot is installed as a user systemd timer and runs daily at 7:00am Eastern.
 - Latest configured-scope PTOAS report: `explorer/reports/README.md`.
-- Latest big-change report: `explorer/reports/daily/2026-08-11.md`.
+- Latest big-change report: `explorer/reports/daily/2026-08-19.md`.
+- Current priority: clean up the comparison structure so baseline NPU-IR and
+  NPU-IR-to-PTOAS runs have comparable commands, targets, core counts,
+  tick/cycle interpretation, and host behavior.
 - Durable state summary: `bridge/memory/project-state.md`.
 - A5/early-IR workflow memory: `bridge/memory/a5-ir-workflow.md`.
 - Codex-server NPU-IR build/replay memory: `bridge/memory/npuir-codex-server-build.md`.
+- Codex-server CANN operator simulator workflow: `bridge/memory/npuir-simulator-workflow.md`.
+- NPU-IR LLVM IR capture workflow: `bridge/memory/npuir-llvm-ir-capture.md`.
 - A5 full install/runtime note: `bridge/memory/npu_ir_installation.md`.
 - Triton source fixtures: `bridge/triton-example/`.
 - A5-generated early IR dump folder: `bridge/examples/npuir-early-ir/`.
@@ -33,6 +43,17 @@ current scope unless a planning document explicitly expands it.
 - Upstream/fork watch list: `bridge/memory/upstream-watch.md`.
 - Current mapping draft: `bridge/planning/npuir-to-ptoas-mapping.md`.
 - DMA rewrite plan: `bridge/planning/dma-template-rewrite-plan.md`.
+
+## Simulator And Hardware Reality
+
+This server can run selected Triton/NPU-IR workloads through the CANN operator
+simulator. The small and large vector-add kernels have both run successfully
+through the local NPU-IR simulator path. These runs are useful for functional
+checks, IR capture, and rough tick/cycle comparison.
+
+Real hardware runtime and authoritative performance validation still require
+the A5 server. When comparing NPU-IR and NPU-IR-to-PTOAS, keep simulator
+numbers separate from A5 runtime numbers.
 
 ## NPU-IR to PTOAS Test Runner
 
@@ -220,6 +241,6 @@ Important files include:
 Generated output under `bridge/out/` is ignored by Git. Use `--clean` when a
 fresh testcase simulator build or output directory is needed.
 
-The configured PTOAS watcher scope is current as of 2026-08-11. GitHub
+The configured PTOAS watcher scope is current as of 2026-08-19. GitHub
 direct-fork/fork-of-fork discovery is implemented for configured GitHub repos.
 GitCode issue/PR tracking is still pending.

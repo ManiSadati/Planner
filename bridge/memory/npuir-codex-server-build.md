@@ -1,6 +1,6 @@
 # AscendNPU-IR Build on the Codex Server
 
-Last updated: 2026-08-11
+Last updated: 2026-08-17
 
 ## Purpose
 
@@ -19,13 +19,16 @@ The Codex-accessible server should be used for:
 - bridge pass development;
 - build-only checks that do not require A5 runtime support;
 - replaying saved IR files copied from the A5 workflow;
+- limited functional execution with the CANN A5 operator simulator;
 - stopping at or around `convert-hivmave-to-ave-intrin` for current bridge work.
 
 The Codex-accessible server should not be treated as sufficient for:
 
-- running the full Triton Python lowering workflow;
-- validating A5 runtime behavior;
+- validating behavior on real A5 hardware;
 - proving final binary correctness or performance.
+
+The validated simulator workflow is recorded separately in
+`bridge/memory/npuir-simulator-workflow.md`.
 
 ## Current Local Repo State
 
@@ -130,6 +133,12 @@ Installed tools:
 $HOME/AscendNPU-IR/build/install/bin/bishengir-compile
 $HOME/AscendNPU-IR/build/install/bin/bishengir-opt
 ```
+
+The template-enabled install also contains `meta_op.*.c220.bc`,
+`meta_op.*.c310.bc`, and `host.bc` under `build/install/lib`. These template
+libraries are required for end-to-end Triton compilation. On an existing build
+cache, passing `-t` to `build.sh` does not reconfigure CMake; use the explicit
+reconfiguration in `bridge/memory/npuir-simulator-workflow.md`.
 
 Verified versions:
 

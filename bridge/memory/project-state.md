@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-08-12
+Last updated: 2026-08-19
 
 ## Current Goal
 
@@ -9,16 +9,22 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 ## Current Working Hypothesis
 
 - Main implementation should happen on the AscendNPU-IR side, not by modifying PTOAS.
+- The Wilson fork is the main bridge implementation source. Check which Wilson
+  branch is newest/relevant before assuming `master` is current.
 - The bridge likely needs row-specific integration points, not one global pass boundary.
 - Vector rows may fit before or around `convert-hivmave-to-ave-intrin`.
 - DMA, cube, and sync rows likely need to be intercepted earlier around HIVM memory/sync planning and before `HIVMToStandard` loses structured operands to CCE-template/library-call lowering.
 - PTO/VMI is expected to cover vector-side semantics.
+- Many DMA rows may map to concrete PTO dialect movement operations. Some DMA
+  and cube/template rows may require rewriting NPU-IR template lowering to emit
+  PTO-compatible operations rather than mapping a final CCE call one-to-one.
 - PTO tile abstractions or PTO-ISA may be needed for tile/cube/DMA behavior.
 
 ## Development Target
 
 - Main local repo: `$HOME/AscendNPU-IR`
-- Main fork: `https://gitcode.com/manisadati/AscendNPU-IR`
+- Main bridge implementation fork: `https://gitcode.com/wilsoncxfeng/AscendNPU-IR`
+- Human personal fork: `https://gitcode.com/manisadati/AscendNPU-IR`
 - Upstream source of truth: `https://gitcode.com/Ascend/AscendNPU-IR`
 - PTOAS local checkout `$HOME/PTOAS/PTOAS_Markham` is not source of truth; its `origin` is a personal fork and `mani/fix_ptodsl` may be behind the active ecosystem.
 - PTOAS design truth must come from upstream `hw-native-sys/PTOAS` plus active forks, branches, PRs, and issues.
@@ -26,17 +32,44 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 ## Build/Test Reality
 
 - PTOAS can be built and run on this server.
-- AscendNPU-IR can be coded on this server, but full A5 validation may require another server with actual A5 hardware.
-- The full AscendNPU-IR Python/Triton lowering workflow should be treated as A5-machine-only. The Codex-accessible server can inspect code and analyze saved IR dumps, but should not assume it can lower Python/Triton examples locally.
+- AscendNPU-IR can be coded on this server.
+- The Codex-accessible server can run selected Triton/NPU-IR cases with the
+  CANN A5 operator simulator. `vector_add_kernel` and
+  `vector_add_large_kernel` are verified through local NPU-IR compilation and
+  simulated execution with exact output. Real A5 validation and authoritative
+  performance results still require A5 hardware.
 - Triton source fixtures live in `bridge/triton-example/`; A5-generated early IR dumps should go under `bridge/examples/npuir-early-ir/`.
 - The early-IR folder currently contains workflow documentation unless the human has added actual dumps. If real examples are needed, Codex should ask the human to generate early MLIR / early NPU-IR dumps on an A5 server and place them in Planner.
 - Current A5-generated `*_kernel.mlir` files are dumps right after `AppendTargetDeviceSpec`; local replay from that boundary is planned in `bridge/planning/npuir-device-spec-replay.md` and scripted by `bridge/tools/replay_npuir_from_device_spec.sh`. The current replay endpoint is `convert-hivmave-to-ave-intrin`; compiler stages after that are not required for this bridge investigation. A nonzero replay exit caused by missing `hivmc-a5` is expected on the non-A5 server if the target-pass dump was captured.
 - First local replay result is recorded in `bridge/memory/npuir-device-spec-replay-results-2026-08-11.md`. All six current examples reached `convert-hivmave-to-ave-intrin`; the endpoint confirms that DMA/cube are already helper/template calls by then, so the first bridge analysis/export pass should run earlier while structured HIVM ops are still available.
 - Active implementation focus is DMA conversion through `dma_copy_kernel`. The conversion sweet spot has been selected: after `hivm-mark-disable-load` and before `convert-hivm-to-std`. The supporting source-backed trace is `bridge/memory/dma-copy-conversion-trace.md`.
-- Next code step: add a dry-run AscendNPU-IR bridge/export pass on `mani/DMA` that records simple rank-1 contiguous `hivm.hir.load` GM->UB and `hivm.hir.store` UB->GM mappings, preserves surrounding explicit sync, and emits rejection reasons instead of changing production lowering.
+- AscendNPU-IR now has a standalone `convert-hivm-templates-to-pto` pass on
+  `mani/DMA`.
+  It converts contiguous rank-one GM->UB `hivm.hir.load` and non-atomic UB->GM
+  `hivm.hir.store`, supports static or dynamic lengths, maps compatible
+  `PadValue` loads, and emits explicit HIVM-to-PTO memory-space casts.
+- The pass was verified on the real `dma_copy_kernel` dump after
+  `hivm-mark-disable-load`. The generated ignored artifact is
+  `bridge/examples/npuir-early-ir/replay/dma_copy_kernel/after-convert-hivm-templates-to-pto.mlir`;
+  both PTO MTE operations remain valid through a following
+  `convert-hivm-to-std` invocation.
+- Current priority: clean up the comparison structure so baseline NPU-IR and
+  NPU-IR-to-PTOAS runs use comparable commands, simulator targets, core counts,
+  tick/cycle interpretation, and host-side behavior.
+- Next code step after comparison cleanup: choose a guarded PTO compiler path,
+  map the surrounding sync, and connect PTO wrapper/pointer lowering. Do not
+  enable the conversion unconditionally in the existing CCE pipeline yet.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
-- The A5 installation/runtime workflow is tracked in `bridge/memory/npu_ir_installation.md`; the non-A5 Codex-server build/replay workflow is tracked separately in `bridge/memory/npuir-codex-server-build.md`.
-- Current Codex-server AscendNPU-IR build status: `$HOME/AscendNPU-IR` is on `mani/DMA` tracking `wilsoncxfeng/master` at `08031590`; the pinned LLVM submodule is present at `third-party/llvm-project`; the local Release build completed and installed `bishengir-compile` / `bishengir-opt`.
+- The A5 installation/runtime workflow is tracked in `bridge/memory/npu_ir_installation.md`; the non-A5 Codex-server build/replay workflow is tracked in `bridge/memory/npuir-codex-server-build.md`; the simulator workflow is tracked in `bridge/memory/npuir-simulator-workflow.md`.
+- Temporary LLVM IR capture after `hivmc-a5` and before CCE `bisheng` is
+  tracked in `bridge/memory/npuir-llvm-ir-capture.md`. The current CANN 9.1 beta
+  path requires watching the `-o` output directory for `kernel*.ll` while
+  `bishengir-compile --save-linked-ir` is running.
+- Current Codex-server AscendNPU-IR build status: `$HOME/AscendNPU-IR` has a
+  working local Release build with `bishengir-compile`, `bishengir-opt`, and
+  the C220/C310 template bitcode needed for end-to-end Triton/simulator
+  compilation. Branch status must be checked before each code task because
+  Wilson fork development may move across branches.
 
 ## Planner Status
 
@@ -51,20 +84,40 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Stage 4 PTO-ISA context has a local source-backed baseline: see `PTO-ISA/design/virtual-isa-and-bridge-targets.md` and `PTO-ISA/coding-guide/repo-and-validation.md`.
 - A5/early-IR workflow is tracked at `bridge/memory/a5-ir-workflow.md`.
 - Codex-server NPU-IR build/replay workflow is tracked at `bridge/memory/npuir-codex-server-build.md`.
+- Codex-server A5 simulator workflow is tracked at `bridge/memory/npuir-simulator-workflow.md`.
 - First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
 - DMA/template rewrite planning exists at `bridge/planning/dma-template-rewrite-plan.md`, with compact memory at `bridge/memory/dma-template-mapping.md`.
 - Focused DMA-copy conversion exploration plan exists at `bridge/planning/dma-copy-conversion-exploration.md`.
 - Focused DMA-copy conversion trace exists at `bridge/memory/dma-copy-conversion-trace.md`. It confirms low-level VPTO `pto.mte_gm_ub` / `pto.mte_ub_gm` plus explicit `pto.set_flag` / `pto.wait_flag` as the most concrete first PTOAS target for the simple DMA row.
 - `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` has been reviewed as vector-pass prototype context. Do not continue it directly; port selected ideas into a fresh current-baseline branch if used. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
-- Latest configured-scope explorer lookback completed on 2026-08-11. Reports: `explorer/reports/README.md` and `explorer/reports/daily/2026-08-11.md`. The scan used the GitHub token and no longer hit the previous GitHub rate-limit failure.
+- Latest configured-scope explorer lookback completed on 2026-08-19. Reports:
+  `explorer/reports/README.md` and `explorer/reports/daily/2026-08-19.md`.
+  The scan used the GitHub token and no longer hit the previous GitHub
+  rate-limit failure.
 - GitHub fork-discovery state was bootstrapped on 2026-08-10 for PTOAS:
   74 forks and 801 branch heads recorded, with no bootstrap errors.
 
 ## Latest Explorer/PTOAS State
 
-As of the 2026-08-11 daily report and the 2026-08-10 four-day lookback, the configured watcher scope is current enough for near-term bridge planning. Scope covered configured PTOAS local/remotes, `hw-native-sys/PTOAS` issues/PRs, and local AscendNPU-IR branch tracking. GitHub direct-fork/fork-of-fork discovery is implemented and bootstrapped for configured GitHub repos. GitCode issue/PR tracking is still pending.
+As of the 2026-08-19 daily report, PTOAS remains active in areas that can
+affect bridge assumptions. Scope covered configured PTOAS local/remotes,
+`hw-native-sys/PTOAS` issues/PRs, and local AscendNPU-IR branch tracking.
+GitHub direct-fork/fork-of-fork discovery is implemented and bootstrapped for
+configured GitHub repos. GitCode issue/PR tracking is still pending.
 
-Latest PTOAS signals:
+Latest 2026-08-19 PTOAS signals:
+
+- upstream/local Markham advanced broadly across VMI/VPTO IR and transforms;
+- upstream added `VMILayoutRematerializeWeakProducers`;
+- a new CV pipelining design branch appeared;
+- fork network activity includes VMI predicate-fold work, VPTO scheduler
+  refinements, VPTO address-analysis branches, unified sync modeling, and A6
+  target work;
+- open PR activity concentrates on VMI/VF fusion, ExpandTileOp rewrite,
+  deterministic memplan, address analysis, loop-unroll hints, VecScope-aware
+  CSE, and CV pipelining.
+
+Earlier 2026-08-11 PTOAS signals that remain relevant:
 
 - upstream `hw-native-sys/PTOAS` main advanced with implicit tmp materialization, TFILLPAD unification, VPTO vscatter memory-effect fixes, and broad IR/emitter/test updates;
 - `codex/downgrade-llvm19` and PR #1156 make LLVM 19 / VPTO `feature-vpto` the major toolchain watch item;
@@ -106,8 +159,16 @@ Immediate review targets before implementation: LLVM19 environment alignment, sy
 
 ## Current NPU-IR Understanding
 
-- Local NPU-IR repo is `$HOME/AscendNPU-IR`. It has `origin` pointing at the `manisadati` GitCode fork and a `wilsoncxfeng` remote pointing at `git@gitcode.com:wilsoncxfeng/AscendNPU-IR.git`.
-- Current DMA development branch: `mani/DMA`, based on and tracking `wilsoncxfeng/master` as of commit `08031590`.
+- Local NPU-IR repo is `$HOME/AscendNPU-IR`. It has `origin` pointing at the
+  `manisadati` GitCode fork and a `wilsoncxfeng` remote pointing at
+  `git@gitcode.com:wilsoncxfeng/AscendNPU-IR.git`.
+- Wilson fork branches are the main implementation source. Check current branch
+  freshness before using any specific branch as the base. `master` is normally
+  expected to be current, but current bridge work may temporarily live on a
+  different Wilson branch such as `melika/ave-to-vmi`.
+- `soyu-wilson` prototype work is historical context only. Other Wilson fork
+  branches may still be active and should not be treated as historical without
+  checking current branch state.
 - Upstream source of truth is still `https://gitcode.com/Ascend/AscendNPU-IR`; compare with upstream before making compatibility claims.
 - Regbase late lowering runs `convert-hivm-to-std`, then `convert-hivmave-to-std`, then `convert-hivmave-to-ave-intrin`.
 - `lower-ave-pipeline` creates/optimizes HIVMAVE via `convert-vector-to-hivmave` and `convert-arith-to-hivmave` before final intrinsic lowering.

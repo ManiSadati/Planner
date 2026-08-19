@@ -1,6 +1,6 @@
 # DMA Copy Conversion Trace
 
-Last updated: 2026-08-12
+Last updated: 2026-08-14
 
 ## Scope
 
@@ -40,6 +40,40 @@ This is the best current sweet spot because:
 The first implementation should preserve NPU-IR-authored memory placement and
 sync. Treat this as a level3/manual-sync style bridge until a separate decision
 hands ownership to PTOAS.
+
+## First Conversion Result
+
+AscendNPU-IR now contains a standalone `convert-hivm-templates-to-pto` pass. On
+the real `dma_copy_kernel` dump after `hivm-mark-disable-load`, it produces:
+
+```mlir
+%valid_i64 = arith.index_cast %valid : index to i64
+%bytes = arith.muli %valid_i64, %c4_i64 : i64
+%gm = memref.memory_space_cast %gm_hivm ... to ... #pto.address_space<gm>
+%ub = memref.memory_space_cast %ub_hivm ... to ... #pto.address_space<vec>
+pto.mte_gm_ub %gm, %ub, %c0_i64, %bytes
+  nburst(%c1_i64, %c0_i64, %c0_i64) pad(%cst) ...
+
+%ub_store = memref.memory_space_cast %ub_hivm ... to ... #pto.address_space<vec>
+%gm_store = memref.memory_space_cast %gm_hivm ... to ... #pto.address_space<gm>
+pto.mte_ub_gm %ub_store, %gm_store, %bytes
+  nburst(%c1_i64, %c0_i64, %c0_i64) l2_cache_ctl(%c0_i64) ...
+```
+
+The surrounding HIVM `wait_flag`, `set_flag`, and `pipe_barrier` operations
+remain in their original order. Running `convert-hivm-to-std` after this pass
+does not replace the PTO DMA operations with CCE helper calls.
+
+Current supported slice:
+
+- contiguous rank-one memrefs with static or dynamic length;
+- GM-to-UB `hivm.hir.load`, including PTO-compatible `PadValue` padding;
+- non-atomic UB-to-GM `hivm.hir.store`;
+- `EvictFirst` and `EvictLast` load cache policies.
+
+The pass remains standalone and is not enabled unconditionally in the normal
+compiler pipeline because downstream PTO wrapper/pointer/sync lowering is not
+yet connected.
 
 ## Pass Trace
 

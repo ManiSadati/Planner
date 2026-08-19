@@ -11,12 +11,22 @@ Launch shape: one Triton program per row, with `BLOCK_COLS = 2048` and a mask fo
 Command shape:
 
 ```bash
+cd "$HOME/Planner"
+source bridge/tools/source_vector_add_large_simulator_env.sh
+
 msprof op simulator \
   --kernel-name=vector_add_large_kernel \
   --soc-version=Ascend950PR_9589 \
   --core-id=0 \
-  --output="$HOME/tmp/npuir-simulator/vector-add-large-20260818T185550Z/profile" \
+  --output="$OUT/profile" \
   python3 "$HOME/Planner/bridge/triton-example/vector_add_large.py"
+```
+
+Equivalent wrapper:
+
+```bash
+cd "$HOME/Planner"
+bridge/tools/run_vector_add_large_simulator.sh
 ```
 
 Functional result:
