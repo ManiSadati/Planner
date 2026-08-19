@@ -34,6 +34,8 @@ or template-rewrite strategy is selected.
 - NPU-IR LLVM IR capture workflow: `NPUIR/coding-guide/llvm-ir-capture.md`.
 - A5 full install/runtime note: `NPUIR/coding-guide/a5-installation.md`.
 - Triton source fixtures: `bridge/triton-example/`.
+- Vector-add end-to-end workflow:
+  `bridge/testcases/vadd/README.md`.
 - A5-generated early IR dump folder: `bridge/examples/npuir-early-ir/`.
 - Planning overview and roadmap: `bridge/planning/README.md`.
 - NPU-IR device-spec replay plan: `NPUIR/coding-guide/device-spec-replay.md`.
