@@ -131,6 +131,8 @@ PTOAS tracking should include:
 - forks that are themselves forked from active forks, not only direct forks of
   upstream, but daily explorer should stop at fork depth 2
 - local fork: `$HOME/PTOAS/PTOAS_Markham`
+- long-term PTOAS bridge branch:
+  `https://github.com/afshinarefi/PTOAS_Markham/tree/npuir-ptoas-conversion`
 
 PTOAS source-of-truth rule:
 
@@ -151,10 +153,18 @@ NPU-IR tracking should include:
 - GitHub mirrors, if available, as secondary tracking remotes
 
 Codex should treat upstream Ascend activity as important for compatibility, but
-bridge implementation truth should come from the `wilsoncxfeng` fork. Codex
-must check which branch in that fork is currently most up to date before making
-branch assumptions. Normally that may be `master`, but current work may be on a
-different branch such as `melika/ave-to-vmi`.
+bridge implementation truth should come from the `wilsoncxfeng` fork. For
+long-term NPU-IR bridge tracking, treat `wilsoncxfeng/master` as the main branch
+unless the human explicitly redirects to another active implementation branch.
+
+Long-term implementation tracking branches:
+
+- NPU-IR: `https://gitcode.com/wilsoncxfeng/AscendNPU-IR`, branch `master`
+- PTOAS Markham: `https://github.com/afshinarefi/PTOAS_Markham`, branch
+  `npuir-ptoas-conversion`
+
+Codex must still inspect current remotes and branch state before making code
+changes, because short-lived work may happen on side branches.
 
 ## First Prompt Of The Day Behavior
 
@@ -213,6 +223,13 @@ The main implementation target for the conversion work is:
 ```text
 https://gitcode.com/wilsoncxfeng/AscendNPU-IR
 $HOME/AscendNPU-IR
+```
+
+The main long-term PTOAS-side branch for bridge-related experiments is:
+
+```text
+https://github.com/afshinarefi/PTOAS_Markham/tree/npuir-ptoas-conversion
+$HOME/PTOAS/PTOAS_Markham
 ```
 
 Codex should avoid modifying PTOAS unless the human explicitly asks. The preferred strategy is to add the conversion path on the AscendNPU-IR side.
