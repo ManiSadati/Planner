@@ -16,11 +16,15 @@ example, for `bridge/triton-example/vector_add_large.py`:
 
 ```bash
 source bridge/tools/source_comparison_env.sh \
-  --cann-root /path/to/cann-9.1.0-beta.3 \
+  --cann-root /path/to/Ascend/cann-9.1.0-beta.3 \
   --testcase vadd_large \
   --kernel-name vector_add_large_kernel \
   --python-file bridge/triton-example/vector_add_large.py
 ```
+
+For active NPU-IR bridge development, the comparison wrapper prefers
+`$HOME/AscendNPU-IR/build/bin/bishengir-compile` when it exists. That build-tree
+binary is usually newer than `$HOME/AscendNPU-IR/build/install/bin`.
 
 Important: run `msprof op simulator` from a normal Bluezone shell. Inside
 Codex, the simulator must run outside the sandbox; otherwise socket setup can
@@ -74,13 +78,6 @@ Run:
 bridge/tools/run_comparison_flow.sh baseline-sim
 ```
 
-For `vector_add.py`, expected correctness output:
-
-```text
-max error: 0.0
-allclose: True
-```
-
 Main outputs:
 
 ```text
@@ -89,6 +86,13 @@ $OUT_ROOT/baseline-npuir-sim/msprof.stderr.log
 $OUT_ROOT/baseline-npuir-sim/dump/
 $OUT_ROOT/baseline-npuir-sim/profile/
 $OUT_ROOT/baseline-npuir-sim/logs/
+```
+
+For `vector_add.py`, expected correctness output (in $OUT_ROOT/baseline-npuir-sim/msprof.stdout.log):
+
+```text
+max error: 0.0
+allclose: True
 ```
 
 Use this as the baseline functional result and baseline simulator profile. When
@@ -107,11 +111,23 @@ For `vector_add.py`, run:
 bridge/tools/run_comparison_flow.sh early-ir
 ```
 
+By default this does **not** wait for the full simulator run to finish. It stops
+after the first `kernel.ttadapter.mlir` dump appears, because section 3 only
+needs that initial compiler input.
+
+If you want the simulator to keep running to the end while also collecting early
+IR, run:
+
+```bash
+EARLY_IR_STOP_AFTER_DUMP=0 bridge/tools/run_comparison_flow.sh early-ir
+```
+
 Main outputs:
 
 ```text
 $OUT_ROOT/early-ir/msprof.log
 $OUT_ROOT/early-ir/early-ir-manifest.txt
+$OUT_ROOT/early-ir/vadd.ttadapter.mlir
 $OUT_ROOT/early-ir/early-ir/*kernel.ttadapter.mlir
 $OUT_ROOT/early-ir/early-ir/*kernel.ttir.mlir
 ```
@@ -119,11 +135,13 @@ $OUT_ROOT/early-ir/early-ir/*kernel.ttir.mlir
 Example TTAdapter output path:
 
 ```text
-$OUT_ROOT/early-ir/early-ir/001-<hash>-kernel.ttadapter.mlir
+$OUT_ROOT/early-ir/vadd.ttadapter.mlir
 ```
 
-The later compile flows automatically find the latest
-`*kernel.ttadapter.mlir` under `$OUT_ROOT/early-ir/early-ir`.
+The nested `early-ir/early-ir/*kernel.ttadapter.mlir` files are the raw dumps.
+The comparison wrapper copies the latest one to
+`$OUT_ROOT/early-ir/vadd.ttadapter.mlir`, and the later compile flows use that
+stable path automatically.
 
 Use this section when you have a new Triton kernel and need the initial MLIR
 that NPU-IR sees after Triton lowering.
@@ -137,13 +155,13 @@ The important output is the MLIR file that PTOAS can consume. For the current
 bridge this is named:
 
 ```text
-$OUT_ROOT/bridge-runner/vadd/vadd.vmi.mlir
+$OUT_ROOT/bridge-ptoas-vmi/vadd.vmi.mlir
 ```
 
 Run:
 
 ```bash
-bridge/tools/run_comparison_flow.sh bridge-lower
+bridge/tools/run_comparison_flow.sh bridge-ir
 ```
 
 For `vadd`, the generated PTOAS-input MLIR should contain operations like:
@@ -159,27 +177,24 @@ pto.mte_ub_gm
 Main outputs:
 
 ```text
-$OUT_ROOT/bridge-runner/vadd/vadd.vmi.mlir
-$OUT_ROOT/bridge-runner/vadd/vadd.vpto.mlir
-$OUT_ROOT/bridge-runner/vadd/vadd.vpto.ll
-$OUT_ROOT/bridge-runner/vadd/npuir.log
-$OUT_ROOT/bridge-runner/vadd/npuir-command.txt
-$OUT_ROOT/bridge-runner/vadd/ptoas-vpto-command.txt
-$OUT_ROOT/bridge-runner/vadd/ptoas-llvmir-command.txt
-```
-
-If you only want the raw compiler log after the bridge pass, run:
-
-```bash
-bridge/tools/run_comparison_flow.sh bridge-ir
-```
-
-That writes:
-
-```text
+$OUT_ROOT/bridge-ptoas-vmi/vadd.vmi.mlir
 $OUT_ROOT/bridge-ptoas-vmi/compile.log
 $OUT_ROOT/bridge-ptoas-vmi/command.txt
+$OUT_ROOT/bridge-ptoas-vmi/after-convert-hivmave-to-ptoas-vmi-dump-count.txt
 ```
+
+If you also want PTOAS VPTO and VPTO LLVM IR immediately after the bridge
+compile, run section 4.2 next.
+
+There is also an older testcase-runner path:
+
+```bash
+bridge/tools/run_comparison_flow.sh bridge-lower
+```
+
+That path uses the checked-in `bridge/testcases/vadd/compile-input.mlir`
+instead of the section 2 TTAdapter dump. Use it only when you intentionally want
+the checked-in fixture input.
 
 Baseline NPU-IR is still default-off for the bridge. The script enables
 `BISHENGIR_ENABLE_PTOAS_BRIDGE=1` only for the bridge flows.
@@ -189,13 +204,13 @@ Baseline NPU-IR is still default-off for the bridge. The script enables
 The input for this section is:
 
 ```text
-$OUT_ROOT/bridge-runner/vadd/vadd.vmi.mlir
+$OUT_ROOT/bridge-ptoas-vmi/vadd.vmi.mlir
 ```
 
 For another testcase, replace `vadd` with that testcase name. For example:
 
 ```text
-$OUT_ROOT/bridge-runner/vadd_large/vadd_large.vmi.mlir
+$OUT_ROOT/bridge-ptoas-vmi/vadd_large.vmi.mlir
 ```
 
 ### 4.1. How To Write The Host Code
@@ -265,6 +280,18 @@ same logical shape.
 
 ### 4.2. How To Run The PTOAS Flow
 
+Before running the PTOAS lowering or PTOAS simulator fixture, activate the PTOAS
+environment:
+
+```bash
+activate_ptoas
+cd "$HOME/Planner"
+```
+
+This is needed because `ptoas` depends on its built Python extension and shared
+library paths. If this is not active, `ptoas-lower` can fail with `ptoas not
+found` or a Python `_core` import error.
+
 First, lower the PTOAS-input MLIR from section 3 to VPTO and VPTO LLVM IR:
 
 ```bash
@@ -289,7 +316,17 @@ For `vadd`, outputs:
 ```text
 $OUT_ROOT/bridge-sim/vadd/sim.log
 $OUT_ROOT/bridge-sim/vadd/sim-command.txt
-$OUT_ROOT/bridge-sim/vadd/vadd.vpto.mlir
+$OUT_ROOT/bridge-sim/vadd/sim/lowered_vector_add_kernel_vpto.mlir
+```
+
+If `$OUT_ROOT/ptoas-only/vadd.vpto.mlir` exists, the simulator flow uses that
+generated VPTO file. That means the normal section order is:
+
+```text
+section 2 early-ir
+  -> section 3 bridge-ir creates vadd.vmi.mlir
+  -> section 4.2 ptoas-lower creates vadd.vpto.mlir
+  -> section 4.2 bridge-sim runs that generated vadd.vpto.mlir
 ```
 
 Compare correctness first. Only compare timing after the host fixture in 4.1 is
@@ -310,4 +347,3 @@ stdout/stderr
 runtime numbers
 correctness output
 ```
-

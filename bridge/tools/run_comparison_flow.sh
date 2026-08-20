@@ -13,13 +13,14 @@ Usage:
 Flows:
   record-versions   Write repo branch/commit records into $OUT_ROOT/versions.md.
   early-ir          Run Triton Python through msprof compile path and collect early IR.
+                    By default, stops after the first TTAdapter dump.
   baseline-sim      Run full baseline NPU-IR simulator from Triton Python.
   baseline-ir       Compile early IR without bridge passes and dump AVE intrinsic IR.
   bridge-ir         Compile early IR with bridge passes and dump PTOAS VMI IR.
   bridge-lower      Run bridge testcase through NPU-IR -> PTOAS VPTO and LLVM IR.
   ptoas-lower       Re-run PTOAS VPTO and LLVM lowering from bridge-lower VMI.
   bridge-sim        Run bridge testcase through PTOAS simulator fixture.
-  all-ir            Run early-ir, baseline-ir, bridge-ir, bridge-lower.
+  all-ir            Run early-ir, baseline-ir, bridge-ir, ptoas-lower.
 
 Expected environment:
   Source bridge/tools/source_comparison_env.sh first, or set TESTCASE,
@@ -49,7 +50,13 @@ BRIDGE_RUNNER_OUT="${BRIDGE_RUNNER_OUT:-$OUT_ROOT/bridge-runner}"
 BRIDGE_SIM_OUT="${BRIDGE_SIM_OUT:-$OUT_ROOT/bridge-sim}"
 PTOAS_ONLY_OUT="${PTOAS_ONLY_OUT:-$OUT_ROOT/ptoas-only}"
 NPU_IR_ROOT="${NPU_IR_ROOT:-$workspace_root/AscendNPU-IR}"
-BISHENGIR_COMPILE="${BISHENGIR_COMPILE:-$NPU_IR_ROOT/build/install/bin/bishengir-compile}"
+if [[ -z "${BISHENGIR_COMPILE:-}" ]]; then
+  if [[ -x "$NPU_IR_ROOT/build/bin/bishengir-compile" ]]; then
+    BISHENGIR_COMPILE="$NPU_IR_ROOT/build/bin/bishengir-compile"
+  else
+    BISHENGIR_COMPILE="$NPU_IR_ROOT/build/install/bin/bishengir-compile"
+  fi
+fi
 PTOAS_ROOT="${PTOAS_ROOT:-$workspace_root/PTOAS/PTOAS_Markham}"
 
 if [[ "$PY_FILE" != /* ]]; then
@@ -80,6 +87,12 @@ find_early_ir() {
     return 0
   fi
 
+  local stable="$EARLY_OUT/$TESTCASE.ttadapter.mlir"
+  if [[ -f "$stable" ]]; then
+    printf '%s\n' "$stable"
+    return 0
+  fi
+
   local found
   found="$(find "$EARLY_OUT/early-ir" -type f -name '*kernel.ttadapter.mlir' 2>/dev/null | sort | tail -1)"
   if [[ -z "$found" ]]; then
@@ -88,6 +101,97 @@ find_early_ir() {
     exit 1
   fi
   printf '%s\n' "$found"
+}
+
+copy_stable_early_ir() {
+  local found
+  found="$(find "$EARLY_OUT/early-ir" -type f -name '*kernel.ttadapter.mlir' 2>/dev/null | sort | tail -1)"
+  if [[ -z "$found" ]]; then
+    echo "error: no early TTAdapter MLIR found under $EARLY_OUT/early-ir" >&2
+    return 1
+  fi
+
+  local stable="$EARLY_OUT/$TESTCASE.ttadapter.mlir"
+  cp -a "$found" "$stable"
+  {
+    printf '\n'
+    printf 'stable ttadapter mlir -> %s\n' "$stable"
+  } >>"$EARLY_OUT/early-ir-manifest.txt"
+  log "early TTAdapter MLIR: $stable"
+}
+
+extract_target_dump() {
+  local log_file="$1"
+  local output_file="$2"
+  local pass_name="$3"
+  local count_file="$4"
+  local tmp_file="${output_file}.tmp"
+  local tmp_count_file="${count_file}.tmp"
+
+  if awk -v pass="(${pass_name})" -v count_file="${tmp_count_file}" '
+    function flush_candidate(  i) {
+      if (capture && n > 0) {
+        for (i = 1; i <= n; i++) {
+          last[i] = buf[i]
+        }
+        last_n = n
+      }
+      capture = 0
+      n = 0
+    }
+
+    BEGIN {
+      capture = 0
+      count = 0
+      last_n = 0
+      n = 0
+    }
+
+    /^\/\/ -----\/\/ IR Dump (After|Before)/ {
+      flush_candidate()
+      if ($0 ~ /^\/\/ -----\/\/ IR Dump After/ &&
+          $0 !~ / Failed / &&
+          index($0, pass) != 0) {
+        capture = 1
+        count++
+        next
+      }
+      next
+    }
+
+    /^\[/ {
+      flush_candidate()
+      next
+    }
+
+    /^(hivmc|error:|warning:|loc\()/ {
+      flush_candidate()
+      next
+    }
+
+    capture {
+      n++
+      buf[n] = $0
+      next
+    }
+
+    END {
+      flush_candidate()
+      if (last_n == 0) {
+        exit 1
+      }
+      for (i = 1; i <= last_n; i++) {
+        print last[i]
+      }
+      print count > count_file
+    }
+  ' "${log_file}" >"${tmp_file}"; then
+    mv "${tmp_file}" "${output_file}"
+    mv "${tmp_count_file}" "${count_file}"
+  else
+    rm -f "${tmp_file}" "${tmp_count_file}"
+    return 1
+  fi
 }
 
 compile_args() {
@@ -139,8 +243,18 @@ run_compile_dump() {
   set -e
   echo "$status" >"$out_dir/exit-code.txt"
 
-  if rg -q "IR Dump After .*${target_pass}|${target_pass}" "$out_dir/compile.log"; then
+  if grep -Eq "IR Dump After .*${target_pass}|${target_pass}" "$out_dir/compile.log"; then
     log "$mode dump captured: $out_dir/compile.log"
+    if [[ "$target_pass" == "convert-hivmave-to-ptoas-vmi" ]]; then
+      local vmi_mlir="$out_dir/$TESTCASE.vmi.mlir"
+      local count_file="$out_dir/after-${target_pass}-dump-count.txt"
+      if extract_target_dump "$out_dir/compile.log" "$vmi_mlir" "$target_pass" "$count_file"; then
+        log "$mode PTOAS-input MLIR: $vmi_mlir"
+      else
+        log "$mode failed to extract PTOAS-input MLIR; see $out_dir/compile.log"
+        return 1
+      fi
+    fi
     if [[ "$status" -ne 0 ]]; then
       log "$mode compiler exited $status after/around dump; keeping output for IR comparison"
     fi
@@ -204,10 +318,12 @@ run_early_ir() {
   CANN_ROOT="$CANN_ROOT" \
   SOC_VERSION="$SOC_VERSION" \
   CORE_ID="$CORE_ID" \
+  EARLY_IR_STOP_AFTER_DUMP="${EARLY_IR_STOP_AFTER_DUMP:-1}" \
   "$planner_root/NPUIR/tools/dump_early_ir_from_triton.sh" \
     "$KERNEL_NAME" \
     "$PY_FILE" \
     "$EARLY_OUT"
+  copy_stable_early_ir
 }
 
 run_baseline_sim() {
@@ -259,10 +375,13 @@ run_bridge_lower() {
 run_ptoas_lower() {
   local ptoas_bin
   ptoas_bin="$(find_ptoas_bin)"
-  local vmi="$BRIDGE_RUNNER_OUT/$TESTCASE/$TESTCASE.vmi.mlir"
+  local vmi="$BRIDGE_IR_OUT/$TESTCASE.vmi.mlir"
+  if [[ ! -f "$vmi" ]]; then
+    vmi="$BRIDGE_RUNNER_OUT/$TESTCASE/$TESTCASE.vmi.mlir"
+  fi
   if [[ ! -f "$vmi" ]]; then
     echo "error: missing VMI file: $vmi" >&2
-    echo "       run: bridge/tools/run_comparison_flow.sh bridge-lower" >&2
+    echo "       run: bridge/tools/run_comparison_flow.sh bridge-ir" >&2
     exit 1
   fi
 
@@ -278,6 +397,47 @@ run_bridge_sim() {
   require_cann
   local ptoas_bin
   ptoas_bin="$(find_ptoas_bin)"
+  local case_dir="$planner_root/bridge/testcases/$TESTCASE"
+  local generated_vpto="$PTOAS_ONLY_OUT/$TESTCASE.vpto.mlir"
+
+  if [[ -f "$generated_vpto" && -f "$case_dir/run_sim.sh" ]]; then
+    local case_out="$BRIDGE_SIM_OUT/$TESTCASE"
+    local sim_src="$case_out/sim"
+    rm -rf "$case_out"
+    mkdir -p "$sim_src"
+    cp -R "$case_dir/." "$sim_src/"
+    cp "$generated_vpto" "$sim_src/lowered_vector_add_kernel_vpto.mlir"
+    {
+      printf 'working_directory=%q\n' "$sim_src"
+      printf 'command='
+      printf '%q ' env \
+        "PTOAS_BIN=$ptoas_bin" \
+        "BUILD_DIR=$sim_src/build" \
+        "RUN_DIR=$sim_src/build/run" \
+        "ASCEND_HOME_PATH=$CANN_ROOT" \
+        "SOC_VERSION=$PTOAS_SIM_SOC_VERSION" \
+        "SIM_LIB_DIR=$CANN_ROOT/tools/simulator/$PTOAS_SIM_SOC_VERSION/lib" \
+        "BUILD_JOBS=${BUILD_JOBS:-16}" \
+        bash "$sim_src/run_sim.sh"
+      printf '\n'
+    } >"$case_out/sim-command.txt"
+    log "bridge simulator from generated VPTO: $generated_vpto"
+    (
+      cd "$sim_src"
+      env \
+        "PTOAS_BIN=$ptoas_bin" \
+        "BUILD_DIR=$sim_src/build" \
+        "RUN_DIR=$sim_src/build/run" \
+        "ASCEND_HOME_PATH=$CANN_ROOT" \
+        "SOC_VERSION=$PTOAS_SIM_SOC_VERSION" \
+        "SIM_LIB_DIR=$CANN_ROOT/tools/simulator/$PTOAS_SIM_SOC_VERSION/lib" \
+        "BUILD_JOBS=${BUILD_JOBS:-16}" \
+        bash "$sim_src/run_sim.sh"
+    ) >"$case_out/sim.log" 2>&1
+    log "simulator log: $case_out/sim.log"
+    return 0
+  fi
+
   log "bridge simulator: $TESTCASE"
   BISHENGIR_ENABLE_PTOAS_BRIDGE=1 \
   ASCEND_HOME_PATH="$CANN_ROOT" \
@@ -324,7 +484,7 @@ case "$flow" in
     run_early_ir
     run_compile_dump baseline convert-hivmave-to-ave-intrin "$BASELINE_IR_OUT" 0
     run_compile_dump bridge convert-hivmave-to-ptoas-vmi "$BRIDGE_IR_OUT" 1
-    run_bridge_lower
+    run_ptoas_lower
     ;;
   *)
     echo "error: unknown flow: $flow" >&2

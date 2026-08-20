@@ -17,6 +17,11 @@ Environment:
   SOC_VERSION      Simulator SOC. Default: Ascend950PR_9589.
   CORE_ID          Simulator core id. Default: 0.
   NPU_IR_SIM_OUTPUT Optional output root.
+  EARLY_IR_STOP_AFTER_DUMP
+                   If 1, stop the simulator after the first TTAdapter MLIR
+                   dump is observed. Default: 0.
+  EARLY_IR_CAPTURE_TIMEOUT_SEC
+                   Timeout for stop-after-dump mode. Default: 600.
 
 This script uses msprof op simulator to trigger the Triton/NPU-IR compiler
 dump path, then collects generated MLIR/LLVM files. Its purpose is early IR
@@ -48,6 +53,8 @@ safe_kernel_name="${kernel_name//[^A-Za-z0-9_.-]/_}"
 output_root="${3:-${NPU_IR_SIM_OUTPUT:-$HOME/tmp/npuir-early-ir/${safe_kernel_name}-${RUN_ID}}}"
 soc_version="${SOC_VERSION:-Ascend950PR_9589}"
 core_id="${CORE_ID:-0}"
+stop_after_dump="${EARLY_IR_STOP_AFTER_DUMP:-0}"
+capture_timeout_sec="${EARLY_IR_CAPTURE_TIMEOUT_SEC:-600}"
 
 mkdir -p \
   "$output_root/cache" \
@@ -88,8 +95,50 @@ echo "Output root: $output_root"
 echo "Running simulator compile path for early IR capture..."
 
 sim_status=0
-if ! "${cmd[@]}" >"$output_root/msprof.log" 2>&1; then
+if [[ "$stop_after_dump" == "1" ]]; then
+  echo "Stop-after-dump mode: enabled"
+  if command -v setsid >/dev/null 2>&1; then
+    setsid "${cmd[@]}" >"$output_root/msprof.log" 2>&1 &
+    sim_pid=$!
+    kill_target="-$sim_pid"
+  else
+    "${cmd[@]}" >"$output_root/msprof.log" 2>&1 &
+    sim_pid=$!
+    kill_target="$sim_pid"
+  fi
+
+  found_dump=0
+  deadline=$((SECONDS + capture_timeout_sec))
+  while kill -0 "$sim_pid" 2>/dev/null; do
+    if find "$output_root/dump" -type f -name '*kernel.ttadapter.mlir' -print -quit | grep -q .; then
+      found_dump=1
+      sleep 2
+      break
+    fi
+    if (( SECONDS >= deadline )); then
+      echo "warning: timed out waiting for TTAdapter MLIR; letting simulator exit or be terminated" >&2
+      break
+    fi
+    sleep 1
+  done
+
+  if kill -0 "$sim_pid" 2>/dev/null; then
+    kill -TERM -- "$kill_target" 2>/dev/null || kill -TERM "$sim_pid" 2>/dev/null || true
+    sleep 2
+    kill -KILL -- "$kill_target" 2>/dev/null || kill -KILL "$sim_pid" 2>/dev/null || true
+  fi
+
+  set +e
+  wait "$sim_pid"
   sim_status=$?
+  set -e
+  if [[ "$found_dump" == "1" ]]; then
+    echo "Stopped simulator after initial TTAdapter MLIR dump was captured."
+  fi
+else
+  if ! "${cmd[@]}" >"$output_root/msprof.log" 2>&1; then
+    sim_status=$?
+  fi
 fi
 echo "$sim_status" >"$output_root/msprof-exit-code.txt"
 
