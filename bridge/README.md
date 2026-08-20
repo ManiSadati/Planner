@@ -23,7 +23,7 @@ or template-rewrite strategy is selected.
 
 - Explorer bot is installed as a user systemd timer and runs daily at 7:00am Eastern.
 - Latest configured-scope PTOAS report: `explorer/reports/README.md`.
-- Latest big-change report: `explorer/reports/daily/2026-08-19.md`.
+- Latest big-change report: `explorer/reports/daily/2026-08-20.md`.
 - Current priority: clean up the comparison structure so baseline NPU-IR and
   NPU-IR-to-PTOAS runs have comparable commands, targets, core counts,
   tick/cycle interpretation, and host behavior.
@@ -34,6 +34,8 @@ or template-rewrite strategy is selected.
 - NPU-IR LLVM IR capture workflow: `NPUIR/coding-guide/llvm-ir-capture.md`.
 - A5 full install/runtime note: `NPUIR/coding-guide/a5-installation.md`.
 - Triton source fixtures: `bridge/triton-example/`.
+- Generic baseline-vs-bridge comparison runbook:
+  `bridge/comparison-flows.md`.
 - Vector-add end-to-end workflow:
   `bridge/testcases/vadd/README.md`.
 - A5-generated early IR dump folder: `bridge/examples/npuir-early-ir/`.
