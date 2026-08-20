@@ -1,250 +1,123 @@
 # NPU-IR / PTOAS Comparison Flows
 
-This document is the reusable runbook for comparing baseline AscendNPU-IR
-against the NPU-IR-to-PTOAS bridge path. The examples use `vadd`, but the
-variables are written so the same flow can be reused for any Triton kernel or
-bridge testcase.
+This is the reusable runbook for comparing baseline AscendNPU-IR against the
+NPU-IR-to-PTOAS bridge path. The default example is `vadd`, but the same scripts
+work for other kernels when you provide a testcase name, Triton kernel name, and
+Python file.
 
 Use a normal shell for `msprof op simulator`. Inside Codex, `msprof` must run
 outside the sandbox; otherwise local simulator socket/process setup can fail and
 TorchNPU may report `aclInit` / empty SOC errors.
 
-## Comparison Inputs
+## Setup Once
 
-For the default `vadd` example:
+Default `vadd` comparison:
 
 ```bash
 cd "$HOME/Planner"
-
-export CANN_ROOT=/path/to/cann-9.1.0-beta.3
-export SOC_VERSION=Ascend950PR_9589
-export CORE_ID=0
-
-export TESTCASE=vadd
-export KERNEL_NAME=vector_add_kernel
-export PY_FILE=bridge/triton-example/vector_add.py
-
-export RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
-export OUT_ROOT="$HOME/tmp/npuir-ptoas-comparison/${TESTCASE}-${RUN_ID}"
-mkdir -p "$OUT_ROOT"
+source bridge/tools/source_comparison_env.sh \
+  --cann-root /path/to/cann-9.1.0-beta.3
 ```
 
-For another kernel, change:
+Another kernel:
 
 ```bash
-export TESTCASE=<bridge-testcase-name>
-export KERNEL_NAME=<triton-kernel-function-name>
-export PY_FILE=<repo-relative-python-file>
+cd "$HOME/Planner"
+source bridge/tools/source_comparison_env.sh \
+  --cann-root /path/to/cann-9.1.0-beta.3 \
+  --testcase <bridge-testcase-name> \
+  --kernel-name <triton-kernel-function-name> \
+  --python-file <repo-relative-python-file>
 ```
 
-Record exact source versions with every comparison:
+The setup script exports the shared comparison variables, creates `OUT_ROOT`,
+and prints the active configuration. Main variables:
+
+```text
+TESTCASE
+KERNEL_NAME
+PY_FILE
+CANN_ROOT
+SOC_VERSION
+CORE_ID
+PTOAS_SIM_SOC_VERSION
+OUT_ROOT
+```
+
+Default output root:
+
+```text
+$HOME/tmp/npuir-ptoas-comparison/<testcase>-<timestamp>
+```
+
+Record exact repo versions before comparing:
 
 ```bash
-git -C "$HOME/AscendNPU-IR" rev-parse --abbrev-ref HEAD
-git -C "$HOME/AscendNPU-IR" rev-parse HEAD
-git -C "$HOME/PTOAS/PTOAS_Markham" rev-parse --abbrev-ref HEAD
-git -C "$HOME/PTOAS/PTOAS_Markham" rev-parse HEAD
-git -C "$HOME/Planner" rev-parse HEAD
+bridge/tools/run_comparison_flow.sh record-versions
+```
+
+Output:
+
+```text
+$OUT_ROOT/versions.md
 ```
 
 This matters because PTOAS VMI, VPTO address analysis, and sync behavior are
 actively moving upstream.
 
-## Flow 1: Early IR Dump From Triton
+## Flow Commands
 
-Purpose: generate or refresh early NPU-IR/TTAdapter MLIR from the Python
-Triton source.
-
-```bash
-cd "$HOME/Planner"
-export CANN_ROOT=/path/to/cann-9.1.0-beta.3
-export SOC_VERSION=Ascend950PR_9589
-export CORE_ID=0
-
-EARLY_OUT="$OUT_ROOT/early-ir"
-
-NPUIR/tools/dump_early_ir_from_triton.sh \
-  "$KERNEL_NAME" \
-  "$PY_FILE" \
-  "$EARLY_OUT"
-```
-
-Pick the TTAdapter MLIR for later compile-only flows:
+Run the cheap IR-focused sequence:
 
 ```bash
-export EARLY_IR="$(
-  find "$EARLY_OUT/early-ir" -name '*kernel.ttadapter.mlir' | sort | tail -1
-)"
-echo "$EARLY_IR"
+bridge/tools/run_comparison_flow.sh all-ir
 ```
 
-Important outputs:
+This runs:
 
 ```text
-$EARLY_OUT/msprof.log
-$EARLY_OUT/early-ir-manifest.txt
-$EARLY_OUT/early-ir/*kernel.ttadapter.mlir
-$EARLY_OUT/early-ir/*kernel.ttir.mlir
+record-versions
+early-ir
+baseline-ir
+bridge-ir
+bridge-lower
 ```
 
-## Flow 2: Full Baseline NPU-IR Simulator
-
-Purpose: run the original Triton Python through baseline NPU-IR and the CANN
-operator simulator. This gives the baseline correctness result and simulator
-profile.
+Run individual flows:
 
 ```bash
-cd "$HOME/Planner"
-export CANN_ROOT=/path/to/cann-9.1.0-beta.3
-source NPUIR/tools/source_npuir_simulator_env.sh
-
-BASELINE_SIM_OUT="$OUT_ROOT/baseline-npuir-sim"
-mkdir -p "$BASELINE_SIM_OUT"/cache "$BASELINE_SIM_OUT"/dump \
-  "$BASELINE_SIM_OUT"/logs "$BASELINE_SIM_OUT"/profile
-chmod 700 "$BASELINE_SIM_OUT" "$BASELINE_SIM_OUT"/cache \
-  "$BASELINE_SIM_OUT"/dump "$BASELINE_SIM_OUT"/logs \
-  "$BASELINE_SIM_OUT"/profile
-
-export TRITON_CACHE_DIR="$BASELINE_SIM_OUT/cache"
-export TRITON_DUMP_DIR="$BASELINE_SIM_OUT/dump"
-export ASCEND_PROCESS_LOG_PATH="$BASELINE_SIM_OUT/logs"
-unset BISHENGIR_ENABLE_PTOAS_BRIDGE
-
-msprof op simulator \
-  --kernel-name="$KERNEL_NAME" \
-  --soc-version="$SOC_VERSION" \
-  --core-id="$CORE_ID" \
-  --output="$BASELINE_SIM_OUT/profile" \
-  python3 "$PLANNER_DIR/$PY_FILE" \
-  >"$BASELINE_SIM_OUT/msprof.stdout.log" \
-  2>"$BASELINE_SIM_OUT/msprof.stderr.log"
+bridge/tools/run_comparison_flow.sh early-ir
+bridge/tools/run_comparison_flow.sh baseline-sim
+bridge/tools/run_comparison_flow.sh baseline-ir
+bridge/tools/run_comparison_flow.sh bridge-ir
+bridge/tools/run_comparison_flow.sh bridge-lower
+bridge/tools/run_comparison_flow.sh ptoas-lower
+bridge/tools/run_comparison_flow.sh bridge-sim
 ```
 
-Expected for `vadd`:
+## Flow Meaning
+
+| Flow | Purpose | Main output |
+|---|---|---|
+| `record-versions` | Save exact repo branch/commit state | `$OUT_ROOT/versions.md` |
+| `early-ir` | Run Triton Python through `msprof` compile path and collect TTIR/TTAdapter MLIR | `$OUT_ROOT/early-ir/` |
+| `baseline-sim` | Full baseline Triton -> NPU-IR -> CANN operator simulator run | `$OUT_ROOT/baseline-npuir-sim/` |
+| `baseline-ir` | Compile early IR without bridge passes and dump `convert-hivmave-to-ave-intrin` | `$OUT_ROOT/baseline-npuir-ir/compile.log` |
+| `bridge-ir` | Compile early IR with bridge passes and dump `convert-hivmave-to-ptoas-vmi` | `$OUT_ROOT/bridge-ptoas-vmi/compile.log` |
+| `bridge-lower` | Run checked-in testcase through NPU-IR bridge, PTOAS VPTO, and PTOAS LLVM IR | `$OUT_ROOT/bridge-runner/$TESTCASE/` |
+| `ptoas-lower` | Re-run PTOAS VPTO / LLVM lowering from the bridge-produced VMI | `$OUT_ROOT/ptoas-only/` |
+| `bridge-sim` | Run the bridge-produced PTOAS path with the testcase PTOAS simulator fixture | `$OUT_ROOT/bridge-sim/$TESTCASE/` |
+
+## Expected `vadd` Result
+
+For the default `vadd` baseline simulator flow, expect:
 
 ```text
 max error: 0.0
 allclose: True
 ```
 
-Important outputs:
-
-```text
-$BASELINE_SIM_OUT/msprof.stdout.log
-$BASELINE_SIM_OUT/msprof.stderr.log
-$BASELINE_SIM_OUT/dump/
-$BASELINE_SIM_OUT/profile/
-$BASELINE_SIM_OUT/logs/
-```
-
-The profile directory contains simulator timing tables and traces. Use the same
-SOC, core id, input shape, and kernel launch shape when comparing against the
-bridge path.
-
-## Flow 3: Baseline NPU-IR Compile-Only IR Dump
-
-Purpose: inspect the baseline NPU-IR lowering around the AVE intrinsic boundary
-without enabling the PTOAS bridge passes.
-
-```bash
-cd "$HOME/Planner"
-unset BISHENGIR_ENABLE_PTOAS_BRIDGE
-
-BASELINE_IR_OUT="$OUT_ROOT/baseline-npuir-ir"
-mkdir -p "$BASELINE_IR_OUT"
-
-"$HOME/AscendNPU-IR/build/install/bin/bishengir-compile" "$EARLY_IR" \
-  --target=Ascend910_9589 \
-  --enable-auto-multi-buffer=true \
-  --enable-auto-bind-sub-block=true \
-  --disable-ffts \
-  --limit-auto-multi-buffer-of-local-buffer=no-limit \
-  --enable-auto-blockify-loop \
-  --enable-hfusion-compile=true \
-  --enable-hivm-compile=true \
-  --enable-triton-kernel-compile=true \
-  --mlir-disable-threading \
-  --mlir-print-stacktrace-on-diagnostic \
-  --enable-vf-merge-level=1 \
-  --mlir-print-ir-after=convert-hivmave-to-ave-intrin \
-  --save-temps="$BASELINE_IR_OUT/temps" \
-  -o "$BASELINE_IR_OUT/$KERNEL_NAME" \
-  >"$BASELINE_IR_OUT/compile.log" \
-  2>&1
-```
-
-Useful output:
-
-```text
-$BASELINE_IR_OUT/compile.log
-$BASELINE_IR_OUT/temps/
-```
-
-On this server, the command may still fail after the requested IR dump if the
-closed backend tool such as `hivmc-a5` is unavailable. That is acceptable for
-IR comparison if the requested dump was printed.
-
-## Flow 4: Bridge Compile To PTOAS VMI
-
-Purpose: run NPU-IR with the bridge passes enabled and capture the PTOAS VMI
-boundary.
-
-```bash
-cd "$HOME/Planner"
-export BISHENGIR_ENABLE_PTOAS_BRIDGE=1
-
-BRIDGE_IR_OUT="$OUT_ROOT/bridge-ptoas-vmi"
-mkdir -p "$BRIDGE_IR_OUT"
-
-"$HOME/AscendNPU-IR/build/install/bin/bishengir-compile" "$EARLY_IR" \
-  --target=Ascend910_9589 \
-  --enable-auto-multi-buffer=true \
-  --enable-auto-bind-sub-block=true \
-  --disable-ffts \
-  --limit-auto-multi-buffer-of-local-buffer=no-limit \
-  --enable-auto-blockify-loop \
-  --enable-hfusion-compile=true \
-  --enable-hivm-compile=true \
-  --enable-triton-kernel-compile=true \
-  --mlir-disable-threading \
-  --mlir-print-stacktrace-on-diagnostic \
-  --enable-vf-merge-level=1 \
-  --mlir-print-ir-after=convert-hivmave-to-ptoas-vmi \
-  --save-temps="$BRIDGE_IR_OUT/temps" \
-  -o "$BRIDGE_IR_OUT/$KERNEL_NAME" \
-  >"$BRIDGE_IR_OUT/compile.log" \
-  2>&1
-```
-
-For checked-in bridge testcases, prefer the runner because it extracts the last
-successful VMI dump automatically:
-
-```bash
-cd "$HOME/Planner"
-export BISHENGIR_ENABLE_PTOAS_BRIDGE=1
-
-OUTPUT_ROOT="$OUT_ROOT/bridge-runner" \
-bridge/tools/run_npuir_ptoas_bridge_tests.sh \
-  --from-bishengir-compile \
-  --clean \
-  --emit-vpto \
-  --emit-llvmir \
-  "$TESTCASE"
-```
-
-Important runner outputs:
-
-```text
-$OUT_ROOT/bridge-runner/$TESTCASE/$TESTCASE.vmi.mlir
-$OUT_ROOT/bridge-runner/$TESTCASE/$TESTCASE.vpto.mlir
-$OUT_ROOT/bridge-runner/$TESTCASE/$TESTCASE.vpto.ll
-$OUT_ROOT/bridge-runner/$TESTCASE/npuir.log
-$OUT_ROOT/bridge-runner/$TESTCASE/npuir-command.txt
-$OUT_ROOT/bridge-runner/$TESTCASE/ptoas-vpto-command.txt
-$OUT_ROOT/bridge-runner/$TESTCASE/ptoas-llvmir-command.txt
-```
-
-For `vadd`, the VMI output should include vector and movement operations such as:
+For the bridge VMI flow, expect operations such as:
 
 ```text
 pto.vmi.load
@@ -254,45 +127,53 @@ pto.mte_gm_ub
 pto.mte_ub_gm
 ```
 
-## Flow 5: PTOAS Lowering Only
+## Simulator Notes
 
-Purpose: rerun PTOAS lowering manually from a bridge-produced VMI file.
+`baseline-sim` uses:
 
-```bash
-cd "$HOME/Planner"
-source "$HOME/.bashrc"
-activate_ptoas >/dev/null
-
-VMI_MLIR="$OUT_ROOT/bridge-runner/$TESTCASE/$TESTCASE.vmi.mlir"
-VPTO_MLIR="$OUT_ROOT/ptoas-only/$TESTCASE.vpto.mlir"
-VPTO_LL="$OUT_ROOT/ptoas-only/$TESTCASE.vpto.ll"
-mkdir -p "$(dirname "$VPTO_MLIR")"
-
-ptoas \
-  --pto-arch=a5 \
-  --pto-backend=vpto \
-  --emit-vpto \
-  "$VMI_MLIR" \
-  -o "$VPTO_MLIR"
-
-ptoas \
-  --pto-arch=a5 \
-  --pto-backend=vpto \
-  --emit-vpto-llvm-ir \
-  "$VMI_MLIR" \
-  -o "$VPTO_LL"
+```text
+Triton Python
+  -> Triton/NPU-IR lowering
+  -> NPU-IR backend
+  -> CANN operator simulator
+  -> Torch correctness check
 ```
 
-Use `activate_ptoas` or an equivalent PTOAS environment. Calling a raw PTOAS
-binary without the matching Python/runtime environment can fail on Python module
-imports.
+`bridge-sim` uses:
 
-## Flow 6: NPU-IR-to-PTOAS Simulator
+```text
+NPU-IR compile input
+  -> bridge-produced PTO/VMI
+  -> PTOAS VPTO
+  -> PTOAS testcase host fixture
+  -> CANN simulator
+```
 
-Purpose: run the converted PTOAS path in the CANN simulator with the testcase's
-PTOAS host fixture.
+These are not automatically equivalent. For a new kernel, `bridge-sim` is only
+comparable after the PTOAS host fixture matches the Triton host behavior:
 
-This requires a bridge testcase fixture:
+```text
+input shape
+data initialization
+launch grid / core count
+output verification
+timing metric source
+```
+
+## Adding A New Kernel
+
+Start with the cheap path:
+
+1. Add or point to a Python/Triton file with host-side correctness checking.
+2. Source `bridge/tools/source_comparison_env.sh` with the new `--testcase`,
+   `--kernel-name`, and `--python-file`.
+3. Run `bridge/tools/run_comparison_flow.sh all-ir`.
+4. Inspect baseline AVE IR, bridge PTOAS VMI, VPTO MLIR, and VPTO LLVM IR.
+
+Only add runtime comparison after the host side is equivalent:
+
+1. Add `bridge/testcases/<testcase>/compile-input.mlir` or `compile_input.mlir`.
+2. Add a PTOAS simulator fixture:
 
 ```text
 bridge/testcases/<testcase>/
@@ -304,49 +185,14 @@ bridge/testcases/<testcase>/
   compare.py
 ```
 
-If a new kernel does not have this fixture yet, use flows 1-5 first; runtime
-comparison is not equivalent until the host fixture matches the Triton host
-behavior.
+3. Run `bridge/tools/run_comparison_flow.sh baseline-sim`.
+4. Run `bridge/tools/run_comparison_flow.sh bridge-sim`.
+5. Compare correctness first, then cycles/ticks/runtime.
 
-```bash
-cd "$HOME/Planner"
-source "$HOME/.bashrc"
-activate_ptoas >/dev/null
+## A5 Hardware Runtime
 
-export BISHENGIR_ENABLE_PTOAS_BRIDGE=1
-export ASCEND_HOME_PATH="$CANN_ROOT"
-export SOC_VERSION=Ascend950PR_9599
-export SIM_LIB_DIR="$ASCEND_HOME_PATH/tools/simulator/$SOC_VERSION/lib"
-export BUILD_JOBS=16
-
-OUTPUT_ROOT="$OUT_ROOT/bridge-sim" \
-PTOAS_BIN="$(command -v ptoas)" \
-BISHENGIR_COMPILE="$HOME/AscendNPU-IR/build/install/bin/bishengir-compile" \
-bridge/tools/run_npuir_ptoas_bridge_tests.sh \
-  --from-bishengir-compile \
-  --clean \
-  --run-simulator \
-  "$TESTCASE"
-```
-
-Important outputs:
-
-```text
-$OUT_ROOT/bridge-sim/$TESTCASE/sim.log
-$OUT_ROOT/bridge-sim/$TESTCASE/sim-command.txt
-$OUT_ROOT/bridge-sim/$TESTCASE/$TESTCASE.vpto.mlir
-```
-
-Keep this separate from `msprof op simulator` on the original Triton Python.
-The baseline path uses the Triton/NPU-IR host path; the bridge simulator path
-uses the PTOAS testcase host fixture.
-
-## Flow 7: A5 Hardware Runtime
-
-Purpose: get authoritative runtime and correctness on real hardware. This
-cannot be completed on the Codex-accessible simulator-only server.
-
-Run the same source versions and input shapes on the A5 server. Capture:
+This server is simulator-only. Authoritative runtime still needs the A5 server.
+When running there, capture:
 
 ```text
 NPU-IR commit
@@ -362,42 +208,6 @@ correctness output
 ```
 
 If the A5 server can generate early MLIR but local replay is easier, place the
-early dumps under the Planner examples area and use flows 3-5 locally.
-
-## Minimum Comparison Checklist
-
-For each kernel, collect:
-
-| Item | Baseline NPU-IR | Bridge / PTOAS |
-|---|---|---|
-| Source commit | `AscendNPU-IR` commit | `AscendNPU-IR` + `PTOAS` commits |
-| Input source | Triton Python and shape | same Triton semantics or equivalent fixture |
-| Early IR | TTAdapter MLIR | same TTAdapter MLIR when possible |
-| Functional result | Torch check / simulator output | PTOAS fixture check |
-| IR checkpoint | AVE intrinsic dump | PTOAS VMI, VPTO, VPTO LLVM IR |
-| Simulator target | same `SOC_VERSION`, `CORE_ID` | same or explicitly documented |
-| Timing metric | simulator profile cycles/ticks/runtime | same metric source |
-| Hardware runtime | A5 result when available | A5 result when available |
-
-Do not compare baseline Python/Triton simulator runtime against a PTOAS fixture
-runtime unless the input shape, data initialization, launch grid, core count,
-and verification path are known to be equivalent.
-
-## Adding A New Kernel
-
-Start with the cheap path:
-
-1. Add or point to a Python/Triton file with host-side correctness checking.
-2. Set `KERNEL_NAME`, `PY_FILE`, and `TESTCASE`.
-3. Run flow 1 to capture early IR.
-4. Run flows 3 and 4 to compare baseline AVE IR against bridge PTOAS VMI.
-5. Run flow 5 to check PTOAS can lower the VMI to VPTO / LLVM IR.
-
-Only add runtime comparison after the host side is equivalent:
-
-1. Add `bridge/testcases/<testcase>/compile-input.mlir` or `compile_input.mlir`.
-2. Add a PTOAS simulator fixture matching the Triton host behavior.
-3. Run flow 2 for baseline simulator results.
-4. Run flow 6 for bridge simulator results.
-5. Compare correctness first, then cycles/ticks/runtime.
+early dumps under the Planner examples area and run the compile/lowering flows
+locally.
 

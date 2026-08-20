@@ -36,6 +36,9 @@ or template-rewrite strategy is selected.
 - Triton source fixtures: `bridge/triton-example/`.
 - Generic baseline-vs-bridge comparison runbook:
   `bridge/comparison-flows.md`.
+- Generic comparison scripts:
+  `bridge/tools/source_comparison_env.sh` and
+  `bridge/tools/run_comparison_flow.sh`.
 - Vector-add end-to-end workflow:
   `bridge/testcases/vadd/README.md`.
 - A5-generated early IR dump folder: `bridge/examples/npuir-early-ir/`.
