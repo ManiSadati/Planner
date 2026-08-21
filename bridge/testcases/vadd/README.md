@@ -245,8 +245,9 @@ bridge/out/npuir-ptoas-bridge/vadd/sim.log
 bridge/out/npuir-ptoas-bridge/vadd/sim-command.txt
 ```
 
-This simulation is not the same as `msprof op simulator` on the original Triton
-Python. It validates the PTOAS-generated path with the vadd PTOAS host fixture.
+The active comparison wrapper profiles the PTOAS-generated executable with
+`msprof op simulator --application ...`, while still using the vadd PTOAS host
+fixture for data generation and correctness checking.
 
 ## 6. Compile Baseline NPU-IR To AVE Intrinsics Without Bridge Passes
 
@@ -372,7 +373,7 @@ $OUT/logs/
 | Early IR dump from Python | off by default | `NPUIR/tools/dump_early_ir_from_triton.sh vector_add_kernel bridge/triton-example/vector_add.py` | `$HOME/tmp/npuir-early-ir/.../early-ir/` |
 | NPU-IR bridge compile | `1` | `bishengir-compile ... --mlir-print-ir-after=convert-hivmave-to-ptoas-vmi` | PTO/VMI dump in compile log |
 | PTOAS VPTO / LLVM IR | n/a | `ptoas --emit-vpto`, `ptoas --emit-vpto-llvm-ir` | `.vpto.mlir`, `.vpto.ll` |
-| PTOAS simulator for bridge path | `1` during bridge compile | `bridge/tools/run_npuir_ptoas_bridge_tests.sh --run-simulator vadd` | `bridge/out/.../sim.log` |
+| PTOAS simulator for bridge path | `1` during bridge compile | `bridge/tools/run_comparison_flow.sh bridge-sim` | `$OUT_ROOT/bridge-sim/vadd/sim.log`, `$OUT_ROOT/bridge-sim/vadd/profile/` |
 | Baseline AVE intrinsic dump | unset | `bishengir-compile ... --mlir-print-ir-after=convert-hivmave-to-ave-intrin` | AVE intrinsic dump in compile log |
 | Full baseline NPU-IR simulator | unset | `msprof op simulator ... python3 vector_add.py` | Torch correctness, profile, ticks/logs |
 

@@ -14,6 +14,10 @@ BUILD_DIR="${BUILD_DIR:-${SCRIPT_DIR}/build}"
 RUN_DIR="${RUN_DIR:-${BUILD_DIR}/run}"
 SOC_VERSION="${SOC_VERSION:-Ascend950PR_9599}"
 PTOAS_BIN="${PTOAS_BIN:-${SCRIPT_DIR}/../../build/tools/ptoas/ptoas}"
+USE_MSPROF="${USE_MSPROF:-0}"
+KERNEL_NAME="${KERNEL_NAME:-vector_add_kernel}"
+CORE_ID="${CORE_ID:-0}"
+MSPROF_OUTPUT="${MSPROF_OUTPUT:-${RUN_DIR}/profile}"
 
 if [[ ! -x "${PTOAS_BIN}" ]]; then
     if command -v ptoas >/dev/null 2>&1; then
@@ -41,5 +45,16 @@ cmake --build "${BUILD_DIR}" --parallel "${BUILD_JOBS:-$(nproc)}"
 mkdir -p "${RUN_DIR}"
 cd "${RUN_DIR}"
 python3 "${SCRIPT_DIR}/gen_data.py"
-"${BUILD_DIR}/lowered_vector_add_vpto"
+if [[ "${USE_MSPROF}" == "1" ]]; then
+    mkdir -p "${MSPROF_OUTPUT}"
+    chmod 700 "${MSPROF_OUTPUT}" 2>/dev/null || true
+    msprof op simulator \
+        --kernel-name="${KERNEL_NAME}" \
+        --soc-version="${SOC_VERSION}" \
+        --core-id="${CORE_ID}" \
+        --output="${MSPROF_OUTPUT}" \
+        --application="${BUILD_DIR}/lowered_vector_add_vpto"
+else
+    "${BUILD_DIR}/lowered_vector_add_vpto"
+fi
 python3 "${SCRIPT_DIR}/compare.py"

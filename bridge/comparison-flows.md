@@ -323,10 +323,17 @@ $OUT_ROOT/ptoas-only/vadd.vpto.mlir
 $OUT_ROOT/ptoas-only/vadd.vpto.ll
 ```
 
-Then run the PTOAS simulator fixture:
+Then run the PTOAS simulator fixture through `msprof op simulator`:
 
 ```bash
 bridge/tools/run_comparison_flow.sh bridge-sim
+```
+
+The wrapper still uses the PTOAS host fixture for data generation and
+correctness checking, but the generated PTOAS executable itself is launched as:
+
+```text
+msprof op simulator --application <ptoas-host-executable>
 ```
 
 For larger fixtures this can take noticeably longer than the small `vadd`
@@ -339,6 +346,7 @@ For `vadd`, outputs:
 ```text
 $OUT_ROOT/bridge-sim/vadd/sim.log
 $OUT_ROOT/bridge-sim/vadd/sim-command.txt
+$OUT_ROOT/bridge-sim/vadd/profile/
 $OUT_ROOT/bridge-sim/vadd/sim/lowered_vector_add_kernel_vpto.mlir
 ```
 

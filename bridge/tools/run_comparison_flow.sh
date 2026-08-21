@@ -41,7 +41,7 @@ PY_FILE="${PY_FILE:-bridge/triton-example/vector_add.py}"
 CANN_ROOT="${CANN_ROOT:-${ASCEND_HOME_PATH:-}}"
 SOC_VERSION="${SOC_VERSION:-Ascend950PR_9589}"
 CORE_ID="${CORE_ID:-0}"
-PTOAS_SIM_SOC_VERSION="${PTOAS_SIM_SOC_VERSION:-Ascend950PR_9599}"
+PTOAS_SIM_SOC_VERSION="${PTOAS_SIM_SOC_VERSION:-$SOC_VERSION}"
 OUT_ROOT="${OUT_ROOT:-$HOME/tmp/npuir-ptoas-comparison/${TESTCASE}-manual}"
 EARLY_OUT="${EARLY_OUT:-$OUT_ROOT/early-ir}"
 BASELINE_SIM_OUT="${BASELINE_SIM_OUT:-$OUT_ROOT/baseline-npuir-sim}"
@@ -461,8 +461,9 @@ run_bridge_sim() {
   if [[ -f "$generated_vpto" && -f "$case_dir/run_sim.sh" ]]; then
     local case_out="$BRIDGE_SIM_OUT/$TESTCASE"
     local sim_src="$case_out/sim"
+    local profile_dir="$case_out/profile"
     rm -rf "$case_out"
-    mkdir -p "$sim_src"
+    ensure_private_dirs "$case_out" "$sim_src" "$profile_dir"
     cp -R "$case_dir/." "$sim_src/"
     cp "$generated_vpto" "$sim_src/lowered_vector_add_kernel_vpto.mlir"
     {
@@ -476,6 +477,10 @@ run_bridge_sim() {
         "SOC_VERSION=$PTOAS_SIM_SOC_VERSION" \
         "SIM_LIB_DIR=$CANN_ROOT/tools/simulator/$PTOAS_SIM_SOC_VERSION/lib" \
         "BUILD_JOBS=${BUILD_JOBS:-16}" \
+        "USE_MSPROF=1" \
+        "KERNEL_NAME=$KERNEL_NAME" \
+        "CORE_ID=$CORE_ID" \
+        "MSPROF_OUTPUT=$profile_dir" \
         bash "$sim_src/run_sim.sh"
       printf '\n'
     } >"$case_out/sim-command.txt"
@@ -490,6 +495,10 @@ run_bridge_sim() {
         "SOC_VERSION=$PTOAS_SIM_SOC_VERSION" \
         "SIM_LIB_DIR=$CANN_ROOT/tools/simulator/$PTOAS_SIM_SOC_VERSION/lib" \
         "BUILD_JOBS=${BUILD_JOBS:-16}" \
+        "USE_MSPROF=1" \
+        "KERNEL_NAME=$KERNEL_NAME" \
+        "CORE_ID=$CORE_ID" \
+        "MSPROF_OUTPUT=$profile_dir" \
         bash "$sim_src/run_sim.sh"
     ) >"$case_out/sim.log" 2>&1
     log "simulator log: $case_out/sim.log"
@@ -502,6 +511,10 @@ run_bridge_sim() {
   SOC_VERSION="$PTOAS_SIM_SOC_VERSION" \
   SIM_LIB_DIR="$CANN_ROOT/tools/simulator/$PTOAS_SIM_SOC_VERSION/lib" \
   BUILD_JOBS="${BUILD_JOBS:-16}" \
+  USE_MSPROF=1 \
+  KERNEL_NAME="$KERNEL_NAME" \
+  CORE_ID="$CORE_ID" \
+  MSPROF_OUTPUT="$BRIDGE_SIM_OUT/$TESTCASE/profile" \
   OUTPUT_ROOT="$BRIDGE_SIM_OUT" \
   BISHENGIR_COMPILE="$BISHENGIR_COMPILE" \
   PTOAS_BIN="$ptoas_bin" \

@@ -21,7 +21,7 @@ Options:
   --cann-root PATH      CANN install root containing set_env.sh. Default: existing CANN_ROOT or ASCEND_HOME_PATH
   --soc-version SOC     NPU-IR msprof simulator SOC. Default: Ascend950PR_9589
   --core-id ID          NPU-IR msprof simulator core id. Default: 0
-  --ptoas-sim-soc SOC   PTOAS fixture simulator SOC. Default: Ascend950PR_9599
+  --ptoas-sim-soc SOC   PTOAS fixture simulator SOC. Default: same as --soc-version
   --out-root PATH       Output root. Default: $HOME/tmp/npuir-ptoas-comparison/<testcase>-<timestamp>
   --run-id ID           Run id used when --out-root is omitted. Default: UTC timestamp
 EOF
@@ -36,7 +36,11 @@ export PY_FILE="${PY_FILE:-bridge/triton-example/vector_add.py}"
 export CANN_ROOT="${CANN_ROOT:-${ASCEND_HOME_PATH:-}}"
 export SOC_VERSION="${SOC_VERSION:-Ascend950PR_9589}"
 export CORE_ID="${CORE_ID:-0}"
-export PTOAS_SIM_SOC_VERSION="${PTOAS_SIM_SOC_VERSION:-Ascend950PR_9599}"
+_comparison_ptoas_sim_soc_explicit=0
+if [[ -n "${PTOAS_SIM_SOC_VERSION:-}" ]]; then
+  _comparison_ptoas_sim_soc_explicit=1
+fi
+export PTOAS_SIM_SOC_VERSION="${PTOAS_SIM_SOC_VERSION:-}"
 export RUN_ID="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 
 _comparison_require_arg() {
@@ -82,6 +86,7 @@ while [[ $# -gt 0 ]]; do
     --ptoas-sim-soc)
       _comparison_require_arg "$@" || return 1
       PTOAS_SIM_SOC_VERSION="$2"
+      _comparison_ptoas_sim_soc_explicit=1
       shift 2
       ;;
     --out-root)
@@ -112,6 +117,9 @@ export PY_FILE
 export CANN_ROOT
 export SOC_VERSION
 export CORE_ID
+if [[ "$_comparison_ptoas_sim_soc_explicit" == "0" ]]; then
+  PTOAS_SIM_SOC_VERSION="$SOC_VERSION"
+fi
 export PTOAS_SIM_SOC_VERSION
 export RUN_ID
 export OUT_ROOT="${OUT_ROOT:-$HOME/tmp/npuir-ptoas-comparison/${TESTCASE}-${RUN_ID}}"
@@ -145,3 +153,4 @@ fi
 unset -f _comparison_usage
 unset -f _comparison_require_arg
 unset _comparison_script_dir
+unset _comparison_ptoas_sim_soc_explicit
