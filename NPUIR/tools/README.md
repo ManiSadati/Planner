@@ -9,6 +9,7 @@ because they do not invoke PTOAS.
 | `source_npuir_simulator_env.sh` | Sourceable base environment for NPU-IR simulator runs. |
 | `source_vector_add_large_simulator_env.sh` | Sourceable complete environment/output setup for the large vector-add simulator run. |
 | `dump_early_ir_from_triton.sh` | Run the Bluezone simulator compile path for a Triton Python file and collect early MLIR/LLVM dumps under `$HOME/tmp`. |
+| `capture_pre_cce_llvm_ir.sh` | Replay a TTAdapter MLIR with `bishengir-compile --save-linked-ir`, copy temporary pre-CCE LLVM IR, and stop after capture by default. |
 | `run_vector_add_simulator.sh` | One-shot baseline NPU-IR simulator run for `vector_add.py`. |
 | `run_vector_add_large_simulator.sh` | One-shot baseline NPU-IR simulator run for `vector_add_large.py`. |
 | `replay_npuir_from_device_spec.sh` | Replay checked-in `*_kernel.mlir` dumps from `AppendTargetDeviceSpec` through local `bishengir-compile` pass dumps. |

@@ -126,6 +126,7 @@ export OUT_ROOT="${OUT_ROOT:-$HOME/tmp/npuir-ptoas-comparison/${TESTCASE}-${RUN_
 export EARLY_OUT="${EARLY_OUT:-$OUT_ROOT/early-ir}"
 export BASELINE_SIM_OUT="${BASELINE_SIM_OUT:-$OUT_ROOT/baseline-npuir-sim}"
 export BASELINE_IR_OUT="${BASELINE_IR_OUT:-$OUT_ROOT/baseline-npuir-ir}"
+export BASELINE_LLVM_IR_OUT="${BASELINE_LLVM_IR_OUT:-$OUT_ROOT/baseline-pre-cce-llvm-ir}"
 export BRIDGE_IR_OUT="${BRIDGE_IR_OUT:-$OUT_ROOT/bridge-ptoas-vmi}"
 export BRIDGE_RUNNER_OUT="${BRIDGE_RUNNER_OUT:-$OUT_ROOT/bridge-runner}"
 export BRIDGE_SIM_OUT="${BRIDGE_SIM_OUT:-$OUT_ROOT/bridge-sim}"

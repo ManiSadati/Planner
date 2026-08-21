@@ -146,6 +146,30 @@ stable path automatically.
 Use this section when you have a new Triton kernel and need the initial MLIR
 that NPU-IR sees after Triton lowering.
 
+### 2.1. Capture Baseline Pre-CCE LLVM IR
+
+This does not run the full simulator. It replays the TTAdapter MLIR from
+section 2 through `bishengir-compile --save-linked-ir`, copies the temporary
+`kernel*.ll` / `*mix*.ll` files, and stops the compiler after the first
+successful capture by default.
+
+Run:
+
+```bash
+bridge/tools/run_comparison_flow.sh baseline-llvm-ir
+```
+
+Main outputs:
+
+```text
+$OUT_ROOT/baseline-pre-cce-llvm-ir/compile.log
+$OUT_ROOT/baseline-pre-cce-llvm-ir/command.txt
+$OUT_ROOT/baseline-pre-cce-llvm-ir/ll-dumps/
+```
+
+Use this when you want to inspect the LLVM/HIVM boundary that CCE would see,
+without waiting for an end-to-end simulator run.
+
 ## 3. Perform `bishengir-compile` In Bluezone To Get The Full PTOAS Dialect
 
 This starts from the TTAdapter MLIR from section 2 and runs the NPU-IR compiler

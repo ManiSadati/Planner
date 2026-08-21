@@ -31,56 +31,23 @@ only when the goal is to inspect LLVM IR.
 
 ## Capture Script
 
-Create a small helper script outside git, or run the function inline:
+Use the checked-in helper:
 
 ```bash
-#!/usr/bin/env bash
-set -e
-
-usage() {
-  echo "Usage: $0 <SRC_DIR> <DUMP_DIR> [--watch]"
-  echo
-  echo "  SRC_DIR   Directory containing temporary .ll files"
-  echo "  DUMP_DIR  Directory to copy dumps into"
-  echo "  --watch   Keep running until interrupted"
-  exit 1
-}
-
-if [ $# -lt 2 ]; then
-  usage
-fi
-
-SRC_DIR="$1"
-DUMP_DIR="$2"
-MODE="${3:-}"
-
-mkdir -p "$DUMP_DIR"
-
-copy_files() {
-  local found=0
-  for f in "$SRC_DIR"/kernel*.ll "$SRC_DIR"/*mix*.ll; do
-    if [ -f "$f" ]; then
-      cp -a "$f" "$DUMP_DIR/$(basename "$f").$(date +%s%N)" 2>/dev/null
-      found=1
-    fi
-  done
-  return $((!found))
-}
-
-if [ "$MODE" = "--watch" ]; then
-  while true; do
-    copy_files || true
-    sleep 0.01
-  done
-else
-  while true; do
-    if copy_files; then
-      break
-    fi
-    sleep 0.01
-  done
-fi
+NPUIR/tools/capture_pre_cce_llvm_ir.sh \
+  --input "$IN" \
+  --out-dir "$OUT" \
+  --cann-root "$CANN_ROOT"
 ```
+
+This does not run the full NPU-IR simulator. It replays a TTAdapter MLIR through
+`bishengir-compile --save-linked-ir`, watches the `-o` output directory for
+temporary `kernel*.ll` / `*mix*.ll` files, copies them into
+`$OUT/ll-dumps`, and stops the compiler after the first successful capture by
+default.
+
+Pass `--wait-for-compile` only when you intentionally want to let
+`bishengir-compile` continue after capture.
 
 ## Manual Vector Add Flow
 
@@ -97,31 +64,13 @@ mkdir -p "$OUT/ll-dumps"
 chmod 700 "$OUT" "$OUT/ll-dumps"
 ```
 
-Terminal 1 watches the output directory:
+Then run:
 
 ```bash
-bash catch_ll.sh "$OUT" "$OUT/ll-dumps" --watch
-```
-
-Terminal 2 runs the compile replay:
-
-```bash
-source /path/to/cann-9.1.0-beta.3/set_env.sh
-source "$HOME/.venv/npuir-sim-system/bin/activate"
-
-export PATH="$HOME/AscendNPU-IR/build/install/bin:$PATH"
-export TMPDIR="$HOME/tmp"
-
-bishengir-compile "$IN" \
-  --target=Ascend910_9589 \
-  --enable-lib-call-no-inline=false \
-  --disable-ffts \
-  --enable-debug-info=true \
-  --enable-auto-blockify-loop \
-  --enable-hfusion-compile=true \
-  --enable-triton-kernel-compile=true \
-  --save-linked-ir \
-  -o "$OUT/kernel"
+NPUIR/tools/capture_pre_cce_llvm_ir.sh \
+  --input "$IN" \
+  --out-dir "$OUT" \
+  --cann-root /path/to/cann-9.1.0-beta.3
 ```
 
 Then inspect the copied LLVM IR:
@@ -159,8 +108,8 @@ preferred DMA rewrite point remains the structured HIVM stage after
 
 ## Caveats
 
-- The watcher is timing-sensitive. Keep it running before invoking
-  `bishengir-compile`.
+- The capture is timing-sensitive. The helper starts the watcher before
+  invoking `bishengir-compile`.
 - Watch the `-o` output directory, not only `$TMPDIR`.
 - `--save-temps=<dir>` is not reliable in this CANN 9.1 beta path because
   `bishengir-compile` forwards it into `hivmc-a5`, and this `hivmc-a5` rejects

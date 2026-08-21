@@ -16,6 +16,7 @@ Flows:
                     By default, stops after the first TTAdapter dump.
   baseline-sim      Run full baseline NPU-IR simulator from Triton Python.
   baseline-ir       Compile early IR without bridge passes and dump AVE intrinsic IR.
+  baseline-llvm-ir  Capture temporary pre-CCE LLVM IR from early TTAdapter MLIR.
   bridge-ir         Compile early IR with bridge passes, dump PTOAS VMI IR,
                     and also write a full print-after-all log.
   bridge-lower      Run bridge testcase through NPU-IR -> PTOAS VPTO and LLVM IR.
@@ -46,6 +47,7 @@ OUT_ROOT="${OUT_ROOT:-$HOME/tmp/npuir-ptoas-comparison/${TESTCASE}-manual}"
 EARLY_OUT="${EARLY_OUT:-$OUT_ROOT/early-ir}"
 BASELINE_SIM_OUT="${BASELINE_SIM_OUT:-$OUT_ROOT/baseline-npuir-sim}"
 BASELINE_IR_OUT="${BASELINE_IR_OUT:-$OUT_ROOT/baseline-npuir-ir}"
+BASELINE_LLVM_IR_OUT="${BASELINE_LLVM_IR_OUT:-$OUT_ROOT/baseline-pre-cce-llvm-ir}"
 BRIDGE_IR_OUT="${BRIDGE_IR_OUT:-$OUT_ROOT/bridge-ptoas-vmi}"
 BRIDGE_RUNNER_OUT="${BRIDGE_RUNNER_OUT:-$OUT_ROOT/bridge-runner}"
 BRIDGE_SIM_OUT="${BRIDGE_SIM_OUT:-$OUT_ROOT/bridge-sim}"
@@ -409,6 +411,20 @@ run_baseline_sim() {
   log "baseline simulator output: $BASELINE_SIM_OUT"
 }
 
+run_baseline_llvm_ir() {
+  require_cann
+  local input
+  input="$(find_early_ir)"
+  log "baseline pre-CCE LLVM IR capture: $input"
+  CANN_ROOT="$CANN_ROOT" \
+  NPU_IR_ROOT="$NPU_IR_ROOT" \
+  BISHENGIR_COMPILE="$BISHENGIR_COMPILE" \
+  "$planner_root/NPUIR/tools/capture_pre_cce_llvm_ir.sh" \
+    --input "$input" \
+    --out-dir "$BASELINE_LLVM_IR_OUT" \
+    --cann-root "$CANN_ROOT"
+}
+
 run_bridge_lower() {
   source_cann_env
   add_cann_bisheng_to_path
@@ -537,6 +553,9 @@ case "$flow" in
     ;;
   baseline-ir)
     run_compile_dump baseline convert-hivmave-to-ave-intrin "$BASELINE_IR_OUT" 0
+    ;;
+  baseline-llvm-ir)
+    run_baseline_llvm_ir
     ;;
   bridge-ir)
     run_compile_dump bridge convert-hivmave-to-ptoas-vmi "$BRIDGE_IR_OUT" 1
