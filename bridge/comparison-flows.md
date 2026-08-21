@@ -179,9 +179,16 @@ Main outputs:
 ```text
 $OUT_ROOT/bridge-ptoas-vmi/vadd.vmi.mlir
 $OUT_ROOT/bridge-ptoas-vmi/compile.log
+$OUT_ROOT/bridge-ptoas-vmi/compile-after-all.log
 $OUT_ROOT/bridge-ptoas-vmi/command.txt
+$OUT_ROOT/bridge-ptoas-vmi/command-after-all.txt
 $OUT_ROOT/bridge-ptoas-vmi/after-convert-hivmave-to-ptoas-vmi-dump-count.txt
 ```
+
+`compile.log` is the targeted dump after `convert-hivmave-to-ptoas-vmi`; the
+script extracts `$OUT_ROOT/bridge-ptoas-vmi/vadd.vmi.mlir` from that file.
+`compile-after-all.log` is the full `--mlir-print-ir-after-all` log for
+debugging the surrounding NPU-IR passes.
 
 If you also want PTOAS VPTO and VPTO LLVM IR immediately after the bridge
 compile, run section 4.2 next.
@@ -291,6 +298,17 @@ cd "$HOME/Planner"
 This is needed because `ptoas` depends on its built Python extension and shared
 library paths. If this is not active, `ptoas-lower` can fail with `ptoas not
 found` or a Python `_core` import error.
+
+The comparison wrapper sources `$CANN_ROOT/set_env.sh` and adds
+`$CANN_ROOT/tools/bisheng_compiler/bin` to `PATH` for PTOAS lowering and PTOAS
+simulator flows. Without that CANN setup, PTOAS may print:
+
+```text
+VPTO LLVM emission failed: unable to find 'bisheng' in PATH
+VPTO LLVM emission: falling back to configured default target attributes
+```
+
+or the PTOAS simulator executable may fail to load CANN simulator libraries.
 
 First, lower the PTOAS-input MLIR from section 3 to VPTO and VPTO LLVM IR:
 

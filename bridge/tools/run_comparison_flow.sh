@@ -16,7 +16,8 @@ Flows:
                     By default, stops after the first TTAdapter dump.
   baseline-sim      Run full baseline NPU-IR simulator from Triton Python.
   baseline-ir       Compile early IR without bridge passes and dump AVE intrinsic IR.
-  bridge-ir         Compile early IR with bridge passes and dump PTOAS VMI IR.
+  bridge-ir         Compile early IR with bridge passes, dump PTOAS VMI IR,
+                    and also write a full print-after-all log.
   bridge-lower      Run bridge testcase through NPU-IR -> PTOAS VPTO and LLVM IR.
   ptoas-lower       Re-run PTOAS VPTO and LLVM lowering from bridge-lower VMI.
   bridge-sim        Run bridge testcase through PTOAS simulator fixture.
@@ -73,6 +74,22 @@ require_cann() {
   if [[ -z "$CANN_ROOT" || ! -f "$CANN_ROOT/set_env.sh" ]]; then
     echo "error: set CANN_ROOT to a CANN install containing set_env.sh" >&2
     exit 1
+  fi
+}
+
+source_cann_env() {
+  require_cann
+  # shellcheck disable=SC1090
+  source "$CANN_ROOT/set_env.sh"
+}
+
+add_cann_bisheng_to_path() {
+  local bisheng_dir="$CANN_ROOT/tools/bisheng_compiler/bin"
+  if [[ -n "$CANN_ROOT" && -x "$bisheng_dir/bisheng" ]]; then
+    case ":$PATH:" in
+      *":$bisheng_dir:"*) ;;
+      *) export PATH="$bisheng_dir:$PATH" ;;
+    esac
   fi
 }
 
@@ -198,7 +215,7 @@ compile_args() {
   local input="$1"
   local output_path="$2"
   local temps="$3"
-  local target_pass="$4"
+  local print_ir_arg="$4"
 
   printf '%s\0' \
     "$BISHENGIR_COMPILE" "$input" \
@@ -214,9 +231,42 @@ compile_args() {
     --mlir-disable-threading \
     --mlir-print-stacktrace-on-diagnostic \
     --enable-vf-merge-level=1 \
-    "--mlir-print-ir-after=$target_pass" \
+    "$print_ir_arg" \
     "--save-temps=$temps" \
     -o "$output_path"
+}
+
+run_compile_after_all() {
+  local mode="$1"
+  local out_dir="$2"
+  local bridge_flag="$3"
+  local input="$4"
+
+  mapfile -d '' cmd < <(compile_args "$input" "$out_dir/$KERNEL_NAME.after-all" "$out_dir/temps-after-all" "--mlir-print-ir-after-all")
+  printf '%q ' "${cmd[@]}" >"$out_dir/command-after-all.txt"
+  printf '\n' >>"$out_dir/command-after-all.txt"
+
+  log "$mode print-after-all compile: $input"
+  set +e
+  if [[ "$bridge_flag" == "1" ]]; then
+    BISHENGIR_ENABLE_PTOAS_BRIDGE=1 "${cmd[@]}" >"$out_dir/compile-after-all.log" 2>&1
+  else
+    env -u BISHENGIR_ENABLE_PTOAS_BRIDGE "${cmd[@]}" >"$out_dir/compile-after-all.log" 2>&1
+  fi
+  local status=$?
+  set -e
+  echo "$status" >"$out_dir/exit-code-after-all.txt"
+
+  if grep -q "IR Dump After" "$out_dir/compile-after-all.log"; then
+    log "$mode print-after-all log: $out_dir/compile-after-all.log"
+    if [[ "$status" -ne 0 ]]; then
+      log "$mode print-after-all compiler exited $status after/around dumps; keeping output for IR comparison"
+    fi
+    return 0
+  fi
+
+  log "$mode print-after-all failed before any pass dump; see $out_dir/compile-after-all.log"
+  return "$status"
 }
 
 run_compile_dump() {
@@ -228,7 +278,7 @@ run_compile_dump() {
   input="$(find_early_ir)"
 
   mkdir -p "$out_dir"
-  mapfile -d '' cmd < <(compile_args "$input" "$out_dir/$KERNEL_NAME" "$out_dir/temps" "$target_pass")
+  mapfile -d '' cmd < <(compile_args "$input" "$out_dir/$KERNEL_NAME" "$out_dir/temps" "--mlir-print-ir-after=$target_pass")
   printf '%q ' "${cmd[@]}" >"$out_dir/command.txt"
   printf '\n' >>"$out_dir/command.txt"
 
@@ -257,6 +307,9 @@ run_compile_dump() {
     fi
     if [[ "$status" -ne 0 ]]; then
       log "$mode compiler exited $status after/around dump; keeping output for IR comparison"
+    fi
+    if [[ "$target_pass" == "convert-hivmave-to-ptoas-vmi" ]]; then
+      run_compile_after_all "$mode" "$out_dir" "$bridge_flag" "$input"
     fi
     return 0
   fi
@@ -357,6 +410,8 @@ run_baseline_sim() {
 }
 
 run_bridge_lower() {
+  source_cann_env
+  add_cann_bisheng_to_path
   local ptoas_bin
   ptoas_bin="$(find_ptoas_bin)"
   log "bridge lower: $TESTCASE"
@@ -373,6 +428,8 @@ run_bridge_lower() {
 }
 
 run_ptoas_lower() {
+  source_cann_env
+  add_cann_bisheng_to_path
   local ptoas_bin
   ptoas_bin="$(find_ptoas_bin)"
   local vmi="$BRIDGE_IR_OUT/$TESTCASE.vmi.mlir"
@@ -394,7 +451,8 @@ run_ptoas_lower() {
 }
 
 run_bridge_sim() {
-  require_cann
+  source_cann_env
+  add_cann_bisheng_to_path
   local ptoas_bin
   ptoas_bin="$(find_ptoas_bin)"
   local case_dir="$planner_root/bridge/testcases/$TESTCASE"
