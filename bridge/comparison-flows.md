@@ -329,12 +329,31 @@ Then run the PTOAS simulator fixture:
 bridge/tools/run_comparison_flow.sh bridge-sim
 ```
 
+For larger fixtures this can take noticeably longer than the small `vadd`
+example. For example, `vadd_large` uses a `1000 x 2000` logical shape and a
+64-core PTOAS launch, so the simulator has much more work than the original
+small vector-add fixture.
+
 For `vadd`, outputs:
 
 ```text
 $OUT_ROOT/bridge-sim/vadd/sim.log
 $OUT_ROOT/bridge-sim/vadd/sim-command.txt
 $OUT_ROOT/bridge-sim/vadd/sim/lowered_vector_add_kernel_vpto.mlir
+```
+
+For `vadd_large`, replace `vadd` with `vadd_large`:
+
+```text
+$OUT_ROOT/bridge-sim/vadd_large/sim.log
+```
+
+Useful checks:
+
+```bash
+tail -f "$OUT_ROOT/bridge-sim/$TESTCASE/sim.log"
+grep -E "Total tick|compare passed|compare failed|Model stopped|ERROR|error" \
+  "$OUT_ROOT/bridge-sim/$TESTCASE/sim.log"
 ```
 
 If `$OUT_ROOT/ptoas-only/vadd.vpto.mlir` exists, the simulator flow uses that

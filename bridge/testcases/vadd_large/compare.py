@@ -12,7 +12,7 @@
 import sys
 import numpy as np
 
-TILE_COUNT = 64
+TILE_COUNT = 1000
 TILE_ELEMS = 2000
 ELEM_COUNT = TILE_COUNT * TILE_ELEMS
 EPS = 1e-6

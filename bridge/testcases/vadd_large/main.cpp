@@ -20,7 +20,7 @@ void LaunchVectorAddLargeKernel(uint8_t *workspace0, uint8_t *workspace1, float 
 
 namespace {
 
-constexpr size_t kTileCount = 64;
+constexpr size_t kTileCount = 1000;
 constexpr size_t kTileElems = 2000;
 constexpr size_t kElemCount = kTileCount * kTileElems;
 constexpr size_t kDataBytes = kElemCount * sizeof(float);

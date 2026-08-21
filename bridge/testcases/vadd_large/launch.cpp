@@ -23,16 +23,17 @@ extern "C" __global__ AICORE void vector_add_large_kernel(__gm__ uint8_t *worksp
 
 void LaunchVectorAddLargeKernel(uint8_t *workspace0, uint8_t *workspace1, float *input0,
                                 float *input1, float *output, void *stream) {
-    constexpr int32_t kTileCount = 64;
+    constexpr int32_t kLogicalTileCount = 1000;
+    constexpr int32_t kPhysicalBlockCount = 64;
     constexpr int32_t kOuterCount = 1;
     constexpr int32_t kInnerCount = 1;
-    vector_add_large_kernel<<<kTileCount, nullptr, stream>>>(
+    vector_add_large_kernel<<<kPhysicalBlockCount, nullptr, stream>>>(
         (__gm__ uint8_t *)workspace0,
         (__gm__ uint8_t *)workspace1,
         (__gm__ float *)input0,
         (__gm__ float *)input1,
         (__gm__ float *)output,
-        kTileCount,
+        kLogicalTileCount,
         kOuterCount,
         kInnerCount);
 }

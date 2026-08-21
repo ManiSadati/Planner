@@ -11,13 +11,13 @@
 
 import numpy as np
 
-TILE_COUNT = 64
+TILE_COUNT = 1000
 TILE_ELEMS = 2000
 ELEM_COUNT = TILE_COUNT * TILE_ELEMS
 
-np.random.seed(20260819)
-input0 = np.random.uniform(-8.0, 8.0, size=ELEM_COUNT).astype(np.float32)
-input1 = np.random.uniform(-8.0, 8.0, size=ELEM_COUNT).astype(np.float32)
+values = np.arange(ELEM_COUNT, dtype=np.float32).reshape(TILE_COUNT, TILE_ELEMS)
+input0 = (values * np.float32(0.001)).astype(np.float32).reshape(-1)
+input1 = (values * np.float32(-0.002)).astype(np.float32).reshape(-1)
 golden = (input0 + input1).astype(np.float32)
 
 input0.tofile("input0.bin")
