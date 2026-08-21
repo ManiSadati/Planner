@@ -1,14 +1,14 @@
 # PTOAS State
 
-Last updated: 2026-08-20T11:03:31+00:00
+Last updated: 2026-08-21T11:03:01+00:00
 
-## VMI layout rematerialization lands; VPTO address analysis PR; unified sync proposals; AscendNPU-IR bridges PTO via gated vendored dialect
+## Upstream lands reusable VPTO Address Analysis; new Tile Fusion; forks push scheduler/sync/VMI gather; high-risk VMI unaligned refactor in-flight
 
-Upstream PTOAS advanced to 54ba38da on upstream/main. Notable technical change: new VMI transform lib/PTO/Transforms/VMILayoutRematerializeWeakProducers.cpp with tests (test/lit/vmi_new/...). VMI version bumped to v0.1.5 then v0.1.6 via CI scripts; PTODSL gained per-element pto.Vec init=sequence (docs and tests updated). A3/A5 CI/docs updated to use an A3 self-hosted runner and TaskQueue. Multiple high-signal forks and PRs propose VMI fusion/VecScope MemBar, unified sync (buffer-id routing, determinism), PTODSL scalar/builtin unification, and VPTO reusable address analysis. AscendNPU-IR added a vendored PTO dialect snapshot and HIVM→PTO(VMI/VPTO) conversion passes; PTOAS bridge passes are now gated by an env flag.
+Upstream PTOAS main advanced (e32488) to merge vexpdif fusion and, more importantly, closed PR #1290 to land reusable VPTO address/value-evolution analyses and a VPTOAddressSemantics op interface. Emitters and VPTOSoftPostUpdate were refactored to consume the analyses; tests and a print pass added. A large refactor branch (codex/vmi-unaligned-load-store) moved further with VMI address consumer unification and broad repo churn; requires backfill. Active PRs add a first-class VPTO scheduler analysis (PR #1310), broaden VMI vgather dtypes/widths (PR #1315), and extend PTODSL sync.set to PIPE_MTE1/PIPE_V (PR #1314). Fork network shows heavy scheduler-pressure and canonical sync reduction work plus gather/test realignments. New issues flag VMI lane-stride FP8 roundtrip semantics and backend stability. Bridge boundary changed at VPTO addressing; review required.
 
 ## Scan Coverage
 
-- PTOAS Markham fork: 9 changed branches
-- PTOAS Markham fork GitHub fork network: 22 changed branches
-- AscendNPU-IR fork: 5 changed branches
-- hw-native-sys/PTOAS: 3 updated issues, 17 updated PRs
+- PTOAS Markham fork: 8 changed branches
+- PTOAS Markham fork GitHub fork network: 19 changed branches
+- AscendNPU-IR fork: 0 changed branches
+- hw-native-sys/PTOAS: 10 updated issues, 22 updated PRs
