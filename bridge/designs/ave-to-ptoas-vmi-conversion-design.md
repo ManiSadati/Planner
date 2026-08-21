@@ -1,11 +1,15 @@
 # AVE to PTOAS VMI Conversion Design Decisions
 
-Last updated: 2026-08-17
+Last updated: 2026-08-20
 
 This document records bridge design decisions as they are made during
 implementation. The implementation plan remains in
 `Planner/bridge/planning/ave-to-ptoas-vmi-implementation-plan.md`; this file is
 the running design log for choices that affect code structure.
+
+The signed integer vector-scalar min/max compatibility problem and its
+temporary constant-only lowering are documented separately in
+`Planner/bridge/designs/signed-vector-scalar-min-max-compatibility.md`.
 
 ## Decision 1: Use An In-Tree PTO Dialect Copy
 
