@@ -371,7 +371,7 @@ For `vadd`, outputs:
 $OUT_ROOT/bridge-sim/vadd/sim.log
 $OUT_ROOT/bridge-sim/vadd/sim-command.txt
 $OUT_ROOT/bridge-sim/vadd/profile/
-$OUT_ROOT/bridge-sim/vadd/sim/lowered_vector_add_kernel_vpto.mlir
+$OUT_ROOT/ptoas-only/vadd/vadd.vpto.mlir is passed through KERNEL_MLIR
 ```
 
 For `vadd_large`, replace `vadd` with `vadd_large`:

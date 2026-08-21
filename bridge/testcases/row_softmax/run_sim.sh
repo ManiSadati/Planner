@@ -13,8 +13,8 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 BUILD_DIR="${BUILD_DIR:-${SCRIPT_DIR}/build}"
 RUN_DIR="${RUN_DIR:-${BUILD_DIR}/run}"
 SOC_VERSION="${SOC_VERSION:-Ascend950PR_9599}"
-PTOAS_BIN="${PTOAS_BIN:-${SCRIPT_DIR}/../../build/tools/ptoas/ptoas}"
-KERNEL_MLIR="${KERNEL_MLIR:-${SCRIPT_DIR}/lowered_vector_add_kernel_vpto.mlir}"
+PTOAS_BIN="${PTOAS_BIN:-${SCRIPT_DIR}/../../../../PTOAS/build/tools/ptoas/ptoas}"
+KERNEL_MLIR="${KERNEL_MLIR:-${SCRIPT_DIR}/../../out/npuir-ptoas-bridge/row_softmax/row_softmax.vpto.mlir}"
 
 if [[ ! -x "${PTOAS_BIN}" ]]; then
     if command -v ptoas >/dev/null 2>&1; then
@@ -33,8 +33,8 @@ fi
 
 if [[ ! -f "${KERNEL_MLIR}" ]]; then
     echo "[ERROR] VPTO MLIR file is missing: ${KERNEL_MLIR}" >&2
-    echo "[ERROR] Generate it with the bridge flow first, or run with:" >&2
-    echo "[ERROR]   KERNEL_MLIR=/path/to/row_softmax.vpto.mlir ${SCRIPT_DIR}/run_sim.sh" >&2
+    echo "[ERROR] Generate it first with the bridge script, for example:" >&2
+    echo "[ERROR]   Planner/bridge/tools/run_npuir_ptoas_bridge_tests.sh --emit-vpto row_softmax" >&2
     exit 1
 fi
 KERNEL_MLIR=$(cd -- "$(dirname -- "${KERNEL_MLIR}")" && pwd)/$(basename -- "${KERNEL_MLIR}")

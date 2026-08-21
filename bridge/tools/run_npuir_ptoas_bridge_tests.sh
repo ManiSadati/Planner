@@ -496,13 +496,14 @@ for case_name in "${cases[@]}"; do
   if [[ "${run_simulator}" == "1" ]]; then
     log_info "${case_name}: simulator"
     sim_src="${case_out}/sim"
+    vpto_mlir_for_sim="$(cd -- "$(dirname -- "${vpto_mlir}")" && pwd)/$(basename -- "${vpto_mlir}")"
     rm -rf "${sim_src}"
     mkdir -p "${sim_src}"
     cp -R "${case_dir}/." "${sim_src}/"
-    cp "${vpto_mlir}" "${sim_src}/lowered_vector_add_kernel_vpto.mlir"
     sim_cmd=(
       env
       "PTOAS_BIN=${ptoas_bin}"
+      "KERNEL_MLIR=${vpto_mlir_for_sim}"
       "BUILD_DIR=${sim_src}/build"
       "RUN_DIR=${sim_src}/build/run"
       bash

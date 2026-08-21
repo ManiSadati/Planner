@@ -222,21 +222,19 @@ bridge/tools/run_npuir_ptoas_bridge_tests.sh \
 ```
 
 The underlying simulator fixture command, after the runner has copied the
-testcase and generated VPTO into `bridge/out/.../sim/`, is:
+testcase into `bridge/out/.../sim/`, is:
 
 ```bash
 cd "$HOME/Planner/bridge/out/npuir-ptoas-bridge/vadd/sim"
 PTOAS_BIN="$HOME/PTOAS/PTOAS_Markham/build/tools/ptoas/ptoas" \
+KERNEL_MLIR="$HOME/Planner/bridge/out/npuir-ptoas-bridge/vadd/vadd.vpto.mlir" \
 BUILD_DIR="$HOME/Planner/bridge/out/npuir-ptoas-bridge/vadd/sim/build" \
 RUN_DIR="$HOME/Planner/bridge/out/npuir-ptoas-bridge/vadd/sim/build/run" \
 bash run_sim.sh
 ```
 
-The bridge runner copies the generated VPTO file into the simulator fixture as:
-
-```text
-bridge/out/npuir-ptoas-bridge/vadd/sim/lowered_vector_add_kernel_vpto.mlir
-```
+The bridge runner passes the generated VPTO file to the simulator fixture through
+`KERNEL_MLIR`; users normally only select the testcase name.
 
 Useful outputs:
 

@@ -82,7 +82,7 @@ include_directories(
 )
 
 if(NOT DEFINED KERNEL_MLIR)
-    set(KERNEL_MLIR ${CMAKE_CURRENT_SOURCE_DIR}/lowered_vector_add_kernel_vpto.mlir)
+    set(KERNEL_MLIR ${CMAKE_CURRENT_SOURCE_DIR}/../../out/npuir-ptoas-bridge/row_softmax/row_softmax.vpto.mlir)
 endif()
 get_filename_component(KERNEL_MLIR "${KERNEL_MLIR}" ABSOLUTE)
 set(KERNEL_FATOBJ ${CMAKE_CURRENT_BINARY_DIR}/row_softmax_kernel.o)

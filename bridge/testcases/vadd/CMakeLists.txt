@@ -81,7 +81,10 @@ include_directories(
     ${ASCEND_DRIVER_PATH}/kernel/inc
 )
 
-set(KERNEL_MLIR ${CMAKE_CURRENT_SOURCE_DIR}/lowered_vector_add_kernel_vpto.mlir)
+if(NOT DEFINED KERNEL_MLIR)
+    set(KERNEL_MLIR ${CMAKE_CURRENT_SOURCE_DIR}/../../out/npuir-ptoas-bridge/vadd/vadd.vpto.mlir)
+endif()
+get_filename_component(KERNEL_MLIR "${KERNEL_MLIR}" ABSOLUTE)
 set(KERNEL_FATOBJ ${CMAKE_CURRENT_BINARY_DIR}/vector_add_kernel.o)
 
 add_custom_command(

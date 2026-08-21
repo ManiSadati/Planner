@@ -13,7 +13,8 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 BUILD_DIR="${BUILD_DIR:-${SCRIPT_DIR}/build}"
 RUN_DIR="${RUN_DIR:-${BUILD_DIR}/run}"
 SOC_VERSION="${SOC_VERSION:-Ascend950PR_9599}"
-PTOAS_BIN="${PTOAS_BIN:-${SCRIPT_DIR}/../../build/tools/ptoas/ptoas}"
+PTOAS_BIN="${PTOAS_BIN:-${SCRIPT_DIR}/../../../../PTOAS/build/tools/ptoas/ptoas}"
+KERNEL_MLIR="${KERNEL_MLIR:-${SCRIPT_DIR}/../../out/npuir-ptoas-bridge/vadd/vadd.vpto.mlir}"
 USE_MSPROF="${USE_MSPROF:-0}"
 KERNEL_NAME="${KERNEL_NAME:-vector_add_kernel}"
 CORE_ID="${CORE_ID:-0}"
@@ -34,12 +35,21 @@ if [[ -z "${ASCEND_HOME_PATH:-}" ]]; then
     exit 1
 fi
 
+if [[ ! -f "${KERNEL_MLIR}" ]]; then
+    echo "[ERROR] VPTO MLIR file is missing: ${KERNEL_MLIR}" >&2
+    echo "[ERROR] Generate it first with the bridge script, for example:" >&2
+    echo "[ERROR]   Planner/bridge/tools/run_npuir_ptoas_bridge_tests.sh --emit-vpto vadd" >&2
+    exit 1
+fi
+KERNEL_MLIR=$(cd -- "$(dirname -- "${KERNEL_MLIR}")" && pwd)/$(basename -- "${KERNEL_MLIR}")
+
 SIM_LIB_DIR="${SIM_LIB_DIR:-${ASCEND_HOME_PATH}/tools/simulator/${SOC_VERSION}/lib}"
 export LD_LIBRARY_PATH="${SIM_LIB_DIR}:${ASCEND_HOME_PATH}/runtime/lib64/stub:${ASCEND_HOME_PATH}/lib64:${LD_LIBRARY_PATH:-}"
 
 cmake -S "${SCRIPT_DIR}" -B "${BUILD_DIR}" \
     -DSOC_VERSION="${SOC_VERSION}" \
-    -DPTOAS_BIN="${PTOAS_BIN}"
+    -DPTOAS_BIN="${PTOAS_BIN}" \
+    -DKERNEL_MLIR="${KERNEL_MLIR}"
 cmake --build "${BUILD_DIR}" --parallel "${BUILD_JOBS:-$(nproc)}"
 
 mkdir -p "${RUN_DIR}"

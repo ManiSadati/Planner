@@ -158,9 +158,9 @@ Run all available outputs and the simulator:
 bridge/tools/run_npuir_ptoas_bridge_tests.sh --all vadd
 ```
 
-Simulator mode copies the testcase into the output directory, replaces its
-`lowered_vector_add_kernel_vpto.mlir` with the newly generated VPTO file, and
-runs the testcase's `run_sim.sh`. The simulator fixture requires a sourced CANN
+Simulator mode copies the testcase into the output directory, passes the newly
+generated VPTO file to the testcase through `KERNEL_MLIR`, and runs the
+testcase's `run_sim.sh`. The simulator fixture requires a sourced CANN
 environment with `ASCEND_HOME_PATH` set, a usable `bisheng` compiler, and the
 matching simulator libraries. The fixture-specific environment variables are:
 

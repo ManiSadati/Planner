@@ -481,12 +481,12 @@ run_bridge_sim() {
     rm -rf "$case_out"
     ensure_private_dirs "$case_out" "$sim_src" "$profile_dir"
     cp -R "$case_dir/." "$sim_src/"
-    cp "$generated_vpto" "$sim_src/lowered_vector_add_kernel_vpto.mlir"
     {
       printf 'working_directory=%q\n' "$sim_src"
       printf 'command='
       printf '%q ' env \
         "PTOAS_BIN=$ptoas_bin" \
+        "KERNEL_MLIR=$generated_vpto" \
         "BUILD_DIR=$sim_src/build" \
         "RUN_DIR=$sim_src/build/run" \
         "ASCEND_HOME_PATH=$CANN_ROOT" \
@@ -505,6 +505,7 @@ run_bridge_sim() {
       cd "$sim_src"
       env \
         "PTOAS_BIN=$ptoas_bin" \
+        "KERNEL_MLIR=$generated_vpto" \
         "BUILD_DIR=$sim_src/build" \
         "RUN_DIR=$sim_src/build/run" \
         "ASCEND_HOME_PATH=$CANN_ROOT" \
