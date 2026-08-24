@@ -44,6 +44,6 @@ target_include_directories(row_softmax_sanitize_kernel PRIVATE ${ASCEND_HOME_PAT
 target_link_options(row_softmax_sanitize_kernel PRIVATE --cce-fatobj-link)
 add_executable(row_softmax_sanitize_vpto main.cpp)
 target_compile_options(row_softmax_sanitize_vpto PRIVATE ${CMAKE_CPP_COMPILE_OPTIONS})
-target_include_directories(row_softmax_sanitize_vpto PRIVATE ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../row_softmax)
+target_include_directories(row_softmax_sanitize_vpto PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_link_directories(row_softmax_sanitize_vpto PUBLIC ${ASCEND_HOME_PATH}/lib64 ${SIM_LIB_DIR})
 target_link_libraries(row_softmax_sanitize_vpto PRIVATE row_softmax_sanitize_kernel runtime_camodel stdc++ ascendcl m tiling_api platform c_sec dl nnopbase pthread)

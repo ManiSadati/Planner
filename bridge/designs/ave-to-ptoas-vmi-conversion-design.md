@@ -1,6 +1,6 @@
 # AVE to PTOAS VMI Conversion Design Decisions
 
-Last updated: 2026-08-20
+Last updated: 2026-08-24
 
 This document records bridge design decisions as they are made during
 implementation. The implementation plan remains in
@@ -8,7 +8,7 @@ implementation. The implementation plan remains in
 the running design log for choices that affect code structure.
 
 The signed integer vector-scalar min/max compatibility problem and its
-temporary constant-only lowering are documented separately in
+constant-only explicit signed lowering are documented separately in
 `Planner/bridge/designs/signed-vector-scalar-min-max-compatibility.md`.
 
 ## Decision 1: Use An In-Tree PTO Dialect Copy
@@ -60,10 +60,11 @@ AVE operations or `unrealized_conversion_cast`.
 
 ## Current Next Step
 
-The exact Stage 1 artifact now has an automated conversion regression and has
-been manually validated through PTOAS `--emit-vpto`. The next step is to decide
-whether to wire PTOAS discovery into automated testing or move on to the next
-concrete kernel artifact.
+The vector-add and row-softmax acceptance artifacts now lower through PTOAS to
+VPTO. The complete Planner row-softmax fixture also builds, runs on the
+simulator, and passes numerical comparison. The next implementation stage
+should be driven by another concrete lowered vector kernel; semantic debt from
+the row-softmax compatibility mappings remains listed below.
 
 ## Decision 3: Phase 1 Conversion Skeleton Shape
 
@@ -86,7 +87,7 @@ operation location. That is intentional for the skeleton; detailed diagnostics
 for a new operation family should be added when that family gets its first
 conversion pattern.
 
-## Decision 4: Add Vector-Scalar Ops As One Family
+## Decision 4: Keep Direct Floating Vector-Scalar Ops As One Family
 
 The first operation-coverage expansion keeps the same strict full-lane contract
 and adds the direct floating-point vector-scalar arithmetic family:
@@ -110,6 +111,11 @@ This keeps the conversion extensible without adding a separate verifier walk.
 Additional vector-scalar operations such as shifts or integer-only forms should
 be added only after their scalar type rules and PTOAS VMI verifier constraints
 are checked operation by operation.
+
+This direct family is floating-point only. AVE signed integer
+`ave.hir.vsmins` and `ave.hir.vsmaxs` do not use this pattern because PTOAS
+normalizes their signless vector carrier to unsigned while leaving the scalar
+signless. Their explicit signed lowering is Decision 14.
 
 ## Decision 5: Support Direct Static Tail Masks Only
 
@@ -218,24 +224,20 @@ Together with the pointer-memory conversion:
 - zero-offset GM reinterpret casts fold to the original GM pointer;
 - MTE source/destination operands print as `!pto.ptr<..., gm|ub>`.
 
-## Decision 9: Lower Only Observed Static Sync And Control Forms
+## Decision 9: Preserve Supported Sync Operations Without Rescheduling
 
-Stage 1 synchronization/control conversion is intentionally limited to the
-forms present in `lowered_vector_add_kernel.mlir`:
+Flag/wait conversion explicitly maps HIVM pipe and event attributes to PTO
+typed attributes. Static `EVENT_ID0` through `EVENT_ID7` map to the same PTO
+event identity. A dynamic event operand maps to `pto.set_flag_dyn` or
+`pto.wait_flag_dyn`, with an `arith.index_cast` when PTO requires an index.
 
-- `hivm.hir.set_flag[<PIPE_MTE2>, <PIPE_V>, <EVENT_ID0>]` maps to
-  `pto.set_flag[<PIPE_MTE2>, <PIPE_V>, <EVENT_ID0>]`.
-- `hivm.hir.wait_flag[<PIPE_MTE2>, <PIPE_V>, <EVENT_ID0>]` maps to
-  `pto.wait_flag[<PIPE_MTE2>, <PIPE_V>, <EVENT_ID0>]`.
-- `hivm.hir.set_flag[<PIPE_V>, <PIPE_MTE3>, <EVENT_ID0>]` maps to
-  `pto.set_flag[<PIPE_V>, <PIPE_MTE3>, <EVENT_ID0>]`.
-- `hivm.hir.wait_flag[<PIPE_V>, <PIPE_MTE3>, <EVENT_ID0>]` maps to
-  `pto.wait_flag[<PIPE_V>, <PIPE_MTE3>, <EVENT_ID0>]`.
-- `hivm.hir.pipe_barrier[<PIPE_ALL>]` maps to `pto.barrier <PIPE_ALL>`.
-
-Dynamic event IDs and static event IDs other than `EVENT_ID0` are rejected in
-this slice. Pipes other than `PIPE_MTE2`, `PIPE_MTE3`, `PIPE_V`, and
-`PIPE_ALL` are also rejected until a concrete artifact requires them.
+The accepted pipe set includes the observed scalar, vector, and MTE paths plus
+`PIPE_ALL` barriers. The bridge preserves source operation order and does not
+insert, remove, pair, or reschedule synchronization. This was necessary for
+row softmax: scalarizing a multi-lane `BRC_B32` load moved the read to the
+scalar pipeline and made the surrounding vector-pipeline flag/wait sequence
+ineffective. Decision 16 keeps that load on the vector pipeline instead of
+changing the source synchronization contract.
 
 `hivm.hir.set_ctrl` is lowered as a read-modify-write sequence because the HIVM
 op updates one bit while PTO `pto.set_ctrl` writes the complete control value:
@@ -275,3 +277,139 @@ target:
 This pass does not yet claim a general Ascend-target-to-PTO-architecture
 mapping. The hard-coded `a5` contract is tied to the Stage 1
 `lowered_vector_add_kernel.mlir` artifact and the Phase 1A PTOAS validation.
+
+## Decision 12: Use Row Softmax As The Second Acceptance Artifact
+
+`Planner/bridge/testcases/row_softmax/input.mlir` is the Stage 2 source of
+truth. It starts after `hacc-append-device-spec`, then relies on the normal
+AscendNPU-IR pipeline to produce AVE/HIVM before the bridge pass. The Planner
+runner extracts the last successful dump after
+`convert-hivmave-to-ptoas-vmi`, even if a later native-backend stage fails.
+
+Acceptance requires unmodified PTOAS VMI-to-VPTO lowering and simulator
+comparison. The committed fixture launches 64 rows of 256 `f32` elements and
+checks against a NumPy reference with `atol = 2e-4` and `rtol = 2e-4`. This is
+evidence for that finite-input fixture, not a general proof for arbitrary
+softmax shapes or IEEE exceptional values.
+
+## Decision 13: Adapt AVE Reduction Result Shape Explicitly
+
+AVE reduction results can retain the source vector width, while PTOAS VMI
+floating reductions return `!pto.vmi.vreg<1xT>`. The bridge emits
+`pto.vmi.reduce_addf` for ADD or `pto.vmi.reduce_maxf` for MAX. If the AVE
+result is wider than one lane, it then emits `pto.vmi.broadcast` back to the
+converted AVE result width; a one-lane result uses the reduction directly.
+
+Only rank-one `f16`, `bf16`, and `f32` vectors with matching source/result
+element types and direct supported masks are accepted. ADD sets the target
+reassociation attribute required by the PTO op. MIN, integer, and bitwise
+reduction kinds remain unsupported.
+
+## Decision 14: Retype Signed Integer Scalar Min/Max Explicitly
+
+Direct `pto.vmi.vmins`/`vmaxs` is not compatible with PTOAS for AVE signed
+integer `vsmins`/`vsmaxs`: PTOAS changes the signless vector carrier to
+unsigned but leaves the scalar `i32`, causing a verifier mismatch and, if
+forced, incorrect signed ordering.
+
+For the row-softmax form, the bridge requires rank-one `vector<Nxi32>`, a
+direct `pge <ALL>` mask, and an `arith.constant` scalar. It emits:
+
+1. `pto.vmi.bitcast` from signless `i32` to signed `si32` lanes;
+2. a signedness-only `builtin.unrealized_conversion_cast` from the scalar
+   constant's `i32` value to `si32`;
+3. direct `pto.vmi.vmins` or `pto.vmi.vmaxs` with matching signed types;
+4. `pto.vmi.bitcast` back to the surrounding signless carrier.
+
+Dynamic scalars and partial masks are rejected. Floating-point
+`ave.hir.vmins`/`vmaxs` retain their direct mappings.
+
+## Decision 15: Map Floating Vector Max Directly
+
+Floating `ave.hir.vmax` maps directly to masked `pto.vmi.vmax`. PTOAS provides
+the matching floating vector operation, and no type or verifier incompatibility
+requires an expansion.
+
+An earlier row-softmax debugging version expanded the op to
+`pto.vmi.vcmp "gt"` plus `pto.vmi.vsel`. That expansion was rejected because
+it adds an instruction and predicate value, can change inactive-lane behavior,
+and is not generally equivalent for NaNs or signed zero. The softmax failure
+was caused by broadcast-load pipeline synchronization, not direct `vmax`.
+
+## Decision 16: Keep Multi-Lane BRC_B32 Loads On The Vector Pipeline
+
+`ave.hir.vload <BRC_B32>` reads a scalar UB location and distributes it across
+a vector result. For a result wider than one lane, the bridge emits unified
+`pto.vmi.vload` with `dist_mode = "brc"`. This keeps the operation on the
+vector pipeline and preserves the effect of the source vector-pipeline
+`set_flag`/`wait_flag` sequence around outlined reduction helpers.
+
+For a one-lane result only, the bridge emits `pto.load_scalar` followed by
+`pto.vmi.broadcast`. PTOAS layout assignment rejects the one-lane unified
+broadcast-load form. Both mappings require a rank-zero UB `f32` pointer, no
+indices, and a supported rank-one floating result.
+
+## Decision 17: Reconstruct Scalar Staging And One-Lane Stores
+
+Row-softmax scalar staging crosses source vector, scalar, and rank-zero memref
+representations. The bridge uses narrow structural adaptations:
+
+- rank-zero UB `memref.store` of `f32` becomes zero-offset
+  `pto.store_scalar`;
+- `masked_store <ONEPT_B32>` to a rank-zero UB destination becomes
+  zero-offset unmasked `pto.vmi.store`;
+- an unresolved projection from a wider VMI vector to a one-lane value used
+  only by stores is replaced with `pto.vmi.pge "PAT_VL1"` plus masked
+  `pto.vmi.vstore` of the original wide value;
+- scalar-like conversion casts are folded when they form a proven one-lane
+  broadcast round trip.
+
+These are use-constrained rewrites, not general vector-shape conversion. Any
+unexpected user leaves the cast unresolved and causes pass failure.
+
+## Decision 18: Replace Stored Negative-Infinity Initializers Narrowly
+
+The validated softmax path stores an `f32 -inf` reduction initializer in
+rank-zero UB. The current bridge replaces that constant only when it directly
+feeds `pto.store_scalar`, using `-FLT_MAX` instead. No PTOAS file is modified.
+
+This is a compatibility workaround with a known semantic limitation:
+`-FLT_MAX` is an equivalent max identity only when the row values are finite
+and above it. Inputs containing `-inf`, NaNs, or other exceptional cases may
+behave differently. The rewrite must remain narrow until PTOAS accepts the
+original value through the complete simulator path or a more faithful bridge
+representation is proven.
+
+## Decision 19: Stage Simulator Fixtures Into Clean Build Trees
+
+The Planner bridge and comparison runners copy each testcase fixture into its
+output directory, remove any copied `build/` directory, and then invoke its
+`run_sim.sh` with the generated VPTO path. Testcase source trees can contain
+local build output, but copied CMake caches embed absolute source paths and
+cannot be reused from the staged directory.
+
+The runner derives the generated kernel path from the testcase name; users do
+not need to set `KERNEL_MLIR` for normal bridge runs. Missing simulator fixture
+files are reported before attempting the simulator build.
+
+## Non-Direct Mapping Index
+
+This table indexes every currently documented mapping where the bridge does
+more than rename an operation while preserving the same operands and results.
+
+| Source contract | Bridge decision |
+| --- | --- |
+| HIVM GM/UB memrefs and function ABI | Collapse accepted memrefs to PTO pointers; convert signatures and calls (Decisions 6, 8, 10) |
+| signless `i8` GM memref element | Use `ui8` PTO pointer element for the proven PTOAS ABI (Decision 6) |
+| metadata/reinterpret/memory-space view chain | Materialize constants and `pto.addptr`, or erase an identity space cast (Decisions 6 and 8) |
+| `pge <ALL>` | Emit `pto.vmi.pset "PAT_ALL"`; fixed tails use target `PAT_VL*` names (Decisions 3 and 5) |
+| masked scalar broadcast | Require all-active mask and emit unmasked VMI broadcast (Decision 4 and broadcast pattern) |
+| all-active masked arithmetic/store | Emit the target unmasked form where required; supported partial stores use `vstore` (Decision 5) |
+| `set_ctrl` one-bit update | Read-modify-write the complete PTO control register (Decision 9) |
+| static/dynamic flag event representation | Rebuild PTO typed enums or choose target dynamic flag/wait op; preserve ordering (Decision 9) |
+| AVE reduction result width | Reduce to one lane, then broadcast when AVE requires a wider result (Decision 13) |
+| signed integer `vsmins`/`vsmaxs` | Signed vector bitcasts, a scalar signedness-only cast, and direct VMI scalar min/max (Decision 14) |
+| `vload <BRC_B32>` | Multi-lane VMI broadcast load; one-lane scalar load plus broadcast (Decision 16) |
+| rank-zero scalar and one-point stores | PTO scalar store, zero-offset vector store, or `PAT_VL1` masked store (Decision 17) |
+| stored `f32 -inf` initializer | Narrow replacement with `-FLT_MAX` for the finite-input softmax path (Decision 18) |
+| source module/function metadata | Remove source-only attributes and emit the minimal PTOAS kernel contract (Decision 11) |

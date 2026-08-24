@@ -44,6 +44,6 @@ target_include_directories(row_softmax_div_sum_kernel PRIVATE ${ASCEND_HOME_PATH
 target_link_options(row_softmax_div_sum_kernel PRIVATE --cce-fatobj-link)
 add_executable(row_softmax_div_sum_vpto main.cpp)
 target_compile_options(row_softmax_div_sum_vpto PRIVATE ${CMAKE_CPP_COMPILE_OPTIONS})
-target_include_directories(row_softmax_div_sum_vpto PRIVATE ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../row_softmax)
+target_include_directories(row_softmax_div_sum_vpto PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_link_directories(row_softmax_div_sum_vpto PUBLIC ${ASCEND_HOME_PATH}/lib64 ${SIM_LIB_DIR})
 target_link_libraries(row_softmax_div_sum_vpto PRIVATE row_softmax_div_sum_kernel runtime_camodel stdc++ ascendcl m tiling_api platform c_sec dl nnopbase pthread)

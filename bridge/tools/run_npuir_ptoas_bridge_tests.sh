@@ -500,10 +500,12 @@ for case_name in "${cases[@]}"; do
     rm -rf "${sim_src}"
     mkdir -p "${sim_src}"
     cp -R "${case_dir}/." "${sim_src}/"
+    rm -rf "${sim_src}/build"
     sim_cmd=(
       env
       "PTOAS_BIN=${ptoas_bin}"
       "KERNEL_MLIR=${vpto_mlir_for_sim}"
+      "TESTCASE_NAME=${case_name}"
       "BUILD_DIR=${sim_src}/build"
       "RUN_DIR=${sim_src}/build/run"
       bash

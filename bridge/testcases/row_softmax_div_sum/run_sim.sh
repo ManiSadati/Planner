@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-CASE_NAME=$(basename "${SCRIPT_DIR}")
+CASE_NAME="${TESTCASE_NAME:-$(basename "${SCRIPT_DIR}")}"
 BUILD_DIR="${BUILD_DIR:-${SCRIPT_DIR}/build}"
 RUN_DIR="${RUN_DIR:-${BUILD_DIR}/run}"
 SOC_VERSION="${SOC_VERSION:-Ascend950PR_9599}"

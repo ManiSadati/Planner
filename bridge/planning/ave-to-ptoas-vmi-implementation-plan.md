@@ -1,10 +1,11 @@
 # AVE to PTOAS VMI Conversion Implementation Plan
 
-Last revised: 2026-08-17
+Last revised: 2026-08-24
 
-Status: Stage 1 conversion implemented and manually validated through PTOAS.
-Stage 1 is defined by one concrete end-to-end acceptance artifact,
-`AscendNPU-IR/lowered_vector_add_kernel.mlir`.
+Status: Stage 1 vector-add and Stage 2 row-softmax conversion are complete.
+Both have been lowered from AscendNPU-IR through PTOAS VMI to VPTO. The
+Planner `row_softmax` fixture has also built and passed numerical comparison on
+the PTOAS simulator.
 
 ## 1. Stage 1 Goal
 
@@ -50,6 +51,43 @@ This definition intentionally permits ordinary `builtin`, `arith`, `func`,
 `scf`, and the subset of `memref` operations accepted by PTOAS. It does not
 mean that every operation in the output has a `pto.vmi` prefix.
 
+## 1.1 Stage 2 Goal: Row Softmax
+
+Stage 2 is defined by the high-level artifact:
+
+```text
+Planner/bridge/testcases/row_softmax/input.mlir
+```
+
+The artifact is an IR dump after `hacc-append-device-spec`. It computes one
+256-element `f32` softmax row per launched vector core. The acceptance command
+is:
+
+```bash
+cd Planner
+bridge/tools/run_npuir_ptoas_bridge_tests.sh \
+  --clean \
+  --run-simulator \
+  row_softmax
+```
+
+This command uses `bishengir-compile`, extracts the successful dump after
+`convert-hivmave-to-ptoas-vmi`, invokes PTOAS to emit VPTO, builds the staged
+simulator fixture, runs 64 rows by 256 columns, and compares the result against
+a NumPy reference. The bridge dump remains usable if `bishengir-compile` exits
+nonzero in a later native-backend pass.
+
+Stage 2 completion requires:
+
+- successful extraction of a verified VMI module with no AVE/HIVM residue;
+- successful PTOAS VMI-to-VPTO lowering without modifying PTOAS;
+- preservation of the source `set_flag`/`wait_flag` ordering and pipe/event
+  semantics;
+- successful simulator execution and numerical comparison for the committed
+  finite random-input fixture;
+- focused positive and negative lit coverage for each newly accepted bridge
+  form.
+
 ## 2. Current Baseline
 
 The pass already exists in AscendNPU-IR at:
@@ -80,15 +118,18 @@ Implemented and tested support currently includes:
   `memref.reinterpret_cast` folded to PTO pointer operations;
 - `hivm.hir.pointer_cast`, redundant `memref.memory_space_cast`, and existing
   PTO MTE op operand remapping for the exact pointer memory graph;
-- static `set_ctrl`, `set_flag`, `wait_flag`, and `PIPE_ALL` barrier
-  conversion for the exact artifact;
+- `set_ctrl`, static and dynamic `set_flag`/`wait_flag`, and supported pipe
+  barrier conversion;
 - direct `func.call` conversion for the outlined vector helper;
-- Func/SCF structural type conversion for the focused tests.
+- Func/SCF structural type conversion for the focused tests;
+- the floating-point, integer sanitation, reduction, scalar staging,
+  broadcast-load, and store forms required by row softmax.
 
-The current pass converts the whole acceptance artifact through
-`bishengir-opt`, emits the PTOAS kernel/vector metadata contract, and the
-result lowers through PTOAS `--emit-vpto`. Phase 1G should turn this into an
-acceptance-style regression and record the exact handoff command.
+The current pass converts both acceptance artifacts, emits the PTOAS
+kernel/vector metadata contract, and produces VMI accepted by PTOAS. The
+focused conversion directory contains 40 lit test files. The Planner bridge
+runner provides the cross-repository compile, VPTO, LLVM IR, and simulator
+workflow.
 
 ## 3. Acceptance Artifact Inventory
 
@@ -141,8 +182,9 @@ arbitrary kernel ABI conversion.
 | `ave.hir.vload <NORM>` | `pto.vmi.load` | Contiguous UB source |
 | `ave.hir.vadd` | `pto.vmi.vadd` | Direct full-lane mask |
 | full-lane `masked_store <NORM_B32>` | `pto.vmi.store` | `f32`, contiguous UB destination |
-| HIVM static `set_flag` | `pto.set_flag` | Static pipe pair and `EVENT_ID0` |
-| HIVM static `wait_flag` | `pto.wait_flag` | Static pipe pair and `EVENT_ID0` |
+| HIVM static `set_flag` | `pto.set_flag` | Supported pipe pair and `EVENT_ID0` through `EVENT_ID7` |
+| HIVM static `wait_flag` | `pto.wait_flag` | Supported pipe pair and `EVENT_ID0` through `EVENT_ID7` |
+| HIVM dynamic `set_flag`/`wait_flag` | PTO dynamic flag/wait op | Event operand converted to `index` when needed |
 | `hivm.hir.pipe_barrier[PIPE_ALL]` | `pto.barrier #pto.pipe<PIPE_ALL>` | Explicit enum mapping |
 | existing `pto.mte_gm_ub` | preserve | Rewrite operands only |
 | existing `pto.mte_ub_gm` | preserve | Rewrite operands only |
@@ -245,6 +287,34 @@ The output must carry a PTOAS compiler-facing vector-kernel contract:
 The exact container form and target-architecture mapping are validation tasks,
 not assumptions. Prefer the least invasive form that the current PTOAS CLI
 accepts for this module.
+
+### 4.6 Stage 2 row-softmax mapping contract
+
+The following additions are proven by the row-softmax artifact. They include
+non-direct mappings where source and target contracts differ.
+
+| Source form | Bridge output | Restriction or reason |
+| --- | --- | --- |
+| `hivm.hir.get_block_idx` | `pto.get_block_idx` | Converted result type |
+| scalar masked broadcast | `pto.vmi.broadcast` | Direct `pge <ALL>` only; target broadcast is unmasked |
+| `ave.hir.reduction <ADD>` | `pto.vmi.reduce_addf` plus optional broadcast | VMI reduction returns one lane; AVE may retain the original vector width |
+| `ave.hir.reduction <MAX>` | `pto.vmi.reduce_maxf` plus optional broadcast | Same result-shape adaptation |
+| `ave.hir.vload <BRC_B32>` to more than one lane | `pto.vmi.vload {dist_mode = "brc"}` | Preserves vector-pipeline synchronization |
+| `ave.hir.vload <BRC_B32>` to one lane | `pto.load_scalar` plus `pto.vmi.broadcast` | PTOAS layout assignment rejects one-lane unified broadcast loads |
+| signed integer `ave.hir.vsmins`/`vsmaxs` | signed vector bitcast, scalar `i32`-to-`si32` signedness cast, direct VMI scalar min/max, bitcast back | Constant scalar and full mask only; avoids PTOAS scalar/vector signedness mismatch |
+| `masked_store <ONEPT_B32>` | zero-offset `pto.vmi.store` | Accepted rank-zero UB `f32` destination only |
+| wide vector projected to a one-lane store | `PAT_VL1` plus `pto.vmi.vstore` | Eliminates an otherwise unresolved vector-shape cast |
+| rank-zero UB `memref.store` | zero-offset `pto.store_scalar` | Accepted `f32` scalar staging form |
+| stored scalar `f32 -inf` initializer | stored `-FLT_MAX` | Narrow PTOAS compatibility workaround for the validated finite-input softmax path |
+
+Other row-softmax operations with matching source/target semantics lower
+directly, including the accepted forms of `vdiv`, `vexpdif`, `vmax`, `vabs`,
+`vneg`, `vsqrt`, `vexp`, `vln`, `vrelu`, `vand`, `vcmp`, `vsel`, and vector
+bitcast.
+Static event IDs `EVENT_ID0` through `EVENT_ID7` and dynamic event IDs are
+converted to the corresponding PTO static or dynamic flag/wait operations.
+The accepted pipes include the observed scalar, vector, and MTE synchronization
+paths; conversion does not insert, remove, or reorder synchronization.
 
 ## 5. Ordered Implementation Phases
 
@@ -395,8 +465,10 @@ Phase 1E result as of 2026-08-17:
 - Static `PIPE_MTE2 -> PIPE_V` and `PIPE_V -> PIPE_MTE3` flag/wait pairs using
   `EVENT_ID0` lower to PTO `set_flag`/`wait_flag`.
 - `hivm.hir.pipe_barrier[<PIPE_ALL>]` lowers to `pto.barrier <PIPE_ALL>`.
-- Dynamic event IDs, non-`EVENT_ID0` static events, unsupported pipes, and
-  out-of-range control bits remain unsupported.
+- Static event IDs `EVENT_ID0` through `EVENT_ID7` and dynamic event operands
+  are now supported. Pipes outside `PIPE_S`, `PIPE_V`, `PIPE_MTE2`,
+  `PIPE_MTE3`, and `PIPE_ALL`, plus out-of-range control bits, remain
+  unsupported.
 - The focused `HIVMAVEToPTOASVMI` lit directory passes with 18 tests.
 - Running the pass on `lowered_vector_add_kernel.mlir` succeeds and writes
   `/tmp/lowered_vector_add_kernel.phase1e.mlir`.
@@ -476,6 +548,37 @@ Phase 1G result as of 2026-08-17:
   PTOAS execution remains deferred until the PTOAS binary can be discovered
   reliably from AscendNPU-IR lit.
 
+### Phase 2: Row-softmax end-to-end acceptance
+
+1. Start from the row-softmax IR after target-device specification and use
+   `bishengir-compile` to reach the bridge pass.
+2. Add one operation family at a time, with a focused lit test before returning
+   to the complete artifact.
+3. Cover integer sanitation, compare/select, reductions, scalar staging,
+   broadcast loads, PIPE_S synchronization, and one-point stores.
+4. Validate generated VMI with the unmodified PTOAS producer-boundary and
+   VMI-to-VPTO pipeline.
+5. Split the softmax into focused simulator fixtures to isolate sanitation,
+   max/broadcast, exponentiation, sum/broadcast, and division behavior.
+6. Restore the complete fixture and require numerical comparison against a
+   host reference.
+
+Phase 2 result as of 2026-08-23:
+
+- `Planner/bridge/testcases/row_softmax/input.mlir` compiles through the bridge
+  pass and its successful VMI dump is extracted automatically.
+- PTOAS accepts that VMI and emits VPTO without any PTOAS source changes.
+- The complete 64-by-256 `f32` simulator fixture passes NumPy comparison with
+  `atol = 2e-4` and `rtol = 2e-4`.
+- Focused softmax fixtures cover sanitation, max/broadcast, exponentiation,
+  sum/broadcast, and division/sum stages.
+- Full-lane `BRC_B32` now remains a vector-pipeline VMI broadcast load, which
+  preserves the source flag/wait behavior around reduction helper calls.
+- Simulator staging removes a copied testcase `build/` directory before CMake
+  configuration, preventing stale absolute paths from copied CMake caches.
+- The AscendNPU-IR bridge directory contains 40 focused positive and negative
+  lit test files.
+
 ## 6. Test Matrix
 
 ### Positive tests
@@ -488,8 +591,13 @@ Phase 1G result as of 2026-08-17:
 - Dynamic loop element offset lowered with `pto.addptr`.
 - Converted helper call and `scf.for`.
 - MTE2-to-V and V-to-MTE3 static flag/wait pairs.
+- Static events `EVENT_ID0` through `EVENT_ID7` and dynamic event IDs.
+- PIPE_S synchronization used by scalar reduction staging.
 - Control bits 60 clear/set and bit 48 set.
 - `PIPE_ALL` barrier.
+- Row-softmax arithmetic, compare/select, integer sanitation, max/add
+  reductions, broadcast loads, scalar stores, and one-point stores.
+- Complete Planner row-softmax VMI-to-VPTO-to-simulator comparison.
 
 ### Negative tests
 
@@ -498,11 +606,14 @@ Phase 1G result as of 2026-08-17:
 - GM/UB memref element type unsupported by the chosen PTO pointer path.
 - Rank greater than one, dynamic UB shape, or non-unit stride.
 - Multi-address or malformed HIVM pointer cast.
-- Unsupported pipe, dynamic event, or event ID outside the Stage 1 subset.
+- Unsupported pipe or an event ID not representable by PTOAS.
 - Control index outside `[0, 63]`.
 - Call whose converted operands do not match the callee signature.
 - Residual AVE/HIVM operation or type.
 - Ambiguous kernel entry or unknown target-architecture mapping.
+- Signed integer scalar min/max with a dynamic scalar or partial mask.
+- Partial-mask scalar broadcast and unsupported reduction kinds.
+- Unsupported `BRC_B32` base/result shapes.
 
 ### PTOAS checks
 
@@ -530,33 +641,33 @@ The PTOAS handoff is accepted only when:
 - Existing PTO MTE operations in the artifact have already encoded the desired
   transfer lengths and strides; this pass converts their buffer operands but
   does not reinterpret those numeric operands.
+- The validated row-softmax simulator input contains finite `f32` values. The
+  current `-inf` to `-FLT_MAX` scalar-initializer rewrite is not claimed
+  equivalent for inputs containing infinities or for all NaN edge cases.
+- The row-softmax acceptance result is functional evidence for the committed
+  64-by-256 fixture, not a claim of general softmax shape coverage.
 
 ## 8. Open Questions
 
-These must be answered during Phase 1A before the corresponding implementation:
+The original Stage 1 ABI questions were resolved by the hand-authored PTOAS
+target and end-to-end runs. The remaining design questions are:
 
 1. Which exact PTO target architecture corresponds to `dav-c310` and
    `Ascend910_9589` in the artifact? Phase 1A proved that `a5` is accepted by
    PTOAS for this target shape, but the Ascend-target-to-PTO-arch mapping still
    needs an explicit source-of-truth confirmation before the pass hard-codes it.
-2. Does PTOAS accept the eight-argument kernel ABI after converting all five
-   dynamic GM memrefs to PTO pointers, or must sync/workspace and dynamic-shape
-   arguments be transformed differently? Phase 1A answer: PTOAS accepts this
-   shape when the two special `i8` GM arguments are represented as
-   `!pto.ptr<ui8, gm>` and remain unused.
-3. Should the output use a `pto.section.vector` source function or a normalized
-   `pto.kernel_kind<vector>` module for the current PTOAS CLI? Phase 1A answer:
-   the normalized module attribute form is accepted.
-4. Does PTOAS accept a normal helper `func.call` from the vector kernel, or must
-   the outlined helper be inlined? Phase 1A answer: PTOAS accepts the private
-   `no_inline` helper call and lowers the VMI body in that helper.
-5. Are the `i64` values passed to HIVM `pointer_cast` byte addresses while
-   `pto.addptr` uses element offsets? The artifact uses `0` and `1024`; the
-   chosen conversion must preserve those units explicitly. Phase 1A target
-   keeps `pointer_cast` values as byte-address `pto.castptr` inputs and uses
-   `pto.addptr` only for element offsets derived from memref views.
-6. Which source module/function/argument attributes must survive for host ABI
+2. Which source module/function/argument attributes must survive for host ABI
    generation, if any, and what are their PTO equivalents?
+3. Can signed integer `vsmins`/`vsmaxs` support dynamic scalars and partial
+   masks without relying on a PTOAS scalar signedness contract that does not
+   currently exist?
+4. Can the `-inf` softmax initializer be represented without changing IEEE
+   edge-case behavior while remaining compatible with the current PTOAS
+   simulator path?
+5. Does PTOAS preserve inactive-lane semantics for all accepted partial-mask
+   arithmetic, or must the bridge reconstruct inactive lanes explicitly?
+6. Should target architecture and kernel metadata remain pass defaults or
+   become pass options derived from source target metadata?
 
 Answers belong in the bridge design document and in tests, not only in code.
 
@@ -572,11 +683,25 @@ Answers belong in the bridge design document and in tests, not only in code.
 | Helper calls are unsupported by PTOAS VMI lowering | End-to-end failure late in the pipeline | Test the target call shape in Phase 1A; inline only if required |
 | PTO dialect copy drifts from PTOAS | Parser/verifier incompatibility | Record PTOAS revision and run the exact end-to-end artifact |
 | Full conversion reports only the first blocker | Slow diagnosis | Keep focused unit tests per new operation/type family |
+| Signed scalar min/max is normalized inconsistently by PTOAS | Invalid VMI or unsigned behavior | Emit explicitly signed vector/scalar VMI min/max using PTOAS's scalar signedness-cast convention; reject dynamic scalars for now |
+| Scalarized `BRC_B32` crosses vector synchronization | Stale reduction value is broadcast | Keep multi-lane broadcast loads on the VMI vector pipeline |
+| Replacing `-inf` with `-FLT_MAX` changes IEEE edge cases | Wrong output for infinite or NaN input | Keep the rewrite narrow, document finite-input scope, and add edge tests before generalizing |
+| Copied simulator build caches retain source paths | CMake configure failure or wrong output path | Delete staged `build/` before configuring each simulator fixture |
 
 ## 10. Post-Stage-1 Work
 
-Broader AVE operation coverage, arbitrary DMA/synchronization forms, mixed
-Cube/Vector modules, general dynamic memref descriptors, additional data types,
-and compiler-driver pipeline integration are deferred until the exact vector-add
-kernel passes Stage 1. Subsequent stages should be driven by the next concrete
-lowered kernel artifact, not by adding operations speculatively.
+Stage 2 row softmax is complete for the committed acceptance fixture. The next
+stage should be selected from a concrete lowered vector kernel and should add
+only the types, operations, memory forms, and synchronization that kernel
+requires. General dynamic memref descriptors, mixed Cube/Vector modules,
+arbitrary DMA forms, and broad data-type coverage remain outside the proven
+bridge contract.
+
+Before broadening the claimed semantics, prioritize debt exposed by Stage 2:
+
+1. add IEEE edge-case tests for the softmax max initializer and max behavior;
+2. resolve or formally bound partial-mask inactive-lane behavior;
+3. generalize signed scalar min/max only with a verified PTOAS-compatible
+   representation;
+4. replace hard-coded target metadata with a documented source-to-target map;
+5. keep the complete Planner bridge-to-simulator flow as the end-to-end gate.

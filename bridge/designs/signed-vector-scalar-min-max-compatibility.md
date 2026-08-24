@@ -1,6 +1,6 @@
 # Signed Vector-Scalar Min/Max Compatibility
 
-Last updated: 2026-08-20
+Last updated: 2026-08-24
 
 ## Problem
 
@@ -31,8 +31,12 @@ There are two PTOAS-side issues at this boundary:
 - the normalization pass can turn accepted VMI into VMI rejected by PTOAS's
   own verifier;
 - the VMI vector-scalar operation requires scalar signedness to match the
-  vector, while standard MLIR `arith.constant` only produces signless integer
-  scalar values.
+  vector, but the normalization pass does not update the scalar.
+
+The MLIR revision used by the bridge requires integer `arith.constant` results
+to be signless, so the bridge cannot directly materialize an `si32` constant.
+PTOAS already uses `builtin.unrealized_conversion_cast` as a no-op signedness
+carrier between signless and explicitly signed or unsigned integer scalars.
 
 The bridge must not modify either the PTOAS repository or the in-tree PTOAS
 dialect copy. Its emitted VMI must satisfy the existing PTOAS pipeline.
@@ -68,10 +72,22 @@ signless `i32`.
 This is concise for the current row-softmax kernel but does not support dynamic
 scalar operands.
 
-## Implemented Temporary Solution
+### Explicitly signed vector-scalar min/max
 
-The bridge currently uses the signed VMI vector-constant solution for
-`ave.hir.vsmins` and `ave.hir.vsmaxs`.
+For an `arith.constant` scalar, reinterpret its signless `i32` SSA value as
+`si32` with a one-value `builtin.unrealized_conversion_cast`, bitcast the source
+to an explicitly signed VMI vector, apply `pto.vmi.vmins` or `pto.vmi.vmaxs`
+directly, and bitcast the result back to signless `i32`.
+
+This preserves the source operation as one target arithmetic instruction and
+satisfies the PTOAS VMI verifier before and after signless normalization. It is
+the smallest lowering for the constant-scalar form and matches PTOAS's existing
+representation for scalar signedness-only casts.
+
+## Implemented Compatibility Solution
+
+The bridge uses explicit signed vector and scalar types with the direct PTOAS
+VMI scalar operation for `ave.hir.vsmins` and `ave.hir.vsmaxs`.
 
 The accepted form is intentionally narrow:
 
@@ -83,14 +99,15 @@ The bridge emits:
 
 1. `pto.vmi.bitcast` from the signless source to
    `!pto.vmi.vreg<Nxsi32>`;
-2. a signed splat `pto.vmi.constant`;
-3. signed vector-vector `pto.vmi.vmin` or `pto.vmi.vmax`;
+2. a `builtin.unrealized_conversion_cast` from the original constant's `i32`
+   value to `si32`;
+3. direct `pto.vmi.vmins` or `pto.vmi.vmaxs` with matching signed vector and
+   scalar types;
 4. `pto.vmi.bitcast` back to `!pto.vmi.vreg<Nxi32>`.
 
 Dynamic scalars and partial masks are rejected at the original AVE operation.
-Partial masks remain unsupported because PTOAS's unified vector min/max
-lowering discards the mask. Supporting them requires an explicit select that
-reconstructs inactive lanes after AVE's inactive-lane semantics are confirmed.
+Partial masks remain unsupported until the inactive-lane contract of the AVE
+and PTOAS scalar operations is verified to match.
 
 The direct mappings for floating-point `ave.hir.vmins` and `ave.hir.vmaxs` are
 unchanged. Integer addition also remains signless because addition is
@@ -98,8 +115,8 @@ independent of signed interpretation.
 
 ## Future Direction
 
-The preferred general bridge-side extension is signed vector-vector min/max
-with a broadcast-and-bitcast path for dynamic scalars. Signed compare/select is
-the fallback if PTOAS layout or lowering restrictions make that path invalid.
-The direct VMI vector-scalar mapping should only be restored if PTOAS provides a
-consistent signed scalar representation and normalization contract.
+The same signedness-only cast could represent a dynamic signless `i32` scalar,
+but that path remains rejected until it is covered by a concrete kernel and an
+end-to-end PTOAS test. Partial masks can be enabled after their inactive-lane
+semantics are verified. A dedicated PTO scalar bitcast would be preferable if
+PTOAS adds one in the future.

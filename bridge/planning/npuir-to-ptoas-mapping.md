@@ -1,6 +1,6 @@
 # NPU-IR To PTOAS Mapping Draft
 
-Last updated: 2026-08-12
+Last updated: 2026-08-23
 
 Scope: local-first mapping draft from Stage 2 PTOAS context, Stage 3 local
 NPU-IR source scan, and Stage 4 local PTO-ISA source scan. This table has not
@@ -11,6 +11,15 @@ as vector-side prototype context. It supports the idea of an HIVMAVE-to-VMI pass
 before `convert-hivmave-to-ave-intrin`, but should not be continued directly or
 treated as implementation authority. See
 `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
+
+Vector implementation update: the interception point and VMI-first direction
+are now implemented in AscendNPU-IR. Vector add and the Planner row-softmax
+artifact lower through unmodified PTOAS to VPTO, and row softmax passes the
+PTOAS simulator fixture. The vector rows in this broad table are retained as
+category-level context; the authoritative implemented mappings, restrictions,
+and non-direct expansions are in
+`bridge/planning/ave-to-ptoas-vmi-implementation-plan.md` and
+`bridge/designs/ave-to-ptoas-vmi-conversion-design.md`.
 
 DMA rewrite note: the current DMA/template-specific plan is tracked in
 `bridge/planning/dma-template-rewrite-plan.md`, with compact memory in

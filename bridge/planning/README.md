@@ -1,6 +1,6 @@
 # Planning Overview
 
-Last updated: 2026-08-19
+Last updated: 2026-08-23
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
@@ -26,11 +26,23 @@ Current implementation bias:
   let it block the comparison harness cleanup;
 - keep PTOAS/PTO-ISA as the mapping target and compatibility check.
 
+Current vector-bridge milestone:
+
+- `lowered_vector_add_kernel.mlir` and the Planner `row_softmax` testcase lower
+  through `convert-hivmave-to-ptoas-vmi` and unmodified PTOAS to VPTO;
+- the complete 64-by-256 row-softmax fixture passes PTOAS simulator numerical
+  comparison;
+- the next vector expansion must be driven by another concrete lowered kernel,
+  while the signed min/max, `-inf`, and partial-mask semantic limits remain
+  explicit design debt.
+
 ## Planning Document Roles
 
 | File | Role | Status |
 |---|---|---|
 | `bridge/planning/README.md` | high-level plan index and short/long-term roadmap | active entry point |
+| `bridge/planning/ave-to-ptoas-vmi-implementation-plan.md` | completed vector-add and row-softmax phases, current bridge contract, and next-stage gates | active vector plan |
+| `bridge/designs/ave-to-ptoas-vmi-conversion-design.md` | durable AVE/HIVM-to-PTOAS VMI implementation decisions and non-direct mapping index | active design log |
 | `bridge/planning/dma-copy-conversion-exploration.md` | current focused investigation for `dma_copy_kernel` | active short-term work |
 | `bridge/planning/dma-template-rewrite-plan.md` | broader DMA category strategy and first PoC constraints | active strategy |
 | `NPUIR/coding-guide/device-spec-replay.md` | how to replay A5-generated IR locally and inspect pass dumps | active support workflow |
@@ -70,6 +82,8 @@ Current local simulator status:
   simulator;
 - `vector_add_kernel` and `vector_add_large_kernel` have both run
   successfully in simulator;
+- the NPU-IR-to-PTOAS `row_softmax` bridge fixture has run successfully through
+  VMI, VPTO, and PTOAS simulator numerical comparison;
 - simulator results are useful for functional checks and rough comparison, but
   hardware runtime/performance still needs the A5 server.
 
@@ -155,8 +169,10 @@ The broader bridge should eventually handle:
   PTO-target pipeline?
 - Which PTO wrapper-expansion and pointer-lowering passes should immediately
   follow this conversion inside AscendNPU-IR?
-- How should dynamic event ids from NPU-IR be represented in the first PTOAS
-  sync test?
+- How should the bridge preserve full IEEE behavior for the row-softmax
+  negative-infinity initializer on the current PTOAS path?
+- How should signed integer scalar min/max be generalized beyond constant
+  scalars and full masks?
 
 ## Rule For Planning Updates
 

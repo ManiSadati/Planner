@@ -61,6 +61,7 @@ if [[ -z "${BISHENGIR_COMPILE:-}" ]]; then
   fi
 fi
 PTOAS_ROOT="${PTOAS_ROOT:-$workspace_root/PTOAS/PTOAS_Markham}"
+PTOAS_LLVM_LIB_DIR="${PTOAS_LLVM_LIB_DIR:-$workspace_root/llvm-project/build-shared/lib}"
 
 if [[ "$PY_FILE" != /* ]]; then
   PY_FILE_ABS="$planner_root/$PY_FILE"
@@ -81,8 +82,36 @@ require_cann() {
 
 source_cann_env() {
   require_cann
+  local had_nounset=0
+  case $- in
+    *u*) had_nounset=1; set +u ;;
+  esac
   # shellcheck disable=SC1090
   source "$CANN_ROOT/set_env.sh"
+  if [[ "$had_nounset" == "1" ]]; then
+    set -u
+  fi
+}
+
+prepend_path_var() {
+  local var_name="$1"
+  local path_value="$2"
+  if [[ -z "$path_value" || ! -d "$path_value" ]]; then
+    return 0
+  fi
+  local current_value="${!var_name:-}"
+  case ":$current_value:" in
+    *":$path_value:"*) ;;
+    *) export "$var_name=$path_value${current_value:+:$current_value}" ;;
+  esac
+}
+
+configure_ptoas_runtime_libs() {
+  local ptoas_bin="$1"
+  local ptoas_lib_dir
+  ptoas_lib_dir="$(cd -- "$(dirname -- "$ptoas_bin")/../lib" 2>/dev/null && pwd || true)"
+  prepend_path_var LD_LIBRARY_PATH "$ptoas_lib_dir"
+  prepend_path_var LD_LIBRARY_PATH "$PTOAS_LLVM_LIB_DIR"
 }
 
 add_cann_bisheng_to_path() {
@@ -430,6 +459,7 @@ run_bridge_lower() {
   add_cann_bisheng_to_path
   local ptoas_bin
   ptoas_bin="$(find_ptoas_bin)"
+  configure_ptoas_runtime_libs "$ptoas_bin"
   log "bridge lower: $TESTCASE"
   BISHENGIR_ENABLE_PTOAS_BRIDGE=1 \
   OUTPUT_ROOT="$BRIDGE_RUNNER_OUT" \
@@ -448,6 +478,7 @@ run_ptoas_lower() {
   add_cann_bisheng_to_path
   local ptoas_bin
   ptoas_bin="$(find_ptoas_bin)"
+  configure_ptoas_runtime_libs "$ptoas_bin"
   local vmi="$BRIDGE_IR_OUT/$TESTCASE.vmi.mlir"
   if [[ ! -f "$vmi" ]]; then
     vmi="$BRIDGE_RUNNER_OUT/$TESTCASE/$TESTCASE.vmi.mlir"
@@ -471,6 +502,7 @@ run_bridge_sim() {
   add_cann_bisheng_to_path
   local ptoas_bin
   ptoas_bin="$(find_ptoas_bin)"
+  configure_ptoas_runtime_libs "$ptoas_bin"
   local case_dir="$planner_root/bridge/testcases/$TESTCASE"
   local generated_vpto="$PTOAS_ONLY_OUT/$TESTCASE.vpto.mlir"
 
@@ -481,12 +513,15 @@ run_bridge_sim() {
     rm -rf "$case_out"
     ensure_private_dirs "$case_out" "$sim_src" "$profile_dir"
     cp -R "$case_dir/." "$sim_src/"
+    rm -rf "$sim_src/build"
     {
       printf 'working_directory=%q\n' "$sim_src"
       printf 'command='
       printf '%q ' env \
         "PTOAS_BIN=$ptoas_bin" \
         "KERNEL_MLIR=$generated_vpto" \
+        "TESTCASE_NAME=$TESTCASE" \
+        "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
         "BUILD_DIR=$sim_src/build" \
         "RUN_DIR=$sim_src/build/run" \
         "ASCEND_HOME_PATH=$CANN_ROOT" \
@@ -506,6 +541,8 @@ run_bridge_sim() {
       env \
         "PTOAS_BIN=$ptoas_bin" \
         "KERNEL_MLIR=$generated_vpto" \
+        "TESTCASE_NAME=$TESTCASE" \
+        "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
         "BUILD_DIR=$sim_src/build" \
         "RUN_DIR=$sim_src/build/run" \
         "ASCEND_HOME_PATH=$CANN_ROOT" \
@@ -525,8 +562,10 @@ run_bridge_sim() {
   log "bridge simulator: $TESTCASE"
   BISHENGIR_ENABLE_PTOAS_BRIDGE=1 \
   ASCEND_HOME_PATH="$CANN_ROOT" \
+  LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}" \
   SOC_VERSION="$PTOAS_SIM_SOC_VERSION" \
   SIM_LIB_DIR="$CANN_ROOT/tools/simulator/$PTOAS_SIM_SOC_VERSION/lib" \
+  TESTCASE_NAME="$TESTCASE" \
   BUILD_JOBS="${BUILD_JOBS:-16}" \
   USE_MSPROF=1 \
   KERNEL_NAME="$KERNEL_NAME" \
