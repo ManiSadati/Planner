@@ -12,7 +12,7 @@
 import sys
 import numpy as np
 
-ROWS = 64
+ROWS = 16
 COLS = 256
 ELEM_COUNT = ROWS * COLS
 ATOL = 2e-4

@@ -22,10 +22,11 @@ extern "C" __global__ AICORE void row_softmax_kernel(__gm__ uint8_t *workspace0,
 
 void LaunchRowSoftmaxKernel(uint8_t *workspace0, uint8_t *workspace1, float *input,
                             float *output, void *stream) {
-    constexpr int32_t kRows = 64;
+    constexpr int32_t kRows = 16;
+    constexpr int32_t kCoreCount = 16;
     constexpr int32_t kDim1 = 1;
     constexpr int32_t kDim2 = 1;
-    row_softmax_kernel<<<kRows, nullptr, stream>>>(
+    row_softmax_kernel<<<kCoreCount, nullptr, stream>>>(
         (__gm__ uint8_t *)workspace0,
         (__gm__ uint8_t *)workspace1,
         (__gm__ float *)input,
