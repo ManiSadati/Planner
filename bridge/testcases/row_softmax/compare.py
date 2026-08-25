@@ -12,8 +12,8 @@
 import sys
 import numpy as np
 
-ROWS = 16
-COLS = 256
+ROWS = 1600
+COLS = 1600
 ELEM_COUNT = ROWS * COLS
 ATOL = 2e-4
 RTOL = 2e-4

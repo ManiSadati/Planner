@@ -15,6 +15,12 @@ RUN_DIR="${RUN_DIR:-${BUILD_DIR}/run}"
 SOC_VERSION="${SOC_VERSION:-Ascend950PR_9599}"
 PTOAS_BIN="${PTOAS_BIN:-${SCRIPT_DIR}/../../../../PTOAS/build/tools/ptoas/ptoas}"
 KERNEL_MLIR="${KERNEL_MLIR:-${SCRIPT_DIR}/../../out/npuir-ptoas-bridge/row_softmax/row_softmax.vpto.mlir}"
+USE_MSPROF="${USE_MSPROF:-0}"
+KERNEL_NAME="${KERNEL_NAME:-row_softmax_kernel}"
+CORE_ID="${CORE_ID:-0}"
+MSPROF_OUTPUT="${MSPROF_OUTPUT:-${RUN_DIR}/profile}"
+CMAKE_BIN="${CMAKE_BIN:-cmake}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 if [[ ! -x "${PTOAS_BIN}" ]]; then
     if command -v ptoas >/dev/null 2>&1; then
@@ -39,17 +45,38 @@ if [[ ! -f "${KERNEL_MLIR}" ]]; then
 fi
 KERNEL_MLIR=$(cd -- "$(dirname -- "${KERNEL_MLIR}")" && pwd)/$(basename -- "${KERNEL_MLIR}")
 
+if ! "${CMAKE_BIN}" --version >/dev/null 2>&1; then
+    echo "[ERROR] CMAKE_BIN is not a working cmake binary: ${CMAKE_BIN}" >&2
+    exit 1
+fi
+
+if ! "${PYTHON_BIN}" -c 'import numpy' >/dev/null 2>&1; then
+    echo "[ERROR] PYTHON_BIN cannot import numpy: ${PYTHON_BIN}" >&2
+    exit 1
+fi
+
 SIM_LIB_DIR="${SIM_LIB_DIR:-${ASCEND_HOME_PATH}/tools/simulator/${SOC_VERSION}/lib}"
 export LD_LIBRARY_PATH="${SIM_LIB_DIR}:${ASCEND_HOME_PATH}/runtime/lib64/stub:${ASCEND_HOME_PATH}/lib64:${LD_LIBRARY_PATH:-}"
 
-cmake -S "${SCRIPT_DIR}" -B "${BUILD_DIR}" \
+"${CMAKE_BIN}" -S "${SCRIPT_DIR}" -B "${BUILD_DIR}" \
     -DSOC_VERSION="${SOC_VERSION}" \
     -DPTOAS_BIN="${PTOAS_BIN}" \
     -DKERNEL_MLIR="${KERNEL_MLIR}"
-cmake --build "${BUILD_DIR}" --parallel "${BUILD_JOBS:-$(nproc)}"
+"${CMAKE_BIN}" --build "${BUILD_DIR}" --parallel "${BUILD_JOBS:-$(nproc)}"
 
 mkdir -p "${RUN_DIR}"
 cd "${RUN_DIR}"
-python3 "${SCRIPT_DIR}/gen_data.py"
-"${BUILD_DIR}/row_softmax_vpto"
-python3 "${SCRIPT_DIR}/compare.py"
+"${PYTHON_BIN}" "${SCRIPT_DIR}/gen_data.py"
+if [[ "${USE_MSPROF}" == "1" ]]; then
+    mkdir -p "${MSPROF_OUTPUT}"
+    chmod 700 "${MSPROF_OUTPUT}" 2>/dev/null || true
+    msprof op simulator \
+        --kernel-name="${KERNEL_NAME}" \
+        --soc-version="${SOC_VERSION}" \
+        --core-id="${CORE_ID}" \
+        --output="${MSPROF_OUTPUT}" \
+        --application="${BUILD_DIR}/row_softmax_vpto"
+else
+    "${BUILD_DIR}/row_softmax_vpto"
+fi
+"${PYTHON_BIN}" "${SCRIPT_DIR}/compare.py"

@@ -19,8 +19,8 @@ void LaunchRmsNormKernel(uint8_t *workspace0, uint8_t *workspace1, float *input,
 
 namespace {
 
-constexpr size_t kRows = 16;
-constexpr size_t kCols = 256;
+constexpr size_t kRows = 1600;
+constexpr size_t kCols = 1600;
 constexpr size_t kInputElems = kRows * kCols;
 constexpr size_t kWeightElems = kCols;
 constexpr size_t kInputBytes = kInputElems * sizeof(float);

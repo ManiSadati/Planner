@@ -20,8 +20,8 @@ void LaunchRowSoftmaxKernel(uint8_t *workspace0, uint8_t *workspace1, float *inp
 
 namespace {
 
-constexpr size_t kRows = 16;
-constexpr size_t kCols = 256;
+constexpr size_t kRows = 1600;
+constexpr size_t kCols = 1600;
 constexpr size_t kElemCount = kRows * kCols;
 constexpr size_t kDataBytes = kElemCount * sizeof(float);
 constexpr size_t kWorkspaceBytes = 1;

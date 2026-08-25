@@ -11,8 +11,8 @@
 
 import numpy as np
 
-ROWS = 16
-COLS = 256
+ROWS = 1600
+COLS = 1600
 EPS = np.float32(1.0e-5)
 ELEM_COUNT = ROWS * COLS
 

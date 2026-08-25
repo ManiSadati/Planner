@@ -30,8 +30,8 @@ def rmsnorm_kernel(
 def main():
     torch.manual_seed(0)
 
-    n_rows = 16
-    n_cols = 256
+    n_rows = 1600
+    n_cols = 1600
     eps = 1.0e-5
     x = torch.randn((n_rows, n_cols), device="npu", dtype=torch.float32)
     weight = torch.randn((n_cols,), device="npu", dtype=torch.float32)

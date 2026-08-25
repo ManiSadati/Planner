@@ -36,9 +36,7 @@ or template-rewrite strategy is selected.
 - Triton source fixtures: `bridge/triton-example/`.
 - Generic baseline-vs-bridge comparison runbook:
   `bridge/comparison-flows.md`.
-- Generic comparison scripts:
-  `bridge/tools/source_comparison_env.sh` and
-  `bridge/tools/run_comparison_flow.sh`.
+- Simple bridge runner: `bridge/tools/run_comparison_flow.sh`.
 - Vector-add end-to-end workflow:
   `bridge/testcases/vadd/README.md`.
 - A5-generated early IR dump folder: `bridge/examples/npuir-early-ir/`.
@@ -62,191 +60,71 @@ Real hardware runtime and authoritative performance validation still require
 the A5 server. When comparing NPU-IR and NPU-IR-to-PTOAS, keep simulator
 numbers separate from A5 runtime numbers.
 
-## NPU-IR to PTOAS Test Runner
+## NPU-IR to PTOAS Tool
 
-`bridge/tools/run_npuir_ptoas_bridge_tests.sh` runs bridge testcases through
-AscendNPU-IR and PTOAS:
-
-```text
-AVE/NPU-IR MLIR -> HIVMAVEToPTOASVMI -> PTOAS VMI -> VPTO or VPTO LLVM IR
-```
-
-The script assumes the repositories are siblings under the same workspace:
-
-```text
-workspace/
-  AscendNPU-IR/
-  PTOAS/
-  Planner/
-```
-
-By default it uses:
-
-- `AscendNPU-IR/build/bin/bishengir-opt`
-- `AscendNPU-IR/build/bin/bishengir-compile`
-- `PTOAS/build/tools/ptoas/ptoas`
-
-Override these paths with the corresponding command-line options or environment
-variables described below.
-
-### Input modes
-
-The default mode runs `compile-input.mlir` (or `compile_input.mlir` or
-`input.mlir` when the compile inputs are absent) through `bishengir-compile`,
-extracts the successful dump after the bridge pass, and sends it to PTOAS:
+`bridge/tools/run_comparison_flow.sh` is the simple bridge runner. It takes one
+option and one testcase name:
 
 ```bash
 cd "$HOME/Planner"
-bridge/tools/run_npuir_ptoas_bridge_tests.sh --emit-vpto vadd
+
+export ASCEND_NPU_IR_ROOT=/path/to/AscendNPU-IR
+export CANN_ROOT=/path/to/CANN
+export PTOAS_ROOT=/path/to/PTOAS
+
+bridge/tools/run_comparison_flow.sh early-ir vadd
+bridge/tools/run_comparison_flow.sh emit-vpto vadd
 ```
 
-The `vadd_large` testcase uses its high-level `input.mlir` through this default
-path:
-
-```bash
-bridge/tools/run_npuir_ptoas_bridge_tests.sh \
-  --emit-vpto \
-  vadd_large
-```
-
-Use `--from-bishengir-opt` when the input is already at the AVE/HIVMAVE bridge
-boundary and should be passed directly to `bishengir-opt`:
-
-```bash
-bridge/tools/run_npuir_ptoas_bridge_tests.sh \
-  --from-bishengir-opt \
-  --emit-vpto \
-  vadd
-```
-
-`--from-bishengir-compile` is retained as an explicit alias for the default
-mode.
-
-In this mode the script passes
-`--mlir-print-ir-after=convert-hivmave-to-ptoas-vmi` to
-`bishengir-compile`, extracts the last successful dump for that pass, and uses
-that dump as the PTOAS input. Dumps marked `Failed` are ignored. This makes a
-successful bridge dump available even when a later compiler stage fails.
-
-### Emission and simulator modes
-
-Emit VPTO MLIR:
-
-```bash
-bridge/tools/run_npuir_ptoas_bridge_tests.sh --emit-vpto vadd
-```
-
-Emit VPTO LLVM IR:
-
-```bash
-bridge/tools/run_npuir_ptoas_bridge_tests.sh --emit-llvmir vadd
-```
-
-Run the testcase simulator. This automatically enables VPTO emission:
-
-```bash
-bridge/tools/run_npuir_ptoas_bridge_tests.sh \
-  --from-bishengir-compile \
-  --clean \
-  --run-simulator \
-  vadd
-```
-
-Run all available outputs and the simulator:
-
-```bash
-bridge/tools/run_npuir_ptoas_bridge_tests.sh --all vadd
-```
-
-Simulator mode copies the testcase into the output directory, passes the newly
-generated VPTO file to the testcase through `KERNEL_MLIR`, and runs the
-testcase's `run_sim.sh`. The simulator fixture requires a sourced CANN
-environment with `ASCEND_HOME_PATH` set, a usable `bisheng` compiler, and the
-matching simulator libraries. The fixture-specific environment variables are:
-
-```bash
-export ASCEND_HOME_PATH=/path/to/cann
-export SOC_VERSION=Ascend950PR_9599
-export SIM_LIB_DIR="$ASCEND_HOME_PATH/tools/simulator/$SOC_VERSION/lib"
-export BUILD_JOBS=16
-```
+The older `bridge/tools/run_npuir_ptoas_bridge_tests.sh` script is now only a
+small wrapper around the same implementation.
 
 ### Options
 
 | Option | Meaning |
 |---|---|
-| `--from-bishengir-compile` | Use `compile-input.mlir` and extract the VMI pass dump from `bishengir-compile`. |
-| `--emit-vpto` | Ask PTOAS to emit VPTO MLIR. |
-| `--emit-llvmir` | Ask PTOAS to emit VPTO LLVM IR. |
-| `--run-simulator`, `--sim` | Run the testcase simulator after VPTO emission. |
-| `--all` | Enable VPTO, LLVM IR, and simulator execution. |
-| `--clean`, `--clean-build` | Remove the selected testcase output directory before running. |
-| `--testcase-root DIR` | Override the testcase root. |
-| `--output-root DIR` | Override the output root. |
-| `--bishengir-opt PATH` | Override the `bishengir-opt` executable. |
-| `--bishengir-compile PATH` | Override the `bishengir-compile` executable. |
-| `--ptoas PATH` | Override the PTOAS executable. |
-| `--npu-target TARGET` | Set the AscendNPU-IR compile target; default `Ascend910_9589`. |
-| `--pto-arch ARCH` | Set the PTOAS architecture; default `a5`. |
-| `--pto-backend BACKEND` | Set the PTOAS backend; default `vpto`. |
-| `-h`, `--help` | Print command help. |
+| `early-ir` | Run the Triton Python testcase through the NPU-IR compile path and write `input.mlir` in the testcase directory. |
+| `print-all` | Run `bishengir-compile --mlir-print-ir-after-all` from `input.mlir` and save the full log. |
+| `npu-sim` | Run the Triton Python testcase end to end through the NPU-IR simulator. |
+| `emit-vmi` | Run `bishengir-compile` with the PTOAS bridge enabled and extract PTOAS VMI MLIR. |
+| `emit-vpto` | Run PTOAS on the VMI MLIR and emit VPTO MLIR. |
+| `bridge-sim` | Run `input.mlir -> VMI -> VPTO -> run_sim.sh` for end-to-end PTOAS simulator testing. |
 
-If no emission or execution option is specified, the script defaults to
-`--emit-vpto`. If no testcase name is specified, compile mode runs every direct
-child of the testcase root containing `input.mlir` or a compile input. Compile
-mode prefers `compile-input.mlir`, then `compile_input.mlir`, then `input.mlir`;
-opt mode requires `input.mlir`. Multiple testcase names may be supplied.
+### Testcase Layout
 
-The equivalent environment overrides are `TESTCASE_ROOT`, `OUTPUT_ROOT`,
-`BISHENGIR_OPT`, `BISHENGIR_COMPILE`, `PTOAS_BIN`, `NPU_TARGET`, `PTO_ARCH`,
-`PTO_BACKEND`, and `EXTRA_BISHENGIR_COMPILE_FLAGS`. Terminal status messages
-use colors when connected to a terminal. Set `NO_COLOR=1` to disable ANSI
-colors or `FORCE_COLOR=1` to force them when output is redirected.
-
-### Testcase layout
-
-A direct-input testcase minimally contains:
+The testcase lives directly under `bridge/testcases/`:
 
 ```text
 bridge/testcases/<name>/
+  <one Python file containing one @triton.jit kernel>
   input.mlir
 ```
 
-A compile-driver testcase contains:
+`early-ir` creates `input.mlir`. The other compile options use it. `bridge-sim`
+requires the PTOAS simulator fixture files: `CMakeLists.txt`, `main.cpp`,
+`launch.cpp`, `gen_data.py`, and `compare.py`. If those files exist and
+`run_sim.sh` is missing, the script creates a simple `run_sim.sh` automatically.
+If any fixture file is missing, `bridge-sim` stops and asks you to generate the
+missing files first.
 
-```text
-bridge/testcases/<name>/
-  compile-input.mlir
-```
-
-To support simulator mode, it also needs a simulator fixture such as
-`run_sim.sh`, `CMakeLists.txt`, host-side launch code, and data/verification
-scripts. The current `vadd` fixture is based on the PTOAS lowered-vector-add
-test and is the reference layout.
+The script infers the Python file by finding the only `.py` file in the testcase
+directory that contains `@triton.jit`. It infers the kernel name from the
+function immediately after that decorator.
 
 ### Outputs
 
-The default output directory is:
+All generated files stay inside the testcase:
 
 ```text
-bridge/out/npuir-ptoas-bridge/<name>/
+bridge/testcases/<name>/input.mlir
+bridge/testcases/<name>/out/<name>.vmi.mlir
+bridge/testcases/<name>/out/<name>.vpto.mlir
+bridge/testcases/<name>/out/after-all.log
+bridge/testcases/<name>/out/build/
 ```
 
-Important files include:
-
-- `<name>.vmi.mlir`: VMI produced by the bridge pass or extracted from the
-  compile-driver log.
-- `<name>.vpto.mlir`: VPTO emitted by PTOAS.
-- `<name>.vpto.ll`: VPTO LLVM IR emitted by PTOAS.
-- `npuir.log`: AscendNPU-IR output and diagnostics.
-- `ptoas-vpto.log` / `ptoas-llvmir.log`: PTOAS diagnostics.
-- `sim.log`: simulator and numerical-check output.
-- `npuir-command.txt`, `ptoas-*-command.txt`, `sim-command.txt`: reproducible
-  commands used for each stage.
-- `temps/`: compiler temporary files when compile-driver mode is used.
-
-Generated output under `bridge/out/` is ignored by Git. Use `--clean` when a
-fresh testcase simulator build or output directory is needed.
+`out/build/` contains command files, compiler temporary files, simulator logs,
+profiles, and fixture build products.
 
 The configured PTOAS watcher scope is current as of 2026-08-19. GitHub
 direct-fork/fork-of-fork discovery is implemented for configured GitHub repos.
