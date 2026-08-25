@@ -1,14 +1,18 @@
 # PTOAS State
 
-Last updated: 2026-08-21T11:03:01+00:00
+Last updated: 2026-08-25T11:02:51+00:00
 
-## Upstream lands reusable VPTO Address Analysis; new Tile Fusion; forks push scheduler/sync/VMI gather; high-risk VMI unaligned refactor in-flight
+## Upstream VMI API simplification lands; VPTO defaults change; TEXTRACT (ND→2×NZ) enters implementation; scheduler/stream-fusion PRs advance; AscendNPU-IR expands VMI lowering
 
-Upstream PTOAS main advanced (e32488) to merge vexpdif fusion and, more importantly, closed PR #1290 to land reusable VPTO address/value-evolution analyses and a VPTOAddressSemantics op interface. Emitters and VPTOSoftPostUpdate were refactored to consume the analyses; tests and a print pass added. A large refactor branch (codex/vmi-unaligned-load-store) moved further with VMI address consumer unification and broad repo churn; requires backfill. Active PRs add a first-class VPTO scheduler analysis (PR #1310), broaden VMI vgather dtypes/widths (PR #1315), and extend PTODSL sync.set to PIPE_MTE1/PIPE_V (PR #1314). Fork network shows heavy scheduler-pressure and canonical sync reduction work plus gather/test realignments. New issues flag VMI lane-stride FP8 roundtrip semantics and backend stability. Bridge boundary changed at VPTO addressing; review required.
+- upstream/main advanced to 5139d22 with VMI memory API change: repeat_stride removed from VMI vload/vstore and legacy stride ops; lowering fixes physical repeat_stride=0 and uses resultless vsstb. PTODSL, parser/verifier, docs, and tests updated.
+- VPTO soft post-update is now enabled by default (configurable flag remains). Address semantics headers/impl, analysis, and tests updated.
+- Design-only TEXTRACT ND→2×NZ doc merged; implementation PR (stage 1) adds IR, validation, VPTO lowering, EmitC, tools, and tests.
+- Active branches/PRs target VMI unaligned-stream handling and VPTO stateful stream fusion; a VPTO scheduler upgrade PR (phase two) is open and defaults A5 scheduling to on.
+- Multiple DSL control-flow/unroll hint passes proposed (enable-hint path restored; auto-promotion of persistent loops).
 
 ## Scan Coverage
 
-- PTOAS Markham fork: 8 changed branches
-- PTOAS Markham fork GitHub fork network: 19 changed branches
-- AscendNPU-IR fork: 0 changed branches
-- hw-native-sys/PTOAS: 10 updated issues, 22 updated PRs
+- PTOAS Markham fork: 4 changed branches
+- PTOAS Markham fork GitHub fork network: 16 changed branches
+- AscendNPU-IR fork: 3 changed branches
+- hw-native-sys/PTOAS: 16 updated issues, 20 updated PRs
