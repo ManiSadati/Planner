@@ -1,18 +1,14 @@
 # PTOAS State
 
-Last updated: 2026-08-25T11:02:51+00:00
+Last updated: 2026-08-26T11:02:47+00:00
 
-## Upstream VMI API simplification lands; VPTO defaults change; TEXTRACT (ND→2×NZ) enters implementation; scheduler/stream-fusion PRs advance; AscendNPU-IR expands VMI lowering
+## Upstream PTOAS lands A2/A3 gather in VPTO, loop-hint SCF→CF pass, and Python core DSO decouple; scheduler/tied-copy pipeline PRs advance; AVE→VMI expands in AscendNPU-IR
 
-- upstream/main advanced to 5139d22 with VMI memory API change: repeat_stride removed from VMI vload/vstore and legacy stride ops; lowering fixes physical repeat_stride=0 and uses resultless vsstb. PTODSL, parser/verifier, docs, and tests updated.
-- VPTO soft post-update is now enabled by default (configurable flag remains). Address semantics headers/impl, analysis, and tests updated.
-- Design-only TEXTRACT ND→2×NZ doc merged; implementation PR (stage 1) adds IR, validation, VPTO lowering, EmitC, tools, and tests.
-- Active branches/PRs target VMI unaligned-stream handling and VPTO stateful stream fusion; a VPTO scheduler upgrade PR (phase two) is open and defaults A5 scheduling to on.
-- Multiple DSL control-flow/unroll hint passes proposed (enable-hint path restored; auto-promotion of persistent loops).
+Upstream main moved to fc8db5e. Net new in-tree functionality: (1) A2/A3 VPTO gather lowering (tgather/tgatherb) with revised tgatherb contracts documented and negative/shape/layout checks; (2) SCF→CF conversion pass that preserves unroll hints plus LLVM metadata plumbing; (3) C/Python binding refactor that decouples the _core Python extension from the version-bound compiler DSO via C API coverage; (4) composed dense layout materialization support and VMI/VPTO test updates; (5) minor CI/simulator pin/TCI semantics/test tightenings. Core areas touched include include/PTO/IR (PTO, VPTOUbOps), lib/PTO/Transforms (LowerPTOToUBufOps, VPTOLLVMEmitter, new PTOConvertSCFToCFWithLoopHintsPass), lib/CAPI/Bindings, docs/designs, and lit/PTODSL tests.
 
 ## Scan Coverage
 
-- PTOAS Markham fork: 4 changed branches
-- PTOAS Markham fork GitHub fork network: 16 changed branches
+- PTOAS Markham fork: 3 changed branches
+- PTOAS Markham fork GitHub fork network: 19 changed branches
 - AscendNPU-IR fork: 3 changed branches
-- hw-native-sys/PTOAS: 16 updated issues, 20 updated PRs
+- hw-native-sys/PTOAS: 12 updated issues, 25 updated PRs
