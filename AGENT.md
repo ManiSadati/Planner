@@ -88,6 +88,9 @@ Daily monitoring target:
 
 Explorer branch triage must follow `explorer/docs/branch-triage-policy.md`.
 The scheduled API-based explorer agent must also follow `explorer/AGENT.md`.
+Bridge-specific PTOAS compatibility watches are maintained in
+`bridge/designs/ave-ptoas-vmi-compatibility-tracker.md`; Explorer must treat
+matching PTOAS issues, PRs, branches, and commits as bridge-relevant signals.
 The policy exists to avoid missing branch-local design work like
 `WenboCodes/PTOAS:new-vf-fusion-design` while also avoiding noise from AI-made
 branches. In short:
@@ -127,6 +130,8 @@ PTOAS tracking should include:
 - `https://github.com/zhendong404/PTOAS`
 - `https://github.com/mouliangyu/PTOAS`
 - `https://github.com/WenboCodes/PTOAS`
+- `https://github.com/TaoTao-real/PTOAS`, especially the experimental
+  `feature-vmi` integration branch
 - forks of `https://github.com/mouliangyu/PTOAS`, especially active forks
 - forks that are themselves forked from active forks, not only direct forks of
   upstream, but daily explorer should stop at fork depth 2

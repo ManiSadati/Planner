@@ -1,8 +1,10 @@
 # PTOAS Lowering Pipeline
 
-Last updated: 2026-08-07
+Last updated: 2026-08-26
 
-Scope: Planner-side Stage 2 summary of PTOAS lowering state. This summarizes the local checkout docs/code and should be cross-checked against upstream PRs before implementation decisions.
+Scope: Planner-side summary of PTOAS lowering state. This combines current
+upstream behavior with explicitly labeled branch evidence and should be
+cross-checked against current PRs before implementation decisions.
 
 ## Short Version
 
@@ -24,6 +26,16 @@ tile-native PTO IR
 ```
 
 `ExpandTileOp` is a hard boundary in current docs. Older `View2Memref` / `PTOToA5VM` mainline assumptions should not be used as current source of truth.
+
+Current status split, verified on 2026-08-26:
+
+- `hw-native-sys/PTOAS:main` at `fc8db5e` contains the VMI dialect, semantic
+  pipeline, layout assignment, and VMI-to-VPTO lowering. It does not contain
+  the Tao fork's complete VMI TileLib selection/fusion route described below.
+- `TaoTao-real/PTOAS:feature-vmi` is important experimental implementation
+  evidence that tile-level PTO such as `pto.tadds` can select a VMI PTODSL
+  template and expand through `pto.vmi.vadds` before physical VPTO lowering.
+  It is substantially diverged and is not current upstream behavior.
 
 ## Inputs And User-Facing Layers
 
@@ -115,12 +127,13 @@ substantive for functions that contain VMI ops after tile expansion, helper
 inlining, or direct user/frontend generation.
 
 Planning takeaway: current upstream implementation and likely design direction
-are not the same thing. On current upstream `988d50e24`, `ptodsl/ptodsl/tilelib`
-does not use `pto.vmi.*` in its templates, while PTODSL itself exposes a VMI
-namespace. WenboCodes' `new-vf-fusion-design` branch is the strongest signal
-that TileOp/PTODSL expansion may move toward VMI template bodies. For the
-NPU-IR bridge, prefer mappings that preserve enough information for logical VMI
-when possible, but record current compile-time fallback requirements explicitly.
+are not the same thing. Current upstream exposes and lowers VMI, but the
+experimental PTODSL TileLib selection route in
+`TaoTao-real/PTOAS:feature-vmi` has not landed. WenboCodes'
+`new-vf-fusion-design` remains important design context for why TileOp/PTODSL
+expansion may move toward VMI template bodies. For the NPU-IR bridge, prefer
+mappings that preserve enough information for logical VMI when possible, but
+record current compile-time fallback requirements explicitly.
 
 The PTODSL path has two Python-daemon interactions:
 
@@ -199,6 +212,39 @@ Key ideas to keep visible:
 - post-fusion `mem2reg` is the intended way to remove tileop-to-tileop UB round-trips.
 
 Bridge implication: if NPU-IR lowering erases shaped access, loop, mask, or accumulator-lifetime facts before PTOAS sees them, this future VMI fusion direction becomes harder or impossible to exploit.
+
+## Branch Watch: TaoTao TileOp-To-VMI Implementation
+
+The direct fork
+[`TaoTao-real/PTOAS:feature-vmi`](https://github.com/TaoTao-real/PTOAS/tree/feature-vmi)
+turns the Wenbo-style direction into a working experimental pipeline. Its
+verified head was `fd4568a` on 2026-08-26, and it contains both the VMI TileLib
+work represented by `ce4cc93` and the later DSv4 lowering fixes in `3948337`.
+
+For a legal A5 vector candidate, the implemented route is:
+
+```text
+PyPTO or textual PTO emits pto.tadds
+  -> InsertTemplateAttributes discovers PTODSL candidates
+  -> SelectTemplateCandidate(prefer-vmi) chooses vmi_tadds
+  -> ExpandTileOp renders VMI load/mask/pto.vmi.vadds/store operations
+  -> helper inline/fold and VMI fusion/mem2reg
+  -> VMI semantic and layout pipeline
+  -> VMIToVPTO emits physical pto.vadds and related VPTO operations
+```
+
+This is template selection and expansion, not a direct rename pass from
+`pto.tadds` to `pto.vmi.vadds`. On that branch the route is deliberately gated
+for A5 VPTO level2/level3 by `--enable-vmi --enable-op-fusion`, with
+`--tile-lib-backend=ptodsl`. Normal PyPTO PTOAS invocation does not currently
+enable those experimental controls; PyPTO can emit raw `.pto` for a separate
+PTOAS invocation.
+
+This branch is evidence to study and potentially port, not a base to treat as
+upstream truth. At verification it had 147 commits not in current upstream main,
+while upstream main had 795 commits not in the branch. Explorer must report
+movement on `feature-vmi`, an upstream PR carrying the same route, or upstream
+changes that supersede its template-selection and fusion design.
 
 ## Branch Watch: Legacy Tile-Fusion And VMI Contracts
 
@@ -350,6 +396,23 @@ This supports the current bridge hypothesis:
 - cube instructions/templates may need earlier interception or explicit PTO-ISA/PTO tile mappings, because late CCE-template calls may hide intent.
 - future VMI-level VF fusion, as sketched in WenboCodes' branch, makes structured loop/access/mask preservation a performance requirement, not just a cleanliness preference.
 
+## Bridge Compatibility Watch
+
+The detailed source of truth is
+[`bridge/designs/ave-ptoas-vmi-compatibility-tracker.md`](../../bridge/designs/ave-ptoas-vmi-compatibility-tracker.md).
+These are active bridge workarounds, not general requests to change PTOAS:
+
+| Bridge dependency | Current workaround | PTOAS movement that matters |
+| --- | --- | --- |
+| Signed integer vector-scalar min/max | Explicitly signed constant-scalar, all-active VMI; reject dynamic scalars and partial masks. | Signless-to-unsigned normalization or a signed VMI vector-scalar contract that safely covers the rejected forms. |
+| AVE reductions retaining vector width | Reduce to one lane and broadcast back when AVE requires the wider result. | Reduction result-shape or combine support that preserves/reconstructs the AVE result contract. |
+| One-lane `BRC_B32` load | Use `pto.load_scalar` followed by `pto.vmi.broadcast`; keep multi-lane broadcast loads on VMI. | One-lane unified VMI broadcast-load support through layout assignment and lowering. |
+| `ONEPT_B32` rank-zero store | Use the currently accepted zero-offset VMI store form for the constrained `f32` case. | A direct scalar/one-point or rank-zero VMI store contract. |
+
+Explorer should flag exact support as `Investigate` and related pass/contract
+movement as `Watch`. A PTOAS merge alone does not retire a workaround; the
+matching AscendNPU-IR conversion and PTOAS lowering regression must pass first.
+
 ## Current Watch Risks
 
 Recent upstream PRs/issues show active movement in:
@@ -361,6 +424,10 @@ Recent upstream PRs/issues show active movement in:
 - explicit L1-to-L0 loads and MX quant movement;
 - allocator/sync/bufid/event-id design;
 - possible LLVM19 downgrade / VPTO branch adaptation.
+- signed integer normalization and vector-scalar min/max contracts;
+- VMI reduction result shapes and reduction-combine ordering;
+- one-lane broadcast-load layout support;
+- scalar, one-point, singleton, and rank-zero VMI store support.
 
 Before implementing the conversion pass, cross-check these active areas against the first NPU-IR mapping table.
 
@@ -391,6 +458,8 @@ Before implementing the conversion pass, cross-check these active areas against 
 - `https://github.com/hw-native-sys/PTOAS/tree/main/docs/isa/vmi-isa`
 - `https://github.com/mouliangyu/PTOAS`
 - `https://github.com/WenboCodes/PTOAS/tree/new-vf-fusion-design/docs/new-vf-fusion-design`
+- `https://github.com/TaoTao-real/PTOAS/tree/feature-vmi`
+- `https://github.com/TaoTao-real/PTOAS/commit/394833704c2c9411bf82eb912198e3af7422dcc5`
 - `https://raw.githubusercontent.com/zhendong404/PTOAS/tile-fusion-stage2/docs/tile_fusion/oplib_lowering_tile_fusion_design_v1.md`
 - `https://raw.githubusercontent.com/zhendong404/PTOAS/rewrite/tile-fusion-2-pr-ready-20260319/docs/tile_fusion/tile_fusion_design_spec.md`
 - `https://raw.githubusercontent.com/mouliangyu/PTOAS/vmi-per-block-cast/docs/designs/vmi-dialect-design.md`

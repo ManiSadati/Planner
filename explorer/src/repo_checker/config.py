@@ -8,6 +8,12 @@ from typing import Any
 
 
 @dataclass(frozen=True)
+class GitHubForkWatch:
+    full_name: str
+    branches: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class RepoConfig:
     id: str
     name: str
@@ -18,6 +24,7 @@ class RepoConfig:
     track_github_issues: bool
     track_github_prs: bool
     track_github_forks: bool
+    priority_forks: tuple[GitHubForkWatch, ...]
     upstream: str | None = None
     fork: str | None = None
     upstream_url: str | None = None
@@ -75,6 +82,13 @@ def load_config(config_path: Path) -> CheckerConfig:
                 track_github_issues=bool(item.get("track_github_issues", False)),
                 track_github_prs=bool(item.get("track_github_prs", False)),
                 track_github_forks=bool(item.get("track_github_forks", False)),
+                priority_forks=tuple(
+                    GitHubForkWatch(
+                        full_name=watch["repo"],
+                        branches=tuple(watch.get("branches", ())),
+                    )
+                    for watch in item.get("priority_forks", ())
+                ),
                 upstream=item.get("upstream"),
                 fork=item.get("fork"),
                 upstream_url=item.get("upstream_url"),

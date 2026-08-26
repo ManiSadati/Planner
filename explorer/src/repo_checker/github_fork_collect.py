@@ -37,7 +37,7 @@ def collect_github_fork_changes(
         return None, previous_state
 
     errors: list[str] = []
-    forks = _discover_forks(repo.upstream, config, errors)
+    forks = _discover_forks(repo, config, errors)
     previous_forks = previous_state.get("forks", {})
     next_forks: dict[str, Any] = {}
     changes: list[BranchChange] = []
@@ -51,7 +51,16 @@ def collect_github_fork_changes(
             )
             break
 
-        branches = _branches(fork.full_name, config.max_branches_per_fork, errors)
+        required_branches = (
+            *_priority_branch_names(repo, fork.full_name),
+            fork.default_branch,
+        )
+        branches = _branches(
+            fork.full_name,
+            config.max_branches_per_fork,
+            errors,
+            required_branches=required_branches,
+        )
         previous_branches = previous_forks.get(fork.full_name, {}).get("branches", {})
         next_forks[fork.full_name] = {
             "html_url": fork.html_url,
@@ -109,10 +118,14 @@ def collect_github_fork_changes(
 
 
 def _discover_forks(
-    root_repo: str,
+    repo: RepoConfig,
     config: CheckerConfig,
     errors: list[str],
 ) -> tuple[ForkRepo, ...]:
+    root_repo = repo.upstream
+    if not root_repo:
+        return ()
+
     discovered: dict[str, ForkRepo] = {}
     queue: deque[tuple[str, int]] = deque([(root_repo, 0)])
 
@@ -140,13 +153,105 @@ def _discover_forks(
             if child_depth < config.max_fork_depth:
                 queue.append((full_name, child_depth))
 
-    return tuple(
-        sorted(
-            discovered.values(),
-            key=lambda fork: (fork.pushed_at, fork.full_name),
-            reverse=True,
+    for watch in repo.priority_forks:
+        if any(name.lower() == watch.full_name.lower() for name in discovered):
+            continue
+        fork = _explicit_fork(
+            watch.full_name,
+            root_repo,
+            config.max_fork_depth,
+            errors,
         )
+        if fork is not None:
+            discovered[fork.full_name] = fork
+
+    priority_order = {
+        watch.full_name.lower(): index
+        for index, watch in enumerate(repo.priority_forks)
+    }
+    priority = sorted(
+        (
+            fork
+            for fork in discovered.values()
+            if fork.full_name.lower() in priority_order
+        ),
+        key=lambda fork: priority_order[fork.full_name.lower()],
     )
+    ordinary = sorted(
+        (
+            fork
+            for fork in discovered.values()
+            if fork.full_name.lower() not in priority_order
+        ),
+        key=lambda fork: (fork.pushed_at, fork.full_name),
+        reverse=True,
+    )
+    return tuple((priority + ordinary)[: config.max_forks_to_scan])
+
+
+def _priority_branch_names(repo: RepoConfig, full_name: str) -> tuple[str, ...]:
+    for watch in repo.priority_forks:
+        if watch.full_name.lower() == full_name.lower():
+            return watch.branches
+    return ()
+
+
+def _explicit_fork(
+    full_name: str,
+    root_repo: str,
+    max_depth: int,
+    errors: list[str],
+) -> ForkRepo | None:
+    raw = _repo_metadata(full_name, errors)
+    if not raw:
+        return None
+
+    actual_name = raw.get("full_name", "")
+    parent_repo = (raw.get("parent") or {}).get("full_name", "")
+    source_repo = (raw.get("source") or {}).get("full_name", "")
+    if not actual_name or not parent_repo:
+        errors.append(f"priority fork {full_name}: repository is not a GitHub fork")
+        return None
+    if source_repo and source_repo.lower() != root_repo.lower():
+        errors.append(
+            f"priority fork {full_name}: source {source_repo} is outside {root_repo}"
+        )
+        return None
+
+    if parent_repo.lower() == root_repo.lower():
+        fork_depth = 1
+    else:
+        parent = _repo_metadata(parent_repo, errors)
+        grandparent_repo = (parent.get("parent") or {}).get("full_name", "")
+        if not parent or grandparent_repo.lower() != root_repo.lower():
+            errors.append(
+                f"priority fork {full_name}: fork depth is unknown or greater than 2"
+            )
+            return None
+        fork_depth = 2
+
+    if fork_depth > max_depth:
+        errors.append(
+            f"priority fork {full_name}: depth {fork_depth} exceeds limit {max_depth}"
+        )
+        return None
+
+    return ForkRepo(
+        full_name=actual_name,
+        html_url=raw.get("html_url", ""),
+        default_branch=raw.get("default_branch", "main"),
+        fork_depth=fork_depth,
+        parent_repo=parent_repo,
+        pushed_at=raw.get("pushed_at", "") or raw.get("updated_at", ""),
+    )
+
+
+def _repo_metadata(full_name: str, errors: list[str]) -> dict[str, Any]:
+    try:
+        return _get_json(f"https://api.github.com/repos/{full_name}")
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"repository {full_name}: {exc}")
+        return {}
 
 
 def _forks(full_name: str, errors: list[str]) -> tuple[dict[str, Any], ...]:
@@ -166,7 +271,12 @@ def _forks(full_name: str, errors: list[str]) -> tuple[dict[str, Any], ...]:
         return ()
 
 
-def _branches(full_name: str, limit: int, errors: list[str]) -> tuple[ForkBranch, ...]:
+def _branches(
+    full_name: str,
+    limit: int,
+    errors: list[str],
+    required_branches: tuple[str, ...] = (),
+) -> tuple[ForkBranch, ...]:
     try:
         rows = _page(
             f"https://api.github.com/repos/{full_name}/branches",
@@ -174,7 +284,7 @@ def _branches(full_name: str, limit: int, errors: list[str]) -> tuple[ForkBranch
         )
     except Exception as exc:  # noqa: BLE001
         errors.append(f"branches {full_name}: {exc}")
-        return ()
+        rows = ()
 
     branches = []
     for row in rows[:limit]:
@@ -183,7 +293,43 @@ def _branches(full_name: str, limit: int, errors: list[str]) -> tuple[ForkBranch
         sha = commit.get("sha", "")
         if name and sha:
             branches.append(ForkBranch(name=name, sha=sha))
-    return tuple(branches)
+
+    present = {branch.name for branch in branches}
+    for name in required_branches:
+        if not name or name in present:
+            continue
+        branch = _branch(full_name, name, errors)
+        if branch is not None:
+            branches.append(branch)
+            present.add(branch.name)
+
+    by_name = {branch.name: branch for branch in branches}
+    ordered = []
+    for name in required_branches:
+        branch = by_name.pop(name, None)
+        if branch is not None:
+            ordered.append(branch)
+    ordered.extend(by_name.values())
+    return tuple(ordered)
+
+
+def _branch(full_name: str, name: str, errors: list[str]) -> ForkBranch | None:
+    try:
+        encoded_name = quote(name, safe="")
+        row = _get_json(
+            f"https://api.github.com/repos/{full_name}/branches/{encoded_name}"
+        )
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"branch {full_name}:{name}: {exc}")
+        return None
+
+    commit = row.get("commit") or {}
+    branch_name = row.get("name", "")
+    sha = commit.get("sha", "")
+    if not branch_name or not sha:
+        errors.append(f"branch {full_name}:{name}: response omitted branch name or SHA")
+        return None
+    return ForkBranch(name=branch_name, sha=sha)
 
 
 def _commit_before(
@@ -246,14 +392,8 @@ def _branch_change(
 
 
 def _default_branch_sha(full_name: str, default_branch: str, errors: list[str]) -> str | None:
-    try:
-        rows = _branches(full_name, 100, errors)
-        for branch in rows:
-            if branch.name == default_branch:
-                return branch.sha
-    except Exception as exc:  # noqa: BLE001
-        errors.append(f"default branch {full_name}:{default_branch}: {exc}")
-    return None
+    branch = _branch(full_name, default_branch, errors)
+    return branch.sha if branch is not None else None
 
 
 def _compare(

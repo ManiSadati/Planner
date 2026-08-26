@@ -81,6 +81,14 @@ metadata-first limits.
 GitHub fork discovery is implemented for configured GitHub repos and capped at
 `max_fork_depth=2`. It scans direct forks and forks-of-forks, records branch
 heads in state, and uses metadata-first compare summaries for changed branches.
+Configured `priority_forks` are scanned before the rest of the fork network.
+Their named priority branches and default branches are queried explicitly, so
+important branches are not lost behind `max_branches_per_fork`; current named
+watches include `WenboCodes/PTOAS:new-vf-fusion-design` and
+`TaoTao-real/PTOAS:feature-vmi`.
+
+Manually maintained status below `## Persistent Watch Context` in the generated
+report is retained when the daily run refreshes the rest of that README.
 
 GitCode fork/issue/PR discovery is not implemented yet. AscendNPU-IR still uses
 configured local branch tracking only.

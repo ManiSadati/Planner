@@ -1,6 +1,6 @@
 # Upstream Watch
 
-Last updated: 2026-08-19
+Last updated: 2026-08-26
 
 ## Purpose
 
@@ -20,6 +20,7 @@ The scheduled explorer agent is installed as a user systemd timer and runs daily
 - `https://github.com/zhendong404/PTOAS`
 - `https://github.com/mouliangyu/PTOAS`
 - `https://github.com/WenboCodes/PTOAS`
+- `https://github.com/TaoTao-real/PTOAS`, especially `feature-vmi`
 - forks of `https://github.com/mouliangyu/PTOAS`, especially active forks
 - forks that are themselves forked from active forks, not only direct forks of upstream
 - local fork: `$HOME/PTOAS/PTOAS_Markham`
@@ -52,7 +53,11 @@ and `mani/DMA` are branch names seen during the current bridge work; only
 - Explorer bot is installed as a user systemd timer: daily at 7:00am Eastern.
 - Four-day configured-scope lookback report produced: `explorer/reports/daily/2026-08-10.md`.
 - Latest generated overview: `explorer/reports/README.md`.
-- Latest daily report: `explorer/reports/daily/2026-08-19.md`.
+- Latest daily report: `explorer/reports/daily/2026-08-26.md`.
+- `TaoTao-real/PTOAS:feature-vmi` is an explicit priority watch for the
+  experimental TileOp-to-VMI template-selection and fusion route.
+- `bridge/designs/ave-ptoas-vmi-compatibility-tracker.md` is the standing source
+  for PTOAS changes that could retire a bridge workaround.
 - GitHub fork-discovery state bootstrapped for PTOAS: 74 forks and 801 branch
   heads recorded.
 - GitHub token is configured; the previous unauthenticated PR file-list rate-limit failure did not recur on rerun.

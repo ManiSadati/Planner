@@ -103,28 +103,5 @@ read ~/Planner/AGENT.md every time!
 # Tasks
 
 
-## Initial stage (Already Done)
-this is going to be a very heavy work.
-
-right now codex doesnt have that much background . there are already some good documents in ptoas and npuir, that can be used for getting context but of course those are in different places in both repos. i guess the first step is to bring the importnant docs especially the design docs to Planner. so for example have a PTOAS folder and NPUIR folder and in each of them have a design doc and a coding guide doc folder. for coding guide maybe you dont have to have everything just either map the repo and docs and give a high level overview of pipeline and abstractions.
-for the design doc folders try to aggregate the important docs inside the npuir and ptoas and have a summarized but ofcourse detailed  design docs there. note that this should also contain their future plans or anyhting the other forks/branches have not only main branch. ofcourse most of the branches are useless so you dont really have to take a look at them.
-right now since we have to setup explorer firsrt, its worth to look at all those forks and branches and PRs and issue pages i mention but not for just today for the whole past month. make sure you look at those forks i mentioned to you.
-
-Make another folder in Planner called bridge. in there you will have memory and planning folder. memory gives you the overal progress, the details of where to code , some good/bad patterns of how to code how to install stuff and run. these kinda stuff but very brief and to the point. also the updates of the ptoas can be connected to here. this folder is the connection between human coder and ai coder.
-there is also another folder called human. that one is written by human coder. it sets the main contract of what AI can do and cannot do. AI has to be aligned with it. AI agent should make sure documents in bridge folder align well with documents here. AI should not modify docs in human. if anything doesnt align, you should notify human but be to the point and brief.
-
-
-note that this intial stage is done by codex not the api key of openai.
-
-
-## make the AGENT.md (Already Done)
-that file should be written soon. it should also look at the explorer folder to see if there is a new update, meaning when im working with codex, before you actually answer the prompt if its the first prompt of the day , you just summarize what happened that day in the explorer side and if i asked more or you think it was a big thing add it to the overview readme of explorer. so pop this in the first prompt of the day if i ignored it pop it in the next answer of you until i actually listen to you and say ok or sth like that .then you just leave it until tomorrow when cron job again goes through the all the things new about ptoas. note that we dont want to put every update into our daily report just the ones that are either design level or connect closely with what we are doing. note that explorer daily update will use openai api key which is in explorer/.venv since its a cron job and codex wont have access to it.
-
-
-## next stage
-
-then the taks would be to make the conversion happenning. lets treat this fork as the main development for NPURI to ptoas conversion. https://gitcode.com/wilsoncxfeng/AscendNPU-IR
-
-On The server that codex has access to doesnt have A5 machine. So the alternative is to go on a A5 machine, lower the python file to mlir (probably early stages of the pipeline of  NPUIR) and then lower it to other IRs and apply passes in the server that codex has access to so that it would be easier to take a look at the IRs. For this there is going to be a folder of very early IRs of some examples and then codex can work on them. Right now there is no such folder if you need it you have to bug the human ordering you!
-
-
+## Current stage
+Right now we have a softmax and RMSNorm that are fully working and performance is on par with NPUIR. I think right now the goal is to cover Cube and its relevent DMAs. for this we need to check first if there is a one to one mapping from cce templates in npuir to pto insturction in PTOAS. if yes, good. but if not, we need to rewrite the cce templates but in pto dialect.

@@ -1,6 +1,6 @@
 # NPU-IR To PTOAS Mapping Draft
 
-Last updated: 2026-08-23
+Last updated: 2026-08-26
 
 Scope: local-first mapping draft from Stage 2 PTOAS context, Stage 3 local
 NPU-IR source scan, and Stage 4 local PTO-ISA source scan. This table has not
@@ -13,13 +13,19 @@ treated as implementation authority. See
 `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
 
 Vector implementation update: the interception point and VMI-first direction
-are now implemented in AscendNPU-IR. Vector add and the Planner row-softmax
-artifact lower through unmodified PTOAS to VPTO, and row softmax passes the
-PTOAS simulator fixture. The vector rows in this broad table are retained as
-category-level context; the authoritative implemented mappings, restrictions,
-and non-direct expansions are in
+are implemented in AscendNPU-IR. Vector add, row softmax, and RMSNorm establish
+good practical vector coverage for the current stage, with the accepted
+softmax and RMSNorm fixtures supported at performance on par with NPU-IR.
+Vector rows in this broad table are now maintenance context; authoritative
+implemented mappings, restrictions, and non-direct expansions are in
 `bridge/planning/ave-to-ptoas-vmi-implementation-plan.md` and
 `bridge/designs/ave-to-ptoas-vmi-conversion-design.md`.
+
+Current Cube update: `bridge/triton-example/cube_dotproduct.py` is the first
+fixture, but no Cube row is confirmed from that fixture yet. The active task is
+to compare each selected NPU-IR CCE template implementation against PTOAS/PTO
+semantics and classify it as direct, PTO composition, template rewrite, or
+unsupported. See `bridge/planning/cube-conversion-exploration.md`.
 
 DMA rewrite note: the current DMA/template-specific plan is tracked in
 `bridge/planning/dma-template-rewrite-plan.md`, with compact memory in
@@ -79,11 +85,13 @@ Status meanings:
 
 ## Next Work
 
-- Reconcile this table with current Ascend upstream and the active Wilson fork
-  branch.
-- Add source examples or IR dumps for at least one vector row, one cube row, and
-  one sync row. The first DMA row now has a source-backed trace.
-- Use `bridge/memory/dma-copy-conversion-trace.md` for the first DMA
-  implementation slice before editing CCE-template replacement code.
-- Split rows into implementation issues once the bridge entry point is chosen:
-  VMI-first, PTOAS tile-first, PTO-AS/Virtual-ISA-first, or mixed.
+- Use `cube_dotproduct.py` to trace the first Cube row and its relevant DMA,
+  staging, accumulator, result, and sync rows.
+- Locate the actual selected CCE template implementations; do not decide from
+  operation or function names alone.
+- Compare each contract with current PTOAS/PTO operations and record direct,
+  composition, rewrite, or unsupported status.
+- Reconcile the resulting rows with current Ascend upstream and the active
+  Wilson branch before implementation.
+- Split rows into implementation issues only after the mapping table and bridge
+  entry points have been reviewed.

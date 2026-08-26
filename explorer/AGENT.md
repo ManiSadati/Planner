@@ -35,6 +35,8 @@ Primary PTOAS sources:
 - `https://github.com/zhendong404/PTOAS`
 - `https://github.com/mouliangyu/PTOAS`
 - `https://github.com/WenboCodes/PTOAS`
+- `https://github.com/TaoTao-real/PTOAS`, with an explicit watch on
+  `feature-vmi`
 - direct forks of watched PTOAS roots
 - forks-of-forks under watched PTOAS roots
 - local checkout: `$HOME/PTOAS/PTOAS_Markham`
@@ -50,6 +52,9 @@ Primary AscendNPU-IR sources:
 
 - PTOAS design truth comes from upstream `hw-native-sys/PTOAS` plus active
   forks, branches, PRs, and issues.
+- `TaoTao-real/PTOAS:feature-vmi` is important experimental implementation
+  evidence for TileOp-to-VMI expansion and fusion, but it is substantially
+  diverged from upstream and must not be reported as merged upstream behavior.
 - `$HOME/PTOAS/PTOAS_Markham` is useful local context, but its `origin` remote
   is a personal fork and must not be treated as authoritative.
 - AscendNPU-IR upstream compatibility comes from `Ascend/AscendNPU-IR`, while
@@ -88,6 +93,15 @@ Always follow `docs/branch-triage-policy.md`.
 High-value signals include VMI, VPTO, PTODSL, TileLib, tile fusion, sync, memory
 planning, allocator, mask/predicate, gather/scatter, DMA, L1/L0, A5, MX, quant,
 and compiler lowering changes.
+
+The standing bridge-specific PTOAS watch list is
+`../bridge/designs/ave-ptoas-vmi-compatibility-tracker.md`. Read its current
+rows before summarization. PTOAS changes involving signed integer
+vector-scalar min/max, VMI reduction result shapes, one-lane broadcast loads,
+or one-point/rank-zero stores must be connected to the affected tracker row.
+Classify exact proposed or implemented support as `Investigate`; classify
+related pass or contract movement as at least `Watch` when the evidence is
+specific enough. Distinguish proposed, merged, and bridge-validated support.
 
 The daily bot must score branches, issues, and PRs deterministically before the
 OpenAI call. OpenAI should receive `Investigate` and `Watch` candidates plus

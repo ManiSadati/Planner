@@ -1,11 +1,13 @@
 # AVE to PTOAS VMI Conversion Implementation Plan
 
-Last revised: 2026-08-24
+Last revised: 2026-08-26
 
-Status: Stage 1 vector-add and Stage 2 row-softmax conversion are complete.
-Both have been lowered from AscendNPU-IR through PTOAS VMI to VPTO. The
-Planner `row_softmax` fixture has also built and passed numerical comparison on
-the PTOAS simulator.
+Status: the vector milestone is complete for the current project stage.
+Vector-add, row-softmax, and RMSNorm-era coverage establish the working
+AscendNPU-IR-to-PTOAS VMI path; the accepted row-softmax and RMSNorm fixtures
+are supported with performance on par with NPU-IR. This document is now the
+vector contract and maintenance plan. Active exploration has moved to Cube in
+`bridge/planning/cube-conversion-exploration.md`.
 
 ## 1. Stage 1 Goal
 
@@ -690,12 +692,15 @@ Answers belong in the bridge design document and in tests, not only in code.
 
 ## 10. Post-Stage-1 Work
 
-Stage 2 row softmax is complete for the committed acceptance fixture. The next
-stage should be selected from a concrete lowered vector kernel and should add
-only the types, operations, memory forms, and synchronization that kernel
-requires. General dynamic memref descriptors, mixed Cube/Vector modules,
-arbitrary DMA forms, and broad data-type coverage remain outside the proven
-bridge contract.
+The vector milestone is complete for the current project stage. New vector
+types or operations should be added incrementally only when the Cube fixture or
+a later concrete kernel exposes a missing form. General dynamic memref
+descriptors, mixed Cube/Vector modules, arbitrary DMA forms, and broad datatype
+coverage remain outside the proven vector contract.
+
+The active next stage is Cube plus its relevant DMA/staging path, starting with
+`bridge/triton-example/cube_dotproduct.py`. Cube planning belongs in
+`bridge/planning/cube-conversion-exploration.md`, not in this vector plan.
 
 Before broadening the claimed semantics, prioritize debt exposed by Stage 2:
 

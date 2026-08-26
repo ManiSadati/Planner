@@ -309,8 +309,17 @@ If `needs_codex_backfill=true`, daily explorer should not try to deeply analyze 
 Always keep these in the watch inventory:
 
 - `WenboCodes/PTOAS:new-vf-fusion-design`
+- `TaoTao-real/PTOAS:feature-vmi`
 - `mouliangyu/PTOAS` and forks of `mouliangyu/PTOAS`
 - upstream PRs/issues mentioning VMI, VPTO, PTODSL, sync, memory planning, allocator, mask, predicate, gather/scatter, L1/L0, MX, quant, LLVM branch changes
+- PTOAS changes matching a current row in
+  `bridge/designs/ave-ptoas-vmi-compatibility-tracker.md`, especially signed
+  integer vector-scalar min/max, reduction result shapes, one-lane broadcast
+  loads, and one-point/rank-zero stores
+
+For tracker matches, the daily report must distinguish proposed support,
+merged support, and support validated by the bridge tests. Do not recommend
+removing a bridge workaround based only on a title or a merged PTOAS change.
 
 ## What Explorer Should Not Do
 
@@ -322,6 +331,9 @@ Always keep these in the watch inventory:
 - Do not use the OpenAI API key to compensate for missing deterministic collection.
 - Do not crawl deeper than direct forks and forks-of-forks in the daily bot.
 - Do not send giant branch diffs to OpenAI; send metrics and review targets.
+- Do not assume the first page of a large fork's branch list contains its
+  important integration branches. Explicit priority branches must be queried
+  by name in addition to the bounded general branch listing.
 
 ## Implementation Notes
 

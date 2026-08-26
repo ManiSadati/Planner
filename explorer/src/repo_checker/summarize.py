@@ -271,6 +271,18 @@ def _agent_contract() -> str:
     return path.read_text()
 
 
+def _bridge_compatibility_tracker() -> str:
+    path = (
+        Path(__file__).resolve().parents[3]
+        / "bridge"
+        / "designs"
+        / "ave-ptoas-vmi-compatibility-tracker.md"
+    )
+    if not path.exists():
+        return ""
+    return path.read_text()
+
+
 def summarize_changes(
     model: str,
     repo_changes: tuple[RepoChanges, ...],
@@ -289,6 +301,7 @@ def summarize_changes(
 
         client = OpenAI()
         agent_contract = _agent_contract()
+        compatibility_tracker = _bridge_compatibility_tracker()
         response = client.responses.create(
             model=model,
             input=[
@@ -298,8 +311,10 @@ def summarize_changes(
                         "You are a careful repo intelligence agent. Summarize only new changes "
                         "in the payload. Focus on PTOAS state, branch movement, issues, PRs, "
                         "risk, and what changed technically. Follow the explorer agent contract "
-                        "below. Return strict JSON only.\n\n"
-                        f"{agent_contract}"
+                        "and bridge compatibility tracker below. Return strict JSON only.\n\n"
+                        f"{agent_contract}\n\n"
+                        "Standing bridge compatibility tracker:\n\n"
+                        f"{compatibility_tracker}"
                     ),
                 },
                 {

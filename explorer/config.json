@@ -36,7 +36,27 @@
       "track_branches": true,
       "track_github_issues": true,
       "track_github_prs": true,
-      "track_github_forks": true
+      "track_github_forks": true,
+      "priority_forks": [
+        {
+          "repo": "zhendong404/PTOAS"
+        },
+        {
+          "repo": "mouliangyu/PTOAS"
+        },
+        {
+          "repo": "WenboCodes/PTOAS",
+          "branches": [
+            "new-vf-fusion-design"
+          ]
+        },
+        {
+          "repo": "TaoTao-real/PTOAS",
+          "branches": [
+            "feature-vmi"
+          ]
+        }
+      ]
     },
     {
       "id": "ascend-npu-ir",
@@ -51,7 +71,8 @@
       "track_branches": true,
       "track_github_issues": false,
       "track_github_prs": false,
-      "track_github_forks": false
+      "track_github_forks": false,
+      "priority_forks": []
     }
   ]
 }

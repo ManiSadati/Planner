@@ -1,10 +1,26 @@
 # Project State
 
-Last updated: 2026-08-19
+Last updated: 2026-08-26
 
 ## Current Goal
 
 Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing the CCEC-style low-level backend segment where feasible.
+
+## Current Milestone
+
+- Vector conversion is complete enough for the current project stage. Row
+  softmax and RMSNorm are supported for the accepted fixtures, with performance
+  accepted as on par with the NPU-IR path.
+- New vector instructions are maintenance work driven by concrete future
+  kernels, not the active exploration target.
+- Active focus is Cube plus its relevant DMA/staging sequence, starting from
+  `bridge/triton-example/cube_dotproduct.py`.
+- Current work is documentation and planning only. No Cube trace, conversion
+  code, or fixture modification has started.
+- The first Cube decision is whether each selected NPU-IR CCE template has a
+  semantics-preserving one-to-one PTO mapping. Non-direct rows require an
+  explicit PTO composition or a rewrite of the template lowering in PTO
+  dialect before the CCE call hides the structured contract.
 
 ## Current Working Hypothesis
 
@@ -15,6 +31,9 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Vector rows may fit before or around `convert-hivmave-to-ave-intrin`.
 - DMA, cube, and sync rows likely need to be intercepted earlier around HIVM memory/sync planning and before `HIVMToStandard` loses structured operands to CCE-template/library-call lowering.
 - PTO/VMI is expected to cover vector-side semantics.
+- The accepted softmax and RMSNorm fixtures provide good practical evidence for
+  that vector-side strategy; remaining vector limitations stay explicit but do
+  not block Cube exploration.
 - Many DMA rows may map to concrete PTO dialect movement operations. Some DMA
   and cube/template rows may require rewriting NPU-IR template lowering to emit
   PTO-compatible operations rather than mapping a final CCE call one-to-one.
@@ -42,7 +61,10 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - The early-IR folder currently contains workflow documentation unless the human has added actual dumps. If real examples are needed, Codex should ask the human to generate early MLIR / early NPU-IR dumps on an A5 server and place them in Planner.
 - Current A5-generated `*_kernel.mlir` files are dumps right after `AppendTargetDeviceSpec`; local replay from that boundary is planned in `NPUIR/coding-guide/device-spec-replay.md` and scripted by `NPUIR/tools/replay_npuir_from_device_spec.sh`. The current replay endpoint is `convert-hivmave-to-ave-intrin`; compiler stages after that are not required for this bridge investigation. A nonzero replay exit caused by missing `hivmc-a5` is expected on the non-A5 server if the target-pass dump was captured.
 - First local replay result is recorded in `NPUIR/coding-guide/device-spec-replay-results-2026-08-11.md`. All six current examples reached `convert-hivmave-to-ave-intrin`; the endpoint confirms that DMA/cube are already helper/template calls by then, so the first bridge analysis/export pass should run earlier while structured HIVM ops are still available.
-- Active implementation focus is DMA conversion through `dma_copy_kernel`. The conversion sweet spot has been selected: after `hivm-mark-disable-load` and before `convert-hivm-to-std`. The supporting source-backed trace is `bridge/memory/dma-copy-conversion-trace.md`.
+- The first DMA conversion through `dma_copy_kernel` is now supporting
+  foundation rather than the active milestone. Its selected sweet spot remains
+  after `hivm-mark-disable-load` and before `convert-hivm-to-std`; see
+  `bridge/memory/dma-copy-conversion-trace.md`.
 - AscendNPU-IR now has a standalone `convert-hivm-templates-to-pto` pass on
   `mani/DMA`.
   It converts contiguous rank-one GM->UB `hivm.hir.load` and non-atomic UB->GM
@@ -53,12 +75,12 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   `bridge/examples/npuir-early-ir/replay/dma_copy_kernel/after-convert-hivm-templates-to-pto.mlir`;
   both PTO MTE operations remain valid through a following
   `convert-hivm-to-std` invocation.
-- Current priority: clean up the comparison structure so baseline NPU-IR and
-  NPU-IR-to-PTOAS runs use comparable commands, simulator targets, core counts,
-  tick/cycle interpretation, and host-side behavior.
-- Next code step after comparison cleanup: choose a guarded PTO compiler path,
-  map the surrounding sync, and connect PTO wrapper/pointer lowering. Do not
-  enable the conversion unconditionally in the existing CCE pipeline yet.
+- Current priority: complete the Cube mapping plan from the real
+  `cube_dotproduct.py` path, including Cube compute, staging DMA, accumulator,
+  result movement, and sync contracts.
+- No Cube code step is approved yet. The next action is source/IR exploration
+  and a reviewed direct/composition/template-rewrite table. Keep future PTO
+  conversion guarded and default-off so the CCE path remains the baseline.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
 - The A5 installation/runtime workflow is tracked in `NPUIR/coding-guide/a5-installation.md`; the non-A5 Codex-server build/replay workflow is tracked in `NPUIR/coding-guide/codex-server-build.md`; the simulator workflow is tracked in `NPUIR/coding-guide/simulator-workflow.md`.
 - Temporary LLVM IR capture after `hivmc-a5` and before CCE `bisheng` is
@@ -77,7 +99,8 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - `bridge/planning/README.md` is the planning overview Codex should read at the start of each meaningful Planner task.
 - `human/HighLevelOverview.md` is the human-owned project overview.
 - `explorer/` is installed as a user systemd timer and scheduled daily at 7:00am Eastern time.
-- Initial Codex-led exploration has started.
+- Initial Codex-led exploration and baseline mapping are complete enough for
+  operation-family implementation work.
 - Stage 1 local repo baseline is complete: see `bridge/planning/local-repo-baseline.md`.
 - Stage 2 PTOAS context is complete enough for NPU-IR exploration: see `PTOAS/design/lowering-pipeline.md`, `PTOAS/design/ecosystem-inventory-2026-08-07.md`, `PTOAS/coding-guide/pipeline-and-validation.md`, and `explorer/reports/backfill/2026-08-07-ptoas-reexploration.md`.
 - Stage 3 NPU-IR context has a local source-backed baseline: see `NPUIR/design/lowering-pipeline.md` and `NPUIR/coding-guide/repo-and-validation.md`.
@@ -85,13 +108,20 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - A5/early-IR workflow is tracked at `NPUIR/coding-guide/a5-ir-workflow.md`.
 - Codex-server NPU-IR build/replay workflow is tracked at `NPUIR/coding-guide/codex-server-build.md`.
 - Codex-server A5 simulator workflow is tracked at `NPUIR/coding-guide/simulator-workflow.md`.
-- First local-source-backed NPU-IR to PTOAS mapping draft exists at `bridge/planning/npuir-to-ptoas-mapping.md`; it still needs upstream/fork reconciliation and example IR dumps before implementation.
+- The local-source-backed NPU-IR-to-PTOAS mapping draft exists at
+  `bridge/planning/npuir-to-ptoas-mapping.md`. Vector and first DMA rows have
+  concrete evidence; Cube rows now need the `cube_dotproduct.py` trace and
+  current upstream/fork reconciliation before implementation.
 - DMA/template rewrite planning exists at `bridge/planning/dma-template-rewrite-plan.md`, with compact memory at `bridge/memory/dma-template-mapping.md`.
 - Focused DMA-copy conversion exploration plan exists at `bridge/planning/dma-copy-conversion-exploration.md`.
 - Focused DMA-copy conversion trace exists at `bridge/memory/dma-copy-conversion-trace.md`. It confirms low-level VPTO `pto.mte_gm_ub` / `pto.mte_ub_gm` plus explicit `pto.set_flag` / `pto.wait_flag` as the most concrete first PTOAS target for the simple DMA row.
+- The vector milestone is complete for the current stage: accepted row-softmax
+  and RMSNorm fixtures are supported with performance on par with NPU-IR.
+- Active Cube planning is `bridge/planning/cube-conversion-exploration.md`, with
+  compact memory in `bridge/memory/cube-conversion-status.md`.
 - `soyu-wilson/AscendNPU-IR:codex/ave-to-vmi` has been reviewed as vector-pass prototype context. Do not continue it directly; port selected ideas into a fresh current-baseline branch if used. See `bridge/planning/soyu-wilson-ave-to-vmi-branch-review.md`.
-- Latest configured-scope explorer lookback completed on 2026-08-19. Reports:
-  `explorer/reports/README.md` and `explorer/reports/daily/2026-08-19.md`.
+- Latest configured-scope explorer report completed on 2026-08-26. Reports:
+  `explorer/reports/README.md` and `explorer/reports/daily/2026-08-26.md`.
   The scan used the GitHub token and no longer hit the previous GitHub
   rate-limit failure.
 - GitHub fork-discovery state was bootstrapped on 2026-08-10 for PTOAS:
@@ -99,37 +129,27 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 
 ## Latest Explorer/PTOAS State
 
-As of the 2026-08-19 daily report, PTOAS remains active in areas that can
-affect bridge assumptions. Scope covered configured PTOAS local/remotes,
-`hw-native-sys/PTOAS` issues/PRs, and local AscendNPU-IR branch tracking.
-GitHub direct-fork/fork-of-fork discovery is implemented and bootstrapped for
-configured GitHub repos. GitCode issue/PR tracking is still pending.
+As of the 2026-08-26 daily report, PTOAS remains active in areas that can
+affect bridge assumptions. GitHub direct-fork and fork-of-fork discovery is
+implemented; GitCode issue/PR tracking is still pending. Use
+`explorer/reports/README.md` and `explorer/reports/daily/2026-08-26.md` for the
+full current report.
 
-Latest 2026-08-19 PTOAS signals:
+Current signals most relevant to the Cube stage:
 
-- upstream/local Markham advanced broadly across VMI/VPTO IR and transforms;
-- upstream added `VMILayoutRematerializeWeakProducers`;
-- a new CV pipelining design branch appeared;
-- fork network activity includes VMI predicate-fold work, VPTO scheduler
-  refinements, VPTO address-analysis branches, unified sync modeling, and A6
-  target work;
-- open PR activity concentrates on VMI/VF fusion, ExpandTileOp rewrite,
-  deterministic memplan, address analysis, loop-unroll hints, VecScope-aware
-  CSE, and CV pipelining.
+- VMI fusion and `ExpandTileOp` changes remain active, but Cube cannot be
+  treated as a VMI-only mapping;
+- VPTO scheduling, tied-copy materialization, pointer/alias modeling, and sync
+  work may affect the eventual mixed Cube/DMA pipeline;
+- ND-to-NZ extraction, layout inference, L1/L0 movement, and ConvTile work are
+  relevant target-side signals for Cube staging and result movement;
+- `TaoTao-real/PTOAS:feature-vmi` is important experimental vector-template
+  evidence but is not upstream Cube implementation truth;
+- bridge-specific PTOAS compatibility watches remain in
+  `bridge/designs/ave-ptoas-vmi-compatibility-tracker.md`.
 
-Earlier 2026-08-11 PTOAS signals that remain relevant:
-
-- upstream `hw-native-sys/PTOAS` main advanced with implicit tmp materialization, TFILLPAD unification, VPTO vscatter memory-effect fixes, and broad IR/emitter/test updates;
-- `codex/downgrade-llvm19` and PR #1156 make LLVM 19 / VPTO `feature-vpto` the major toolchain watch item;
-- PR #1204 and `codex/sync-block-interfaces` split cross-block and intra-block sync APIs;
-- PR #1189 introduces PTO Common ops and `PTOLowerScalarToStandard`, which may affect bridge import/export assumptions;
-- PR #1202 adds an analysis-only VPTO scheduler framework;
-- issue #1200 and PR #1203 add explicit FP4 L1-to-L0 S4 staging;
-- PR #1193 adds SoftLibService / late SoftLib expansion, while PR #1196 landed native integer vdiv TileLib support;
-- local Markham fork `origin/main` now has in-process PTODSL materialization through TileLibService;
-- local Markham branch `origin/elemntwise-1d-2d-versions` is a large elementwise 1D/2D TileLib refactor and should be treated as relevant but not authoritative source-of-truth.
-
-Immediate review targets before implementation: LLVM19 environment alignment, sync API split, implicit tmp pass ordering, PTO Common ops, SoftLibService pass ordering, and VPTO scheduler implications.
+Before Cube implementation, re-check current PTOAS Cube/tile/DMA operations and
+any open PRs that touch L1/L0 staging, ND2NZ, fixpipe, matmul, or sync.
 
 ## Open Technical Risks
 
@@ -139,6 +159,9 @@ Immediate review targets before implementation: LLVM19 environment alignment, sy
 - PTOAS VMI/VPTO pipeline is active and moving. Current design centerpieces are `ExpandTileOp`, PTODSL TileLib expansion, VMI layout assignment, and `VMIToVPTO`.
 - PTOAS local branch state must not be confused with upstream/fork design state. The 2026-08-10 configured-scope scan found active upstream/fork movement in LLVM19 migration, sync interface split, implicit tmp materialization, PTO Common ops, VPTO scheduler work, SoftLib, FP4 staging, VMI/TileLib, and PTODSL behavior.
 - DMA and cube-template mappings may not be clean one-to-one mappings at the late HIVM-AVE level.
+- Similar names are insufficient for Cube mapping. The actual NPU-IR CCE
+  template implementation and the PTO operation contract must agree on layout,
+  valid shape, accumulation, precision, movement, and sync semantics.
 - Synchronization and memory-planning ownership between NPU-IR and PTOAS must be kept explicit.
 - Performance parity is a requirement, not a nice-to-have.
 
