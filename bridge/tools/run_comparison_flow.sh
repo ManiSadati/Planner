@@ -18,7 +18,7 @@ target_pass="convert-hivmave-to-ptoas-vmi"
 usage() {
   cat >&2 <<EOF
 Usage:
-  bridge/tools/run_comparison_flow.sh <option> <testcase>
+  bridge/tools/run_comparison_flow.sh [--clean-build] <option> <testcase>
 
 Options:
   early-ir     Generate <testcase>/input.mlir from the Triton Python testcase.
@@ -27,6 +27,9 @@ Options:
   emit-vmi     Emit PTOAS VMI MLIR from <testcase>/input.mlir.
   emit-vpto    Emit PTOAS VPTO MLIR from the VMI MLIR.
   bridge-sim   Run input.mlir -> VMI -> VPTO -> PTOAS simulator fixture.
+
+Flags:
+  --clean-build  Remove testcase build directories before running.
 
 Required environment:
   ASCEND_NPU_IR_ROOT=/path/to/AscendNPU-IR
@@ -53,6 +56,14 @@ die() {
 
 log() {
   printf '[bridge] %s\n' "$*"
+}
+
+clean_build_dirs() {
+  local case_dir="$1"
+  local out_dir="$2"
+
+  rm -rf "$out_dir/build" "$case_dir/build"
+  log "removed build directories"
 }
 
 abs_path() {
@@ -758,10 +769,33 @@ run_bridge_sim() {
   log "simulator log: $build_dir/bridge-sim.log"
 }
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
-fi
+clean_build=0
+args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --clean-build|clean-build)
+      clean_build=1
+      shift
+      ;;
+    --)
+      shift
+      while [[ $# -gt 0 ]]; do
+        args+=("$1")
+        shift
+      done
+      ;;
+    *)
+      args+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- "${args[@]}"
+
 if [[ $# -ne 2 ]]; then
   usage
   exit 1
@@ -772,6 +806,9 @@ case_name="$2"
 case_dir="$(case_dir_for "$case_name")"
 out_dir="$case_dir/out"
 build_dir="$out_dir/build"
+if [[ "$clean_build" == "1" ]]; then
+  clean_build_dirs "$case_dir" "$out_dir"
+fi
 mkdir -p "$build_dir"
 
 case "$option" in

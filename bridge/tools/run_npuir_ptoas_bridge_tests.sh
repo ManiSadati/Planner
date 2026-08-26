@@ -6,7 +6,7 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 usage() {
   cat >&2 <<'EOF'
 Usage:
-  bridge/tools/run_npuir_ptoas_bridge_tests.sh <option> <testcase>
+  bridge/tools/run_npuir_ptoas_bridge_tests.sh [--clean-build] <option> <testcase>
 
 This is a compatibility wrapper. The implementation lives in:
   bridge/tools/run_comparison_flow.sh
@@ -18,6 +18,9 @@ Useful options:
   emit-vmi
   emit-vpto
   bridge-sim
+
+Flags:
+  --clean-build
 EOF
 }
 

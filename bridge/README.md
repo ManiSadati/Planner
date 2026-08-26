@@ -63,7 +63,8 @@ numbers separate from A5 runtime numbers.
 ## NPU-IR to PTOAS Tool
 
 `bridge/tools/run_comparison_flow.sh` is the simple bridge runner. It takes one
-option and one testcase name:
+option and one testcase name. Add `--clean-build` when you want to remove the
+testcase build directories before running:
 
 ```bash
 cd "$HOME/Planner"
@@ -74,6 +75,7 @@ export PTOAS_ROOT=/path/to/PTOAS
 
 bridge/tools/run_comparison_flow.sh early-ir vadd
 bridge/tools/run_comparison_flow.sh emit-vpto vadd
+bridge/tools/run_comparison_flow.sh --clean-build bridge-sim vadd
 ```
 
 The older `bridge/tools/run_npuir_ptoas_bridge_tests.sh` script is now only a
@@ -89,6 +91,10 @@ small wrapper around the same implementation.
 | `emit-vmi` | Run `bishengir-compile` with the PTOAS bridge enabled and extract PTOAS VMI MLIR. |
 | `emit-vpto` | Run PTOAS on the VMI MLIR and emit VPTO MLIR. |
 | `bridge-sim` | Run `input.mlir -> VMI -> VPTO -> run_sim.sh` for end-to-end PTOAS simulator testing. |
+
+`--clean-build` can be passed before or after the option. It removes
+`bridge/testcases/<name>/out/build/` and the legacy
+`bridge/testcases/<name>/build/` directory, then rebuilds the selected flow.
 
 ### Testcase Layout
 
