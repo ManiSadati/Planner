@@ -82,7 +82,7 @@ include_directories(
 )
 
 if(NOT DEFINED KERNEL_MLIR)
-    set(KERNEL_MLIR ${CMAKE_CURRENT_SOURCE_DIR}/../../out/npuir-ptoas-bridge/rmsnorm/rmsnorm.vpto.mlir)
+    set(KERNEL_MLIR ${CMAKE_CURRENT_SOURCE_DIR}/out/rmsnorm_256.vpto.mlir)
 endif()
 get_filename_component(KERNEL_MLIR "${KERNEL_MLIR}" ABSOLUTE)
 set(KERNEL_FATOBJ ${CMAKE_CURRENT_BINARY_DIR}/rmsnorm_kernel.o)

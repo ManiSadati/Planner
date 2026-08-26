@@ -23,8 +23,8 @@ extern "C" __global__ AICORE void rmsnorm_kernel(__gm__ uint8_t *workspace0,
 
 void LaunchRmsNormKernel(uint8_t *workspace0, uint8_t *workspace1, float *input,
                          float *weight, float *output, void *stream) {
-    constexpr int32_t kRows = 1600;
-    constexpr int32_t kCoreCount = 64;
+    constexpr int32_t kRows = 16;
+    constexpr int32_t kCoreCount = 16;
     constexpr int32_t kDim1 = 1;
     constexpr int32_t kDim2 = 1;
     rmsnorm_kernel<<<kCoreCount, nullptr, stream>>>(
