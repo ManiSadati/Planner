@@ -161,6 +161,7 @@ venv.bak/
 # Local/generated bridge replay artifacts
 bridge/examples/
 bridge/out/
+bridge/testcases/*/build*/
 bridge/testcases/*/out/
 
 # Spyder project settings
