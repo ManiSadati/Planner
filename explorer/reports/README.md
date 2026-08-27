@@ -1,17 +1,17 @@
 # PTOAS State
 
-Last updated: 2026-08-26T11:02:47+00:00
+Last updated: 2026-08-27T11:03:09+00:00
 
-## Upstream PTOAS lands A2/A3 gather in VPTO, loop-hint SCF→CF pass, and Python core DSO decouple; scheduler/tied-copy pipeline PRs advance; AVE→VMI expands in AscendNPU-IR
+## Upstream VPTO pipeline ordering fixes; VMI physical-access legalization design and code land on branch; unified masked VMI-to-VPTO lowering PR; active fork signals on VMI fusion and C++ bridge
 
-Upstream main moved to fc8db5e. Net new in-tree functionality: (1) A2/A3 VPTO gather lowering (tgather/tgatherb) with revised tgatherb contracts documented and negative/shape/layout checks; (2) SCF→CF conversion pass that preserves unroll hints plus LLVM metadata plumbing; (3) C/Python binding refactor that decouples the _core Python extension from the version-bound compiler DSO via C API coverage; (4) composed dense layout materialization support and VMI/VPTO test updates; (5) minor CI/simulator pin/TCI semantics/test tightenings. Core areas touched include include/PTO/IR (PTO, VPTOUbOps), lib/PTO/Transforms (LowerPTOToUBufOps, VPTOLLVMEmitter, new PTOConvertSCFToCFWithLoopHintsPass), lib/CAPI/Bindings, docs/designs, and lit/PTODSL tests.
+Upstream PTOAS main moved fc8db5e -> 80ac6d0. Notable merged changes: added VPTOGuardedLICM (new pass and lit coverage), reordered VPTO pipeline so VPTOCombineReductions and a final CSE run before the optional scheduler (tools/ptoas/ptoas.cpp), and fixed PTODSL With-slot liveness. An AI-prefixed upstream branch codex/vmi-unaligned-load-store added a VPTOMemoryDist contract and introduced a two-stage VMI physical-access planner + VPTO legalizer inside VMIToVPTO with a detailed design doc. Multiple forks show large, design-adjacent work (vecscope-aware CSE, VMI fusion and load/store elision, VPTO C++ bridge) but are not yet upstream truth.
 
 ## Scan Coverage
 
-- PTOAS Markham fork: 3 changed branches
-- PTOAS Markham fork GitHub fork network: 19 changed branches
-- AscendNPU-IR fork: 3 changed branches
-- hw-native-sys/PTOAS: 12 updated issues, 25 updated PRs
+- PTOAS Markham fork: 4 changed branches
+- PTOAS Markham fork GitHub fork network: 44 changed branches
+- AscendNPU-IR fork: 0 changed branches
+- hw-native-sys/PTOAS: 14 updated issues, 26 updated PRs
 
 ## Persistent Watch Context
 
