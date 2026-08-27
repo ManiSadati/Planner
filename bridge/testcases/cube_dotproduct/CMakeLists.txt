@@ -85,7 +85,7 @@ if(NOT DEFINED KERNEL_MLIR)
     set(KERNEL_MLIR ${CMAKE_CURRENT_SOURCE_DIR}/out/cube_dotproduct.vpto.mlir)
 endif()
 get_filename_component(KERNEL_MLIR "${KERNEL_MLIR}" ABSOLUTE)
-set(KERNEL_FATOBJ ${CMAKE_CURRENT_BINARY_DIR}/matmul64_kernel.o)
+set(KERNEL_FATOBJ ${CMAKE_CURRENT_BINARY_DIR}/cube_dotproduct_kernel_ptoas_fatobj.o)
 
 add_custom_command(
     OUTPUT ${KERNEL_FATOBJ}
@@ -96,24 +96,24 @@ add_custom_command(
         -o
         ${KERNEL_FATOBJ}
     DEPENDS ${KERNEL_MLIR}
-    COMMENT "ptoas: lowered VPTO MLIR -> matmul64_kernel.o"
+    COMMENT "ptoas: lowered VPTO MLIR -> cube_dotproduct_kernel_ptoas_fatobj.o"
     VERBATIM
 )
 
-add_library(matmul64_kernel SHARED launch.cpp ${KERNEL_FATOBJ})
+add_library(cube_dotproduct_kernel SHARED launch.cpp ${KERNEL_FATOBJ})
 set_source_files_properties(${KERNEL_FATOBJ}
     PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
-target_compile_options(matmul64_kernel PRIVATE
+target_compile_options(cube_dotproduct_kernel PRIVATE
     ${CMAKE_CCE_COMPILE_OPTIONS}
     --cce-aicore-arch=dav-c310-cube
     -std=c++17
 )
-target_include_directories(matmul64_kernel PRIVATE
+target_include_directories(cube_dotproduct_kernel PRIVATE
     ${ASCEND_HOME_PATH}/pkg_inc/
     ${ASCEND_HOME_PATH}/pkg_inc/profiling/
     ${ASCEND_HOME_PATH}/pkg_inc/runtime/runtime
 )
-target_link_options(matmul64_kernel PRIVATE --cce-fatobj-link)
+target_link_options(cube_dotproduct_kernel PRIVATE --cce-fatobj-link)
 
 add_executable(cube_dotproduct_vpto main.cpp)
 target_compile_options(cube_dotproduct_vpto PRIVATE ${CMAKE_CPP_COMPILE_OPTIONS})
@@ -125,7 +125,7 @@ target_link_directories(cube_dotproduct_vpto PUBLIC
     ${SIM_LIB_DIR}
 )
 target_link_libraries(cube_dotproduct_vpto PRIVATE
-    matmul64_kernel
+    cube_dotproduct_kernel
     runtime_camodel
     stdc++ ascendcl m tiling_api platform c_sec dl nnopbase pthread
 )
