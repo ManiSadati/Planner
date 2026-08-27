@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-08-26
+Last updated: 2026-08-27
 
 ## Current Goal
 
@@ -15,12 +15,11 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   kernels, not the active exploration target.
 - Active focus is Cube plus its relevant DMA/staging sequence, starting from
   `bridge/triton-example/cube_dotproduct.py`.
-- Current work is documentation and planning only. No Cube trace, conversion
-  code, or fixture modification has started.
-- The first Cube decision is whether each selected NPU-IR CCE template has a
-  semantics-preserving one-to-one PTO mapping. Non-direct rows require an
-  explicit PTO composition or a rewrite of the template lowering in PTO
-  dialect before the CCE call hides the structured contract.
+- The first 64x64 Cube trace, mapping decision, and strict conversion slice are
+  complete. The real fixture emits PTOAS VMI, lowers to VPTO, and passes PTOAS
+  simulator numerical comparison for all 4096 f16 outputs.
+- The next gate is a direct trace/performance comparison with the unchanged CCE
+  simulator path, followed by A5 validation.
 
 ## Current Working Hypothesis
 
@@ -75,12 +74,11 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   `bridge/examples/npuir-early-ir/replay/dma_copy_kernel/after-convert-hivm-templates-to-pto.mlir`;
   both PTO MTE operations remain valid through a following
   `convert-hivm-to-std` invocation.
-- Current priority: complete the Cube mapping plan from the real
-  `cube_dotproduct.py` path, including Cube compute, staging DMA, accumulator,
-  result movement, and sync contracts.
-- No Cube code step is approved yet. The next action is source/IR exploration
-  and a reviewed direct/composition/template-rewrite table. Keep future PTO
-  conversion guarded and default-off so the CCE path remains the baseline.
+- Current priority: compare the validated strict `cube_dotproduct.py` PTO
+  composition with the unchanged CCE baseline, then generalize from concrete
+  fixtures.
+- The conversion is guarded and default-off, so the CCE path remains the
+  fallback and comparison baseline.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
 - The A5 installation/runtime workflow is tracked in `NPUIR/coding-guide/a5-installation.md`; the non-A5 Codex-server build/replay workflow is tracked in `NPUIR/coding-guide/codex-server-build.md`; the simulator workflow is tracked in `NPUIR/coding-guide/simulator-workflow.md`.
 - Temporary LLVM IR capture after `hivmc-a5` and before CCE `bisheng` is
@@ -110,8 +108,8 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Codex-server A5 simulator workflow is tracked at `NPUIR/coding-guide/simulator-workflow.md`.
 - The local-source-backed NPU-IR-to-PTOAS mapping draft exists at
   `bridge/planning/npuir-to-ptoas-mapping.md`. Vector and first DMA rows have
-  concrete evidence; Cube rows now need the `cube_dotproduct.py` trace and
-  current upstream/fork reconciliation before implementation.
+  concrete evidence; the strict first Cube row is now implemented and verified
+  through VMI-to-VPTO lowering.
 - DMA/template rewrite planning exists at `bridge/planning/dma-template-rewrite-plan.md`, with compact memory at `bridge/memory/dma-template-mapping.md`.
 - Focused DMA-copy conversion exploration plan exists at `bridge/planning/dma-copy-conversion-exploration.md`.
 - Focused DMA-copy conversion trace exists at `bridge/memory/dma-copy-conversion-trace.md`. It confirms low-level VPTO `pto.mte_gm_ub` / `pto.mte_ub_gm` plus explicit `pto.set_flag` / `pto.wait_flag` as the most concrete first PTOAS target for the simple DMA row.

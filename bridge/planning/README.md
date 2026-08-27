@@ -1,6 +1,6 @@
 # Planning Overview
 
-Last updated: 2026-08-26
+Last updated: 2026-08-27
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
@@ -45,11 +45,23 @@ Completed vector-bridge milestone:
 Current Cube milestone:
 
 - first fixture: `bridge/triton-example/cube_dotproduct.py`;
-- current activity is planning only; do not modify or lower the fixture yet;
-- first decision: determine whether Cube compute and each relevant DMA/staging
-  template have semantically equivalent PTO operations;
-- no Cube conversion code should start until the mapping table distinguishes
-  direct mappings, PTO compositions, and template rewrites.
+- the first source trace, mapping decision, and strict compiler-side conversion
+  slice are complete;
+- the observed path is two GM-to-L1 ND2NZ loads, one `hivm.hir.mmadL1`, and one
+  NZ2ND f32-to-f16 fixpipe store;
+- existing PTO primitives cover the fixture, but `mmadL1` is not equivalent to
+  one bare `pto.tmatmul` because its CCE template also owns L1-to-L0 staging, K
+  partitioning, double buffering, sync, and barriers;
+- recommended first route: a strict low-level PTO composition in
+  `convert-hivm-templates-to-pto`, preserving NPU-IR memory and sync ownership;
+- that route is now implemented for the exact 64x64 f16/f16/f32/f16,
+  init=true, no-transpose, NZ2ND fixture and remains guarded by the existing
+  default-off bridge switch;
+- the real fixture now emits PTOAS VMI, lowers through unmodified PTOAS to
+  VPTO, and passes the PTOAS simulator numerical comparison for all 4096 f16
+  outputs;
+- longer-term route: `pto.tload -> pto.textract -> pto.tmatmul -> pto.tstore`
+  with PTOAS owning tile allocation and sync.
 
 ## Planning Document Roles
 
@@ -57,7 +69,7 @@ Current Cube milestone:
 |---|---|---|
 | `bridge/planning/README.md` | high-level plan index and short/long-term roadmap | active entry point |
 | `bridge/planning/cube-conversion-exploration.md` | staged Cube/template/DMA mapping plan using `cube_dotproduct.py` | active short-term plan |
-| `bridge/memory/cube-conversion-status.md` | compact current Cube decisions, starting point, and unknowns | active memory |
+| `bridge/memory/cube-conversion-status.md` | compact current Cube decisions, conversion point, and review gate | active memory |
 | `bridge/planning/ave-to-ptoas-vmi-implementation-plan.md` | completed vector-add, row-softmax, and RMSNorm-era vector contract | maintenance/reference |
 | `bridge/designs/ave-to-ptoas-vmi-conversion-design.md` | durable AVE/HIVM-to-PTOAS VMI implementation decisions and non-direct mapping index | active design log |
 | `bridge/planning/dma-copy-conversion-exploration.md` | completed focused investigation for `dma_copy_kernel` | reference foundation |
@@ -77,24 +89,19 @@ The two DMA planning docs are intentionally different:
 
 ## Short-Term Plan
 
-Immediate objective: build a source-backed Cube mapping decision for
-`cube_dotproduct.py` without writing conversion code yet.
+Immediate objective: compare the validated strict `cube_dotproduct.py` bridge
+path directly with the unchanged CCE baseline, then generalize only from
+observed cases.
 
-Investigation order:
+Review order:
 
-1. Freeze the exact Triton fixture and record the NPU-IR/PTOAS revisions used
-   for the later trace.
-2. Capture or reuse the early NPU-IR for the fixture and identify the structured
-   Cube op, operand staging, result movement, and synchronization boundaries.
-3. Trace each structured operation to the selected NPU-IR CCE template call and
-   then to that template's actual implementation. Names alone are not evidence
-   of semantic equivalence.
-4. Compare the implementation contract against PTOAS/PTO operations for Cube,
-   GM/L1/L0 movement, accumulator handling, fixpipe/store, and sync.
-5. Classify every row as `direct`, `PTO composition`, `template rewrite`, or
-   `unsupported/unknown` and record the reason.
-6. Review the table with the human before selecting the first Cube conversion
-   boundary or implementation slice.
+1. Preserve the generated VMI and VPTO IR as compiler-side evidence.
+2. Run the unchanged CCE simulator path on the same inputs and compare its
+   trace/ticks with the passing PTO bridge result.
+3. Inspect event ordering and physical buffer addresses in the emitted path.
+4. Request A5 hardware validation after local functional equivalence.
+5. Generalize one contract dimension at a time: K partitioning/accumulation,
+   transpose, bias/precision modes, then additional fixpipe forms.
 
 The detailed plan is `bridge/planning/cube-conversion-exploration.md`.
 
@@ -122,6 +129,8 @@ Current local simulator status:
   successfully in simulator;
 - the NPU-IR-to-PTOAS `row_softmax` bridge fixture has run successfully through
   VMI, VPTO, and PTOAS simulator numerical comparison;
+- the strict 64x64 `cube_dotproduct` bridge fixture passes the PTOAS simulator
+  numerical comparison with maximum absolute error `0.001953125`;
 - accepted RMSNorm fixtures are also supported and provide the second complex
   vector-kernel milestone;
 - simulator results are useful for functional checks and rough comparison, but
@@ -168,7 +177,7 @@ Existing first DMA code patch:
 
 ## Medium-Term Plan
 
-After the Cube mapping table is reviewed:
+After the strict Cube slice is functionally validated:
 
 1. Choose the smallest end-to-end `cube_dotproduct.py` slice that includes one
    Cube operation and only the staging DMAs required to execute it.
@@ -198,18 +207,13 @@ The broader bridge should eventually handle:
 - daily explorer updates so PTOAS upstream/fork movement does not invalidate the
   bridge assumptions.
 
-## Current Blocking Questions
+## Current Open Questions
 
-- Which structured NPU-IR Cube op and CCE template family does
-  `cube_dotproduct.py` actually select?
-- Which of Cube compute, GM->L1/ND2NZ, L1->L0A/L0B, L0C accumulation, and
-  fixpipe/result movement have exact PTO dialect equivalents?
-- For non-direct rows, can a semantics-preserving PTO composition replace the
-  CCE template, or must the conversion intercept an earlier structured op?
-- Which side owns Cube-related memory placement and synchronization for the
-  first fixture?
-- What is the narrowest optional compiler path that preserves the existing CCE
-  baseline while enabling the Cube/PTO experiment?
+- How does the strict Cube path's simulator trace/tick result compare with the
+  unchanged CCE baseline on the same input?
+- Does its preserved event/address plan remain correct on A5 hardware?
+- Which next `mmadL1` mode should drive generalization: K partitioning,
+  accumulation, transpose, or bias/precision behavior?
 - How should the bridge preserve full IEEE behavior for the row-softmax
   negative-infinity initializer on the current PTOAS path?
 - How should signed integer scalar min/max be generalized beyond constant
