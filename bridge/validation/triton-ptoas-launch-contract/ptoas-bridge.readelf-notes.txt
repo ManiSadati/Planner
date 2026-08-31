@@ -1,0 +1,6 @@
+
+Displaying notes found in: __CCE_KernelArgSize
+  Owner                Data size 	Description
+
+Displaying notes found in: .ascend.meta.vector_add_large_kernel_mix_aiv
+  Owner                Data size 	Description

@@ -9,41 +9,41 @@ npuir_root="${ASCEND_NPU_IR_ROOT:-${NPU_IR_ROOT:-}}"
 cann_root="${CANN_ROOT:-${ASCEND_HOME_PATH:-}}"
 ptoas_root="${PTOAS_ROOT:-}"
 
-npu_target="Ascend910_9589"
-npu_sim_soc="Ascend950PR_9589"
-ptoas_sim_soc="Ascend950PR_9599"
+soc_version="Ascend950PR_9599"
 core_id="0"
-target_pass="convert-hivmave-to-ptoas-vmi"
 
 usage() {
   cat >&2 <<EOF
 Usage:
-  bridge/tools/run_comparison_flow.sh [--clean-build] <option> <testcase>
+  bridge/tools/run_comparison_flow.sh [--clean-build] [--print-ir-after-all] <option> <testcase>
 
 Options:
-  early-ir     Generate <testcase>/input.mlir from the Triton Python testcase.
-  print-all    Run bishengir-compile and save the print-after-all log.
-  npu-sim      Run the Triton Python testcase through the NPU-IR simulator.
-  emit-vmi     Emit PTOAS VMI MLIR from <testcase>/input.mlir.
+  npu-sim      Run the Triton Python testcase through the native NPU-IR flow.
+  bridge-sim   Run the same Python testcase through the NPU-IR-to-PTOAS flow.
+  emit-vmi     Emit PTOAS VMI MLIR from the testcase MLIR with --emit-ptoas-vmi.
   emit-vpto    Emit PTOAS VPTO MLIR from the VMI MLIR.
-  bridge-sim   Run input.mlir -> VMI -> VPTO -> PTOAS simulator fixture.
+  print-ir     Emit PTOAS VMI and log the IR after every NPU-IR pass.
 
 Flags:
-  --clean-build  Remove testcase build directories before running.
+  --clean-build        Remove testcase build directories before running.
+  --print-ir-after-all Add --mlir-print-ir-after-all to emit-vmi.
 
 Required environment:
   ASCEND_NPU_IR_ROOT=/path/to/AscendNPU-IR
   CANN_ROOT=/path/to/CANN
   PTOAS_ROOT=/path/to/PTOAS
 
+Optional environment:
+  NPU_SIM_VENV=/path/to/simulator/venv
+    default: $HOME/.venv/npuir-sim-system
+
 Testcase layout:
   Planner/bridge/testcases/<testcase>/
     <one Triton Python file with one @triton.jit kernel>
-    input.mlir                 created by early-ir, used by compile options
-    run_sim.sh                 auto-created by bridge-sim when fixture files exist
+    compile-input.mlir         preferred input for emit-vmi/emit-vpto inspection
+    input.mlir                 fallback inspection input
 
 Outputs:
-  Planner/bridge/testcases/<testcase>/input.mlir
   Planner/bridge/testcases/<testcase>/out/
   Planner/bridge/testcases/<testcase>/out/build/
 EOF
@@ -83,6 +83,12 @@ prepend_path() {
       *) export PATH="$path:${PATH:-}" ;;
     esac
   fi
+}
+
+prioritize_path() {
+  local path="$1"
+  [[ -d "$path" ]] || die "PATH directory does not exist: $path"
+  export PATH="$path:${PATH:-}"
 }
 
 prepend_ld_library_path() {
@@ -145,58 +151,73 @@ find_ptoas() {
   die "cannot find ptoas under $ptoas_root"
 }
 
-find_cmake() {
-  local candidates=()
+find_cann_bishengir_compile() {
+  require_cann_root
+  local candidates=(
+    "$cann_root/tools/bishengir/bin/bishengir-compile"
+    "$cann_root/x86_64-linux/bin/bishengir-compile"
+  )
   local candidate
-
-  if [[ -n "${CMAKE_BIN:-}" ]]; then
-    candidates+=("$CMAKE_BIN")
-  fi
-  while IFS= read -r candidate; do
-    candidates+=("$candidate")
-  done < <(type -P -a cmake 2>/dev/null || true)
-  candidates+=("/usr/bin/cmake" "/bin/cmake")
-
   for candidate in "${candidates[@]}"; do
-    if [[ -x "$candidate" ]] && "$candidate" --version >/dev/null 2>&1; then
+    if [[ -x "$candidate" ]]; then
       abs_path "$candidate"
       return 0
     fi
   done
-
-  die "cannot find a working cmake binary"
+  die "cannot find the CANN bishengir-compile under $cann_root"
 }
 
-find_python_with_numpy() {
+activate_simulator_venv() {
+  local requested_venv="${NPU_SIM_VENV:-}"
   local candidates=()
-  local candidate root
+  local venv
 
-  if [[ -n "${PYTHON_BIN:-}" ]]; then
-    candidates+=("$PYTHON_BIN")
+  if [[ -n "$requested_venv" ]]; then
+    candidates+=("$requested_venv")
+  else
+    candidates+=("$HOME/.venv/npuir-sim-system")
+    if [[ -n "$npuir_root" ]]; then
+      candidates+=("$npuir_root/.venv")
+    fi
   fi
-  while IFS= read -r candidate; do
-    candidates+=("$candidate")
-  done < <(type -P -a python3 python 2>/dev/null || true)
 
-  shopt -s nullglob
-  for root in "$HOME/miniconda3" "$HOME/anaconda3" /home/*/miniconda3 /home/*/anaconda3; do
-    candidates+=(
-      "$root/bin/python3"
-      "$root/envs/ptoas/bin/python3"
-      "$root/envs/triton/bin/python3"
-      "$root/envs/pypto/bin/python3"
-    )
-  done
-  shopt -u nullglob
-
-  for candidate in "${candidates[@]}"; do
-    if [[ -x "$candidate" ]] && "$candidate" -c 'import numpy' >/dev/null 2>&1; then
-      abs_path "$candidate"
+  for venv in "${candidates[@]}"; do
+    if [[ -f "$venv/bin/activate" && -x "$venv/bin/python3" ]]; then
+      # shellcheck disable=SC1090
+      source "$venv/bin/activate"
+      export NPU_SIM_VENV="$venv"
+      export PYTHONNOUSERSITE=1
+      python3 -c 'import torch, torch_npu, triton; from triton.runtime import driver; assert driver.active' \
+        >/dev/null 2>&1 || die "simulator venv cannot load Torch-NPU and the Triton Ascend backend: $venv"
       return 0
     fi
   done
 
-  die "cannot find a Python that can import numpy"
+  if [[ -n "$requested_venv" ]]; then
+    die "NPU_SIM_VENV is not a usable virtual environment: $requested_venv"
+  fi
+  die "cannot find the simulator venv; set NPU_SIM_VENV"
+}
+
+select_npu_compiler() {
+  local compile_flow="$1"
+  local compiler
+
+  case "$compile_flow" in
+    npuir)
+      compiler="$(find_cann_bishengir_compile)"
+      ;;
+    ptoas)
+      compiler="$(find_bishengir_compile)"
+      ;;
+    *)
+      die "unsupported Triton compile flow: $compile_flow"
+      ;;
+  esac
+
+  prioritize_path "$(dirname -- "$compiler")"
+  export TRITON_NPU_COMPILER_PATH="$(dirname -- "$compiler")"
+  printf '%s\n' "$compiler"
 }
 
 source_cann_env() {
@@ -213,25 +234,15 @@ source_cann_env() {
     set -u
   fi
 
-  prepend_path "$(dirname -- "$(find_bishengir_compile)")"
   prepend_path "$cann_root/tools/bisheng_compiler/bin"
 
-  local venv
-  for venv in "$npuir_root/.venv" "$HOME/.venv/npuir-sim-system"; do
-    if [[ -f "$venv/bin/activate" ]]; then
-      # shellcheck disable=SC1090
-      source "$venv/bin/activate"
-      break
-    fi
-  done
-
   export PYTHONNOUSERSITE=1
-  export TRITON_ASCEND_ARCH="$npu_target"
   export TRITON_BISHENGIR_DISABLE_LIB_CALL_NOINLINE=1
   export TRITON_DISABLE_FFTS=1
   export TRITON_SIMULATOR_CLEAN_EXIT=1
   export TRITON_ALWAYS_COMPILE=1
   export TRITON_DEBUG=1
+  unset TRITON_COMPILE_ONLY
 }
 
 configure_ptoas_env() {
@@ -243,9 +254,14 @@ configure_ptoas_env() {
   prepend_ld_library_path "$ptoas_bin_dir/../lib"
   prepend_ld_library_path "$ptoas_root/build/lib"
   prepend_ld_library_path "$ptoas_root/PTOAS_Markham/build/lib"
-  prepend_ld_library_path "$cann_root/tools/simulator/$ptoas_sim_soc/lib"
+  prepend_ld_library_path "$cann_root/tools/simulator/$soc_version/lib"
   prepend_ld_library_path "$cann_root/runtime/lib64/stub"
   prepend_ld_library_path "$cann_root/lib64"
+
+  export TRITON_OBJCOPY_PATH="${TRITON_OBJCOPY_PATH:-/usr/bin/objcopy}"
+  export TRITON_AICORE_LD_PATH="${TRITON_AICORE_LD_PATH:-$cann_root/tools/bisheng_compiler/bin/ld.lld}"
+  [[ -x "$TRITON_OBJCOPY_PATH" ]] || die "TRITON_OBJCOPY_PATH is not executable: $TRITON_OBJCOPY_PATH"
+  [[ -x "$TRITON_AICORE_LD_PATH" ]] || die "TRITON_AICORE_LD_PATH is not executable: $TRITON_AICORE_LD_PATH"
 }
 
 case_dir_for() {
@@ -295,14 +311,6 @@ find_kernel_name() {
   printf '%s\n' "${kernels[0]}"
 }
 
-maybe_kernel_name() {
-  local case_dir="$1"
-  local python_file
-  if python_file="$(find_python_file "$case_dir" 2>/dev/null)"; then
-    find_kernel_name "$python_file"
-  fi
-}
-
 write_command() {
   local path="$1"
   shift
@@ -328,7 +336,7 @@ run_logged() {
 
 compile_flags() {
   printf '%s\0' \
-    "--target=$npu_target" \
+    "--target=$soc_version" \
     "--enable-auto-multi-buffer=true" \
     "--enable-auto-bind-sub-block=true" \
     "--disable-ffts" \
@@ -342,227 +350,120 @@ compile_flags() {
     "--enable-vf-merge-level=1"
 }
 
-extract_pass_dump() {
-  local log_file="$1"
-  local output_file="$2"
-  local pass_name="$3"
-  local count_file="$4"
-  local tmp_file="${output_file}.tmp"
-  local tmp_count_file="${count_file}.tmp"
-
-  if awk -v pass="(${pass_name})" -v count_file="$tmp_count_file" '
-    function flush_candidate(  i) {
-      if (capture && n > 0) {
-        for (i = 1; i <= n; i++) last[i] = buf[i]
-        last_n = n
-      }
-      capture = 0
-      n = 0
-    }
-
-    BEGIN { capture = 0; count = 0; last_n = 0; n = 0 }
-
-    /^\/\/ -----\/\/ IR Dump (After|Before)/ {
-      flush_candidate()
-      if ($0 ~ /^\/\/ -----\/\/ IR Dump After/ &&
-          $0 !~ / Failed / &&
-          index($0, pass) != 0) {
-        capture = 1
-        count++
-      }
-      next
-    }
-
-    /^\[/ || /^(hivmc|error:|warning:|loc\()/ {
-      flush_candidate()
-      next
-    }
-
-    capture {
-      n++
-      buf[n] = $0
-      next
-    }
-
-    END {
-      flush_candidate()
-      if (last_n == 0) exit 1
-      for (i = 1; i <= last_n; i++) print last[i]
-      print count > count_file
-    }
-  ' "$log_file" >"$tmp_file"; then
-    mv "$tmp_file" "$output_file"
-    mv "$tmp_count_file" "$count_file"
-  else
-    rm -f "$tmp_file" "$tmp_count_file"
-    return 1
-  fi
-}
-
-latest_ttadapter_dump() {
-  local dump_root="$1"
-  find "$dump_root" -type f -name '*kernel.ttadapter.mlir' 2>/dev/null | sort | tail -n 1
-}
-
 run_python_simulator() {
   local case_dir="$1"
   local build_dir="$2"
-  local stop_after_dump="$3"
-  local python_file kernel_name sim_out sim_log dump_file
+  local compile_flow="$3"
+  local python_file kernel_name sim_out sim_log ptoas_bin
+
+  case "$compile_flow" in
+    npuir)
+      sim_out="$build_dir/npu-python"
+      ;;
+    ptoas)
+      sim_out="$build_dir/ptoas-python"
+      ;;
+    *)
+      die "unsupported Triton compile flow: $compile_flow"
+      ;;
+  esac
 
   python_file="$(find_python_file "$case_dir")"
   kernel_name="$(find_kernel_name "$python_file")"
-  sim_out="$build_dir/npu-python"
   sim_log="$sim_out/msprof.log"
 
   source_cann_env
+  activate_simulator_venv
+  select_npu_compiler "$compile_flow" >/dev/null
+  if [[ "$compile_flow" == "ptoas" ]]; then
+    ptoas_bin="$(find_ptoas)"
+    configure_ptoas_env "$ptoas_bin"
+    export TRITON_PTOAS_PATH="$ptoas_bin"
+  else
+    unset TRITON_PTOAS_PATH
+  fi
+
   mkdir -p "$sim_out/cache" "$sim_out/dump" "$sim_out/logs" "$sim_out/profile"
   chmod 700 "$sim_out" "$sim_out/cache" "$sim_out/dump" "$sim_out/logs" "$sim_out/profile" 2>/dev/null || true
 
   export TRITON_CACHE_DIR="$sim_out/cache"
   export TRITON_DUMP_DIR="$sim_out/dump"
   export ASCEND_PROCESS_LOG_PATH="$sim_out/logs"
+  export TRITON_ASCEND_COMPILE_FLOW="$compile_flow"
+  export TRITON_ASCEND_ARCH="$soc_version"
   unset BISHENGIR_ENABLE_PTOAS_BRIDGE
 
   local cmd=(
     msprof op simulator
     "--kernel-name=$kernel_name"
-    "--soc-version=$npu_sim_soc"
+    "--soc-version=$soc_version"
     "--core-id=$core_id"
     "--output=$sim_out/profile"
     python3
     "$python_file"
   )
   write_command "$sim_out/command.txt" "${cmd[@]}"
-
-  if [[ "$stop_after_dump" == "0" ]]; then
-    log "NPU-IR simulator: $(basename -- "$python_file")"
-    run_logged "$sim_log" "${cmd[@]}"
-    log "simulator log: $sim_log"
-    return 0
-  fi
-
-  log "early IR: $(basename -- "$python_file")"
-  local sim_pid kill_target found_dump=0 deadline status
-  if command -v setsid >/dev/null 2>&1; then
-    setsid "${cmd[@]}" >"$sim_log" 2>&1 &
-    sim_pid=$!
-    kill_target="-$sim_pid"
-  else
-    "${cmd[@]}" >"$sim_log" 2>&1 &
-    sim_pid=$!
-    kill_target="$sim_pid"
-  fi
-
-  deadline=$((SECONDS + 600))
-  while kill -0 "$sim_pid" 2>/dev/null; do
-    if [[ -n "$(latest_ttadapter_dump "$sim_out/dump")" ]]; then
-      found_dump=1
-      sleep 2
-      break
+  {
+    printf 'NPU_SIM_VENV=%q\n' "$NPU_SIM_VENV"
+    printf 'python3=%q\n' "$(command -v python3)"
+    printf 'bishengir-compile=%q\n' "$(command -v bishengir-compile)"
+    printf 'TRITON_ASCEND_COMPILE_FLOW=%q\n' "$TRITON_ASCEND_COMPILE_FLOW"
+    printf 'TRITON_ASCEND_ARCH=%q\n' "$TRITON_ASCEND_ARCH"
+    if [[ -n "${TRITON_PTOAS_PATH:-}" ]]; then
+      printf 'TRITON_PTOAS_PATH=%q\n' "$TRITON_PTOAS_PATH"
     fi
-    (( SECONDS < deadline )) || break
-    sleep 1
-  done
+  } >>"$sim_out/command.txt"
 
-  if kill -0 "$sim_pid" 2>/dev/null; then
-    kill -TERM -- "$kill_target" 2>/dev/null || kill -TERM "$sim_pid" 2>/dev/null || true
-    sleep 2
-    kill -KILL -- "$kill_target" 2>/dev/null || kill -KILL "$sim_pid" 2>/dev/null || true
-  fi
-
-  set +e
-  wait "$sim_pid"
-  status=$?
-  set -e
-  echo "$status" >"$sim_out/msprof-exit-code.txt"
-
-  if [[ -n "$(latest_ttadapter_dump "$sim_out/dump")" ]]; then
-    found_dump=1
-  fi
-  [[ "$found_dump" == "1" ]] || die "no TTAdapter MLIR dump captured; see $sim_log"
-  dump_file="$(latest_ttadapter_dump "$sim_out/dump")"
-  cp -a "$dump_file" "$case_dir/input.mlir"
-  log "wrote $case_dir/input.mlir"
+  log "$compile_flow simulator: $(basename -- "$python_file")"
+  run_logged "$sim_log" "${cmd[@]}"
+  log "simulator log: $sim_log"
 }
 
-run_compile() {
+run_emit_vmi() {
   local case_dir="$1"
-  local build_dir="$2"
-  local mode="$3"
-  local print_arg="$4"
-  local output_stem="$5"
-  local log_file="$6"
-  local input="$case_dir/input.mlir"
-  local bishengir_compile status
+  local case_name="$2"
+  local print_ir_after_all="$3"
+  local out_dir="$case_dir/out"
+  local build_dir="$out_dir/build"
+  local log_file="$build_dir/emit-vmi.log"
+  local vmi_file="$out_dir/$case_name.vmi.mlir"
+  local input="$case_dir/compile-input.mlir"
+  local bishengir_compile
 
-  [[ -f "$input" ]] || die "missing $input; run early-ir first"
+  if [[ ! -f "$input" ]]; then
+    input="$case_dir/input.mlir"
+  fi
+  [[ -f "$input" ]] || die "missing compile-input.mlir or input.mlir in $case_dir"
   source_cann_env
   bishengir_compile="$(find_bishengir_compile)"
-  mkdir -p "$build_dir/temps-$mode" "$(dirname -- "$output_stem")"
+  prioritize_path "$(dirname -- "$bishengir_compile")"
+  mkdir -p "$build_dir/temps-vmi"
 
   mapfile -d '' flags < <(compile_flags)
   local cmd=(
     "$bishengir_compile"
     "$input"
     "${flags[@]}"
-    "$print_arg"
-    "--save-temps=$build_dir/temps-$mode"
-    "-o"
-    "$output_stem"
+    "--emit-ptoas-vmi"
   )
-  write_command "$build_dir/$mode.command.txt" "${cmd[@]}"
-
-  set +e
-  if [[ "$mode" == "vmi" ]]; then
-    BISHENGIR_ENABLE_PTOAS_BRIDGE=1 "${cmd[@]}" >"$log_file" 2>&1
-  else
-    env -u BISHENGIR_ENABLE_PTOAS_BRIDGE "${cmd[@]}" >"$log_file" 2>&1
+  if [[ "$print_ir_after_all" == "1" ]]; then
+    cmd+=("--mlir-print-ir-after-all")
+    log_file="$out_dir/after-all.log"
   fi
-  status=$?
-  set -e
-  echo "$status" >"$build_dir/$mode.exit-code.txt"
-  return "$status"
-}
-
-run_print_all() {
-  local case_dir="$1"
-  local out_dir="$case_dir/out"
-  local build_dir="$out_dir/build"
-  local log_file="$out_dir/after-all.log"
-  mkdir -p "$build_dir"
-
-  log "bishengir-compile print-after-all"
-  if run_compile "$case_dir" "$build_dir" "after-all" "--mlir-print-ir-after-all" "$build_dir/after-all/kernel" "$log_file"; then
-    log "wrote $log_file"
-    return 0
-  fi
-
-  if grep -q "IR Dump After" "$log_file"; then
-    log "compiler exited nonzero, but pass dumps were captured: $log_file"
-    return 0
-  fi
-  die "compiler failed before pass dumps; see $log_file"
-}
-
-run_emit_vmi() {
-  local case_dir="$1"
-  local case_name="$2"
-  local out_dir="$case_dir/out"
-  local build_dir="$out_dir/build"
-  local log_file="$build_dir/emit-vmi.log"
-  local vmi_file="$out_dir/$case_name.vmi.mlir"
-  local count_file="$build_dir/after-$target_pass.dump-count.txt"
-  mkdir -p "$build_dir"
+  cmd+=(
+    "--save-temps=$build_dir/temps-vmi"
+    "-o"
+    "$vmi_file"
+  )
+  write_command "$build_dir/emit-vmi.command.txt" "${cmd[@]}"
 
   log "bishengir-compile -> PTOAS VMI"
-  if ! run_compile "$case_dir" "$build_dir" "vmi" "--mlir-print-ir-after=$target_pass" "$build_dir/vmi/kernel" "$log_file"; then
-    log "compiler exited nonzero; trying to extract the requested pass dump"
-  fi
-
-  extract_pass_dump "$log_file" "$vmi_file" "$target_pass" "$count_file" ||
-    die "could not extract a successful dump after $target_pass; see $log_file"
+  run_logged "$log_file" env -u BISHENGIR_ENABLE_PTOAS_BRIDGE "${cmd[@]}"
+  [[ -s "$vmi_file" ]] || die "bishengir-compile did not create $vmi_file; see $log_file"
   log "wrote $vmi_file"
+  if [[ "$print_ir_after_all" == "1" ]]; then
+    log "IR dump log: $log_file"
+  fi
 }
 
 run_emit_vpto() {
@@ -574,7 +475,7 @@ run_emit_vpto() {
   local vpto_file="$out_dir/$case_name.vpto.mlir"
   local ptoas_bin
 
-  [[ -f "$vmi_file" ]] || run_emit_vmi "$case_dir" "$case_name"
+  [[ -f "$vmi_file" ]] || run_emit_vmi "$case_dir" "$case_name" 0
   source_cann_env
   ptoas_bin="$(find_ptoas)"
   configure_ptoas_env "$ptoas_bin"
@@ -595,181 +496,8 @@ run_emit_vpto() {
   log "wrote $vpto_file"
 }
 
-write_generated_run_sim() {
-  local script_path="$1"
-
-  cat >"$script_path" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-
-case_name="${CASE_NAME:-${TESTCASE_NAME:-$(basename -- "$script_dir")}}"
-build_dir="${BUILD_DIR:-$script_dir/out/build/ptoas-sim}"
-run_dir="${RUN_DIR:-$build_dir/run}"
-soc_version="${SOC_VERSION:-Ascend950PR_9599}"
-ptoas_bin="${PTOAS_BIN:?PTOAS_BIN is required}"
-kernel_mlir="${KERNEL_MLIR:?KERNEL_MLIR is required}"
-ascend_home="${ASCEND_HOME_PATH:?ASCEND_HOME_PATH is required}"
-use_msprof="${USE_MSPROF:-0}"
-kernel_name="${KERNEL_NAME:-}"
-core_id="${CORE_ID:-0}"
-msprof_output="${MSPROF_OUTPUT:-$build_dir/profile}"
-cmake_bin="${CMAKE_BIN:-cmake}"
-python_bin="${PYTHON_BIN:-python3}"
-
-if [[ ! -x "$ptoas_bin" ]]; then
-  echo "error: PTOAS_BIN is not executable: $ptoas_bin" >&2
-  exit 1
-fi
-if [[ ! -f "$kernel_mlir" ]]; then
-  echo "error: KERNEL_MLIR does not exist: $kernel_mlir" >&2
-  exit 1
-fi
-if ! "$cmake_bin" --version >/dev/null 2>&1; then
-  echo "error: CMAKE_BIN is not a working cmake binary: $cmake_bin" >&2
-  exit 1
-fi
-if ! "$python_bin" -c 'import numpy' >/dev/null 2>&1; then
-  echo "error: PYTHON_BIN cannot import numpy: $python_bin" >&2
-  exit 1
-fi
-
-sim_lib_dir="${SIM_LIB_DIR:-$ascend_home/tools/simulator/$soc_version/lib}"
-export LD_LIBRARY_PATH="$sim_lib_dir:$ascend_home/runtime/lib64/stub:$ascend_home/lib64:${LD_LIBRARY_PATH:-}"
-
-"$cmake_bin" -S "$script_dir" -B "$build_dir" \
-  -DSOC_VERSION="$soc_version" \
-  -DPTOAS_BIN="$ptoas_bin" \
-  -DKERNEL_MLIR="$kernel_mlir"
-"$cmake_bin" --build "$build_dir" --parallel "${BUILD_JOBS:-$(nproc)}"
-
-executable=""
-for candidate in \
-  "$build_dir/${case_name}_vpto" \
-  "$build_dir/lowered_${case_name}_vpto"; do
-  if [[ -x "$candidate" && ! -d "$candidate" ]]; then
-    executable="$candidate"
-    break
-  fi
-done
-
-if [[ -z "$executable" ]]; then
-  mapfile -t executable_candidates < <(
-    find "$build_dir" -maxdepth 1 -type f -perm -111 \
-      ! -name '*.so' \
-      ! -name '*.a' \
-      ! -name 'cmake*' \
-      | sort
-  )
-  if [[ ${#executable_candidates[@]} -eq 1 ]]; then
-    executable="${executable_candidates[0]}"
-  fi
-fi
-
-if [[ -z "$executable" ]]; then
-  echo "error: could not infer the built simulator executable in $build_dir" >&2
-  echo "       either name it ${case_name}_vpto/lowered_${case_name}_vpto or edit run_sim.sh" >&2
-  exit 1
-fi
-
-mkdir -p "$run_dir"
-cd "$run_dir"
-"$python_bin" "$script_dir/gen_data.py"
-
-if [[ "$use_msprof" == "1" ]]; then
-  [[ -n "$kernel_name" ]] || {
-    echo "error: KERNEL_NAME is required when USE_MSPROF=1" >&2
-    exit 1
-  }
-  mkdir -p "$msprof_output"
-  chmod 700 "$msprof_output" 2>/dev/null || true
-  msprof op simulator \
-    --kernel-name="$kernel_name" \
-    --soc-version="$soc_version" \
-    --core-id="$core_id" \
-    --output="$msprof_output" \
-    --application="$executable"
-else
-  "$executable"
-fi
-
-"$python_bin" "$script_dir/compare.py"
-EOF
-  chmod +x "$script_path"
-}
-
-ensure_bridge_sim_fixture() {
-  local case_dir="$1"
-  local missing=()
-  local required_file
-
-  for required_file in CMakeLists.txt main.cpp launch.cpp gen_data.py compare.py; do
-    if [[ ! -f "$case_dir/$required_file" ]]; then
-      missing+=("$required_file")
-    fi
-  done
-
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    die "bridge-sim needs a simulator fixture; first generate these files: ${missing[*]}"
-  fi
-
-  if [[ ! -f "$case_dir/run_sim.sh" ]]; then
-    write_generated_run_sim "$case_dir/run_sim.sh"
-    log "created $case_dir/run_sim.sh"
-  fi
-}
-
-run_bridge_sim() {
-  local case_dir="$1"
-  local case_name="$2"
-  local out_dir="$case_dir/out"
-  local build_dir="$out_dir/build"
-  local vpto_file="$out_dir/$case_name.vpto.mlir"
-  local ptoas_bin kernel_name cmake_bin python_bin
-
-  ensure_bridge_sim_fixture "$case_dir"
-  [[ -f "$vpto_file" ]] || run_emit_vpto "$case_dir" "$case_name"
-
-  source_cann_env
-  ptoas_bin="$(find_ptoas)"
-  cmake_bin="$(find_cmake)"
-  python_bin="$(find_python_with_numpy)"
-  configure_ptoas_env "$ptoas_bin"
-  kernel_name="$(maybe_kernel_name "$case_dir" || true)"
-
-  mkdir -p "$build_dir/ptoas-sim"
-  local env_cmd=(
-    env
-    "PTOAS_BIN=$ptoas_bin"
-    "KERNEL_MLIR=$vpto_file"
-    "TESTCASE_NAME=$case_name"
-    "CASE_NAME=$case_name"
-    "BUILD_DIR=$build_dir/ptoas-sim"
-    "RUN_DIR=$build_dir/ptoas-sim/run"
-    "ASCEND_HOME_PATH=$cann_root"
-    "SOC_VERSION=$ptoas_sim_soc"
-    "SIM_LIB_DIR=$cann_root/tools/simulator/$ptoas_sim_soc/lib"
-    "BUILD_JOBS=$(nproc)"
-    "USE_MSPROF=1"
-    "CORE_ID=$core_id"
-    "MSPROF_OUTPUT=$build_dir/ptoas-profile"
-    "CMAKE_BIN=$cmake_bin"
-    "PYTHON_BIN=$python_bin"
-    "PATH=$(dirname -- "$python_bin"):$(dirname -- "$cmake_bin"):${PATH:-}"
-  )
-  if [[ -n "$kernel_name" ]]; then
-    env_cmd+=("KERNEL_NAME=$kernel_name")
-  fi
-  env_cmd+=(bash "$case_dir/run_sim.sh")
-
-  write_command "$build_dir/bridge-sim.command.txt" "${env_cmd[@]}"
-  log "VPTO simulator fixture"
-  run_logged "$build_dir/bridge-sim.log" "${env_cmd[@]}"
-  log "simulator log: $build_dir/bridge-sim.log"
-}
-
 clean_build=0
+print_ir_after_all=0
 args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -779,6 +507,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --clean-build|clean-build)
       clean_build=1
+      shift
+      ;;
+    --print-ir-after-all|print-ir-after-all)
+      print_ir_after_all=1
       shift
       ;;
     --)
@@ -811,24 +543,25 @@ if [[ "$clean_build" == "1" ]]; then
 fi
 mkdir -p "$build_dir"
 
+if [[ "$print_ir_after_all" == "1" && "$option" != "emit-vmi" && "$option" != "vmi" ]]; then
+  die "--print-ir-after-all is supported with emit-vmi only; use print-ir <testcase>"
+fi
+
 case "$option" in
-  early-ir|input-mlir|generate-mlir)
-    run_python_simulator "$case_dir" "$build_dir" 1
-    ;;
-  print-all|after-all)
-    run_print_all "$case_dir"
-    ;;
   npu-sim|baseline-sim)
-    run_python_simulator "$case_dir" "$build_dir" 0
+    run_python_simulator "$case_dir" "$build_dir" npuir
+    ;;
+  bridge-sim|ptoas-sim)
+    run_python_simulator "$case_dir" "$build_dir" ptoas
     ;;
   emit-vmi|vmi)
-    run_emit_vmi "$case_dir" "$case_name"
+    run_emit_vmi "$case_dir" "$case_name" "$print_ir_after_all"
     ;;
   emit-vpto|vpto)
     run_emit_vpto "$case_dir" "$case_name"
     ;;
-  bridge-sim|ptoas-sim)
-    run_bridge_sim "$case_dir" "$case_name"
+  print-ir|print-all|after-all)
+    run_emit_vmi "$case_dir" "$case_name" 1
     ;;
   *)
     die "unknown option: $1"

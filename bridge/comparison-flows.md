@@ -1,418 +1,311 @@
-# Comparison Flows
+# NPU-IR and PTOAS Comparison Flows
 
-This is the human runbook for comparing baseline NPU-IR with the
-NPU-IR-to-PTOAS path on the Codex-accessible Bluezone server.
-
-The concrete example is:
+`bridge/tools/run_comparison_flow.sh` compares two end-to-end Triton-Ascend
+compiler paths with the same Python testcase and generated Triton host launcher:
 
 ```text
-Python file:    bridge/triton-example/vector_add.py
-Triton kernel:  vector_add_kernel
-Bridge case:    vadd
+npu-sim:
+  Triton Python -> TTIR -> NPU-IR -> npubin -> generated host launcher -> simulator
+
+bridge-sim:
+  Triton Python -> TTIR -> NPU-IR -> PTOAS VMI -> PTOAS -> npubin
+                -> generated host launcher -> simulator
 ```
 
-For another kernel, use the same commands but change the setup values. For
-example, for `bridge/triton-example/vector_add_large.py`:
+The script also provides compiler-only commands for inspecting PTOAS VMI and
+VPTO MLIR. These inspection commands are not part of the simulation launch.
+
+## Prerequisites
+
+The following components must already be built:
+
+- AscendNPU-IR with `bishengir-compile --emit-ptoas-vmi` support.
+- PTOAS with an executable `ptoas` binary.
+- Triton-Ascend with the `TRITON_ASCEND_COMPILE_FLOW=ptoas` changes.
+- A simulator-compatible Python environment containing Torch, Torch-NPU, and
+  the modified Triton-Ascend installation.
+
+Set the three repository/install roots:
 
 ```bash
-source bridge/tools/source_comparison_env.sh \
-  --cann-root /path/to/Ascend/cann-9.1.0-beta.3 \
-  --testcase vadd_large \
-  --kernel-name vector_add_large_kernel \
-  --python-file bridge/triton-example/vector_add_large.py
+cd /home/m00967009/Workspace/Planner
+
+export ASCEND_NPU_IR_ROOT=/home/m00967009/Workspace/AscendNPU-IR
+export PTOAS_ROOT=/home/m00967009/Workspace/PTOAS
+export CANN_ROOT=/home/a84369921/Ascend/cann-9.1.0-beta.3
+export NPU_SIM_VENV=/home/m00967009/.venv/npuir-sim-system
 ```
 
-For active NPU-IR bridge development, the comparison wrapper prefers
-`$HOME/AscendNPU-IR/build/bin/bishengir-compile` when it exists. That build-tree
-binary is usually newer than `$HOME/AscendNPU-IR/build/install/bin`.
+The script sources `$CANN_ROOT/set_env.sh`, activates `$NPU_SIM_VENV`, disables
+user-site package shadowing with `PYTHONNOUSERSITE=1`, and verifies that the
+environment can import Torch, Torch-NPU, and the Triton Ascend backend. It
+preserves the CANN `PYTHONPATH` configured by `set_env.sh`, which the simulator
+needs during `aclInit`. If `NPU_SIM_VENV` is unset, it defaults to:
 
-Important: run `msprof op simulator` from a normal Bluezone shell. Inside
-Codex, the simulator must run outside the sandbox; otherwise socket setup can
-fail and TorchNPU may report `aclInit` or empty-SOC errors.
+```text
+$HOME/.venv/npuir-sim-system
+```
 
-Before running any section below, do this once:
+Compiler selection is flow-specific:
+
+- `npu-sim` uses CANN's `tools/bishengir/bin/bishengir-compile`, which matches
+  the installed `hivmc-a5` used by the native 9599 code-generation path.
+- `bridge-sim`, `emit-vmi`, and `print-ir` use the rebuilt AscendNPU-IR
+  compiler, which contains the local `--emit-ptoas-vmi` change.
+
+Using the rebuilt compiler with CANN's older `hivmc-a5` in the native flow can
+fail when `hivmc-a5` encounters newer attributes such as `hacc.noinline`.
+
+Verify the selected local tools before a long simulator run:
 
 ```bash
-cd "$HOME/Planner"
-
-source bridge/tools/source_comparison_env.sh \
-  --cann-root /path/to/cann-9.1.0-beta.3 \
-  --testcase vadd \
-  --kernel-name vector_add_kernel \
-  --python-file bridge/triton-example/vector_add.py
-
-bridge/tools/run_comparison_flow.sh record-versions
+"$ASCEND_NPU_IR_ROOT/build/bin/bishengir-compile" --help 2>&1 \
+  | grep -- --emit-ptoas-vmi
+"$PTOAS_ROOT/build/tools/ptoas/ptoas" --help | head
 ```
 
-The script prints the output directory. It will look like:
+## Testcase Layout
+
+A simulator testcase needs exactly one Python file containing one
+`@triton.jit` kernel:
 
 ```text
-$HOME/tmp/npuir-ptoas-comparison/vadd-YYYYMMDDTHHMMSSZ
+bridge/testcases/<case>/
+  <kernel>.py
 ```
 
-The rest of this document refers to that directory as:
+The script infers both the Python filename and kernel function name. The Python
+program remains responsible for creating tensors, launching the kernel, and
+comparing its output with Torch.
+
+Compiler-only inspection also needs a checked-in or otherwise prepared input.
+The preferred filename is:
 
 ```text
-$OUT_ROOT
+bridge/testcases/<case>/compile-input.mlir
 ```
 
-## 1. Run End-To-End NPU-IR On Simulator On Codex Server / Bluezone
+If `compile-input.mlir` does not exist, the script falls back to `input.mlir`.
+The script does not generate either file. End-to-end simulation starts directly
+from the Python testcase, while `emit-vmi` uses this explicit, replayable MLIR
+input.
 
-This is the baseline NPU-IR runtime path. It starts from the Triton Python file,
-compiles through NPU-IR, runs with the CANN operator simulator, and checks the
-result in Python.
+## Command Interface
 
-Flow:
+```bash
+bridge/tools/run_comparison_flow.sh [--clean-build] \
+  [--print-ir-after-all] <option> <testcase>
+```
+
+Available options:
+
+| Option | Purpose |
+| --- | --- |
+| `npu-sim` | Run the Python testcase through native NPU-IR. |
+| `bridge-sim` | Run the same Python testcase through NPU-IR and PTOAS. |
+| `emit-vmi` | Compile the testcase MLIR directly to PTOAS VMI MLIR. |
+| `emit-vpto` | Lower the VMI MLIR to VPTO MLIR for inspection. |
+| `print-ir` | Run `emit-vmi` and print IR after every NPU-IR pass. |
+
+`--clean-build` removes the testcase's build directories before running. It
+does not remove the testcase source files.
+
+## Native NPU-IR Simulation
+
+Run the baseline:
+
+```bash
+bridge/tools/run_comparison_flow.sh npu-sim vadd
+```
+
+The script runs the equivalent of:
+
+```bash
+TRITON_ASCEND_COMPILE_FLOW=npuir \
+TRITON_ASCEND_ARCH=Ascend950PR_9599 \
+msprof op simulator \
+  --kernel-name=vector_add_kernel \
+  --soc-version=Ascend950PR_9599 \
+  --core-id=0 \
+  --output=bridge/testcases/vadd/out/build/npu-python/profile \
+  python3 bridge/testcases/vadd/vector_add.py
+```
+
+Important outputs:
 
 ```text
-vector_add.py
-  -> Triton/NPU-IR lowering
-  -> NPU-IR backend
-  -> CANN operator simulator
-  -> Python correctness check
+bridge/testcases/vadd/out/build/npu-python/msprof.log
+bridge/testcases/vadd/out/build/npu-python/command.txt
+bridge/testcases/vadd/out/build/npu-python/cache/
+bridge/testcases/vadd/out/build/npu-python/dump/
+bridge/testcases/vadd/out/build/npu-python/profile/
 ```
+
+For `vadd`, success requires `allclose: True` in `msprof.log` and no Python
+traceback. An `msprof` report directory by itself does not prove correctness.
+
+## NPU-IR-to-PTOAS Simulation
+
+Run the new flow with the same Python host program:
+
+```bash
+bridge/tools/run_comparison_flow.sh bridge-sim vadd
+```
+
+The script sets:
+
+```text
+TRITON_ASCEND_COMPILE_FLOW=ptoas
+TRITON_ASCEND_ARCH=Ascend950PR_9599
+TRITON_PTOAS_PATH=<resolved PTOAS binary>
+```
+
+It then launches the Python testcase with `msprof op simulator` for
+`Ascend950PR_9599`. Triton-Ascend performs VMI emission, PTOAS compilation,
+npubin construction, and launch through its existing generated host code.
+There is no separate CMake/C++ host fixture in this flow.
+
+Important outputs:
+
+```text
+bridge/testcases/vadd/out/build/ptoas-python/msprof.log
+bridge/testcases/vadd/out/build/ptoas-python/command.txt
+bridge/testcases/vadd/out/build/ptoas-python/cache/
+bridge/testcases/vadd/out/build/ptoas-python/dump/
+bridge/testcases/vadd/out/build/ptoas-python/profile/
+```
+
+The expected correctness result is again `allclose: True`.
+
+## Emit PTOAS VMI Directly
+
+To inspect only the NPU-IR bridge endpoint:
+
+```bash
+bridge/tools/run_comparison_flow.sh emit-vmi vadd
+```
+
+This invokes the rebuilt compiler with:
+
+```text
+bishengir-compile bridge/testcases/vadd/compile-input.mlir \
+  <NPU-IR pipeline flags> \
+  --emit-ptoas-vmi \
+  -o bridge/testcases/vadd/out/vadd.vmi.mlir
+```
+
+The VMI file is now a normal compiler output. The script no longer requests a
+single pass diagnostic and extracts MLIR text from the compiler log.
+
+Outputs:
+
+```text
+bridge/testcases/vadd/out/vadd.vmi.mlir
+bridge/testcases/vadd/out/build/emit-vmi.log
+bridge/testcases/vadd/out/build/emit-vmi.command.txt
+bridge/testcases/vadd/out/build/temps-vmi/
+```
+
+## Print IR After Every Pass
+
+Use either spelling:
+
+```bash
+bridge/tools/run_comparison_flow.sh print-ir vadd
+```
+
+```bash
+bridge/tools/run_comparison_flow.sh --print-ir-after-all emit-vmi vadd
+```
+
+Both add `--mlir-print-ir-after-all` to the direct `bishengir-compile` command
+while still writing the final VMI module normally with `--emit-ptoas-vmi`.
+
+Outputs:
+
+```text
+bridge/testcases/vadd/out/after-all.log
+bridge/testcases/vadd/out/vadd.vmi.mlir
+```
+
+This can produce a large log. Use it to inspect transformations around a
+specific pass without relying on the log as the source of the final VMI file.
+
+## Emit VPTO For Inspection
 
 Run:
 
 ```bash
-bridge/tools/run_comparison_flow.sh baseline-sim
+bridge/tools/run_comparison_flow.sh emit-vpto vadd
 ```
 
-Main outputs:
+If `out/vadd.vmi.mlir` does not exist, the script first runs `emit-vmi`. It then
+invokes PTOAS with `--pto-backend=vpto --emit-vpto`.
+
+Outputs:
 
 ```text
-$OUT_ROOT/baseline-npuir-sim/msprof.stdout.log
-$OUT_ROOT/baseline-npuir-sim/msprof.stderr.log
-$OUT_ROOT/baseline-npuir-sim/dump/
-$OUT_ROOT/baseline-npuir-sim/profile/
-$OUT_ROOT/baseline-npuir-sim/logs/
+bridge/testcases/vadd/out/vadd.vpto.mlir
+bridge/testcases/vadd/out/build/emit-vpto.log
+bridge/testcases/vadd/out/build/emit-vpto.command.txt
 ```
 
-For `vector_add.py`, expected correctness output (in $OUT_ROOT/baseline-npuir-sim/msprof.stdout.log):
+This command is for inspecting PTOAS lowering. `bridge-sim` does not consume
+this VPTO file; it exercises Triton-Ascend's complete integrated PTOAS flow.
 
-```text
-max error: 0.0
-allclose: True
-```
+## Common Comparison Sequence
 
-Use this as the baseline functional result and baseline simulator profile. When
-you compare numbers later, keep the same SOC, core id, input shape, and launch
-shape.
-
-## 2. Generate Initial IR Dump From Triton Kernel In NPU-IR On Codex Server / Bluezone
-
-This uses the simulator compile path to generate early IR dumps from the Triton
-kernel. The most important artifact is the TTAdapter MLIR. That is the input we
-reuse for compile-only experiments.
-
-For `vector_add.py`, run:
+For a clean comparison of both executable paths:
 
 ```bash
-bridge/tools/run_comparison_flow.sh early-ir
+bridge/tools/run_comparison_flow.sh --clean-build npu-sim vadd
+bridge/tools/run_comparison_flow.sh bridge-sim vadd
 ```
 
-By default this does **not** wait for the full simulator run to finish. It stops
-after the first `kernel.ttadapter.mlir` dump appears, because section 3 only
-needs that initial compiler input.
-
-If you want the simulator to keep running to the end while also collecting early
-IR, run:
+For compiler inspection in addition to simulation:
 
 ```bash
-EARLY_IR_STOP_AFTER_DUMP=0 bridge/tools/run_comparison_flow.sh early-ir
+bridge/tools/run_comparison_flow.sh print-ir vadd
+bridge/tools/run_comparison_flow.sh emit-vpto vadd
 ```
 
-Main outputs:
-
-```text
-$OUT_ROOT/early-ir/msprof.log
-$OUT_ROOT/early-ir/early-ir-manifest.txt
-$OUT_ROOT/early-ir/vadd.ttadapter.mlir
-$OUT_ROOT/early-ir/early-ir/*kernel.ttadapter.mlir
-$OUT_ROOT/early-ir/early-ir/*kernel.ttir.mlir
-```
-
-Example TTAdapter output path:
-
-```text
-$OUT_ROOT/early-ir/vadd.ttadapter.mlir
-```
-
-The nested `early-ir/early-ir/*kernel.ttadapter.mlir` files are the raw dumps.
-The comparison wrapper copies the latest one to
-`$OUT_ROOT/early-ir/vadd.ttadapter.mlir`, and the later compile flows use that
-stable path automatically.
-
-Use this section when you have a new Triton kernel and need the initial MLIR
-that NPU-IR sees after Triton lowering.
-
-### 2.1. Capture Baseline Pre-CCE LLVM IR
-
-This does not run the full simulator. It replays the TTAdapter MLIR from
-section 2 through `bishengir-compile --save-linked-ir`, copies the temporary
-`kernel*.ll` / `*mix*.ll` files, and stops the compiler after the first
-successful capture by default.
-
-Run:
+The compatibility wrapper can run that full sequence:
 
 ```bash
-bridge/tools/run_comparison_flow.sh baseline-llvm-ir
+bridge/tools/run_npuir_ptoas_bridge_tests.sh --all vadd
 ```
 
-Main outputs:
+## Troubleshooting
 
-```text
-$OUT_ROOT/baseline-pre-cce-llvm-ir/compile.log
-$OUT_ROOT/baseline-pre-cce-llvm-ir/command.txt
-$OUT_ROOT/baseline-pre-cce-llvm-ir/ll-dumps/
-```
+### The compiler rejects `--emit-ptoas-vmi`
 
-Use this when you want to inspect the LLVM/HIVM boundary that CCE would see,
-without waiting for an end-to-end simulator run.
-
-## 3. Perform `bishengir-compile` In Bluezone To Get The Full PTOAS Dialect
-
-This starts from the TTAdapter MLIR from section 2 and runs the NPU-IR compiler
-with the PTOAS bridge passes enabled.
-
-The important output is the MLIR file that PTOAS can consume. For the current
-bridge this is named:
-
-```text
-$OUT_ROOT/bridge-ptoas-vmi/vadd.vmi.mlir
-```
-
-Run:
+Check `out/build/emit-vmi.command.txt`. Its first argument must resolve to the
+rebuilt AscendNPU-IR compiler, not the compiler under the CANN installation.
 
 ```bash
-bridge/tools/run_comparison_flow.sh bridge-ir
+"$ASCEND_NPU_IR_ROOT/build/bin/bishengir-compile" --help 2>&1 \
+  | grep -- --emit-ptoas-vmi
 ```
 
-For `vadd`, the generated PTOAS-input MLIR should contain operations like:
+### Triton reports zero active drivers
 
-```text
-pto.vmi.load
-pto.vmi.vadd
-pto.vmi.store
-pto.mte_gm_ub
-pto.mte_ub_gm
-```
+The Python environment does not see the installed Triton-Ascend backend. Run
+the script from the simulator virtual environment in which the modified
+Triton-Ascend package was installed, and keep `PYTHONNOUSERSITE=1` so a second
+user-site Triton package cannot shadow it.
 
-Main outputs:
+### The simulator rejects testcase permissions
 
-```text
-$OUT_ROOT/bridge-ptoas-vmi/vadd.vmi.mlir
-$OUT_ROOT/bridge-ptoas-vmi/compile.log
-$OUT_ROOT/bridge-ptoas-vmi/compile-after-all.log
-$OUT_ROOT/bridge-ptoas-vmi/command.txt
-$OUT_ROOT/bridge-ptoas-vmi/command-after-all.txt
-$OUT_ROOT/bridge-ptoas-vmi/after-convert-hivmave-to-ptoas-vmi-dump-count.txt
-```
-
-`compile.log` is the targeted dump after `convert-hivmave-to-ptoas-vmi`; the
-script extracts `$OUT_ROOT/bridge-ptoas-vmi/vadd.vmi.mlir` from that file.
-`compile-after-all.log` is the full `--mlir-print-ir-after-all` log for
-debugging the surrounding NPU-IR passes.
-
-If you also want PTOAS VPTO and VPTO LLVM IR immediately after the bridge
-compile, run section 4.2 next.
-
-There is also an older testcase-runner path:
+`msprof` rejects group- or world-writable application directories. Fix the
+testcase permissions before running:
 
 ```bash
-bridge/tools/run_comparison_flow.sh bridge-lower
+chmod go-w bridge/testcases/vadd
+chmod go-w bridge/testcases/vadd/vector_add.py
 ```
 
-That path uses the checked-in `bridge/testcases/vadd/compile-input.mlir`
-instead of the section 2 TTAdapter dump. Use it only when you intentionally want
-the checked-in fixture input.
+### The simulator creates a report but the test does not pass
 
-Baseline NPU-IR is still default-off for the bridge. The script enables
-`BISHENGIR_ENABLE_PTOAS_BRIDGE=1` only for the bridge flows.
-
-## 4. Use The PTOAS MLIR Generated From Section 3
-
-The input for this section is:
-
-```text
-$OUT_ROOT/bridge-ptoas-vmi/vadd.vmi.mlir
-```
-
-For another testcase, replace `vadd` with that testcase name. For example:
-
-```text
-$OUT_ROOT/bridge-ptoas-vmi/vadd_large.vmi.mlir
-```
-
-### 4.1. How To Write The Host Code
-
-The PTOAS simulator path needs host code. That host code must match the Triton
-Python testcase, otherwise runtime numbers are not comparable.
-
-For `vector_add.py`, the host fixture is:
-
-```text
-bridge/testcases/vadd/
-```
-
-A new testcase should use the same structure:
-
-```text
-bridge/testcases/<new_case>/
-  compile-input.mlir
-  run_sim.sh
-  CMakeLists.txt
-  main.cpp
-  launch.cpp
-  gen_data.py
-  compare.py
-```
-
-What each file should do:
-
-```text
-compile-input.mlir
-  Stable NPU-IR input for the bridge compiler flow.
-
-gen_data.py
-  Creates the same input tensors as the Triton Python file.
-  For vector_add.py, this means the same two float32 vectors.
-
-main.cpp
-  Allocates host/device buffers, copies inputs, launches the kernel, and copies
-  the output back.
-
-launch.cpp
-  Contains the low-level launch wrapper for the PTOAS-generated kernel.
-
-compare.py
-  Checks the output against the same reference used by the Triton Python test.
-
-run_sim.sh
-  Builds the host fixture and runs it through the CANN simulator.
-```
-
-For a new kernel, do not trust runtime comparison until these match:
-
-```text
-input shape
-input dtype
-input values
-kernel arguments
-launch grid / core count
-output shape
-correctness check
-```
-
-Example: for `vector_add_large.py`, the host fixture must use the same large
-shape and the same vector-add reference. If the Python file uses a
-`1000 x 2000` logical shape, the PTOAS fixture must allocate and compare that
-same logical shape.
-
-### 4.2. How To Run The PTOAS Flow
-
-Before running the PTOAS lowering or PTOAS simulator fixture, activate the PTOAS
-environment:
-
-```bash
-activate_ptoas
-cd "$HOME/Planner"
-```
-
-This is needed because `ptoas` depends on its built Python extension and shared
-library paths. If this is not active, `ptoas-lower` can fail with `ptoas not
-found` or a Python `_core` import error.
-
-The comparison wrapper sources `$CANN_ROOT/set_env.sh` and adds
-`$CANN_ROOT/tools/bisheng_compiler/bin` to `PATH` for PTOAS lowering and PTOAS
-simulator flows. Without that CANN setup, PTOAS may print:
-
-```text
-VPTO LLVM emission failed: unable to find 'bisheng' in PATH
-VPTO LLVM emission: falling back to configured default target attributes
-```
-
-or the PTOAS simulator executable may fail to load CANN simulator libraries.
-
-First, lower the PTOAS-input MLIR from section 3 to VPTO and VPTO LLVM IR:
-
-```bash
-bridge/tools/run_comparison_flow.sh ptoas-lower
-```
-
-For `vadd`, outputs:
-
-```text
-$OUT_ROOT/ptoas-only/vadd.vpto.mlir
-$OUT_ROOT/ptoas-only/vadd.vpto.ll
-```
-
-Then run the PTOAS simulator fixture through `msprof op simulator`:
-
-```bash
-bridge/tools/run_comparison_flow.sh bridge-sim
-```
-
-The wrapper still uses the PTOAS host fixture for data generation and
-correctness checking, but the generated PTOAS executable itself is launched as:
-
-```text
-msprof op simulator --application <ptoas-host-executable>
-```
-
-For larger fixtures this can take noticeably longer than the small `vadd`
-example. For example, `vadd_large` uses a `1000 x 2000` logical shape and a
-64-core PTOAS launch, so the simulator has much more work than the original
-small vector-add fixture.
-
-For `vadd`, outputs:
-
-```text
-$OUT_ROOT/bridge-sim/vadd/sim.log
-$OUT_ROOT/bridge-sim/vadd/sim-command.txt
-$OUT_ROOT/bridge-sim/vadd/profile/
-$OUT_ROOT/ptoas-only/vadd/vadd.vpto.mlir is passed through KERNEL_MLIR
-```
-
-For `vadd_large`, replace `vadd` with `vadd_large`:
-
-```text
-$OUT_ROOT/bridge-sim/vadd_large/sim.log
-```
-
-Useful checks:
-
-```bash
-tail -f "$OUT_ROOT/bridge-sim/$TESTCASE/sim.log"
-grep -E "Total tick|compare passed|compare failed|Model stopped|ERROR|error" \
-  "$OUT_ROOT/bridge-sim/$TESTCASE/sim.log"
-```
-
-If `$OUT_ROOT/ptoas-only/vadd.vpto.mlir` exists, the simulator flow uses that
-generated VPTO file. That means the normal section order is:
-
-```text
-section 2 early-ir
-  -> section 3 bridge-ir creates vadd.vmi.mlir
-  -> section 4.2 ptoas-lower creates vadd.vpto.mlir
-  -> section 4.2 bridge-sim runs that generated vadd.vpto.mlir
-```
-
-Compare correctness first. Only compare timing after the host fixture in 4.1 is
-known to be equivalent to the Triton Python host path.
-
-For final performance, repeat the comparison on the A5 hardware server and
-record:
-
-```text
-NPU-IR commit
-PTOAS commit
-Planner testcase commit
-kernel name
-shape/input parameters
-SOC/device
-full command
-stdout/stderr
-runtime numbers
-correctness output
-```
+Inspect the corresponding `msprof.log`. A successful run must contain the
+Python comparison result and must not contain `skip running kernel`, a
+traceback, or an application exception before comparison.

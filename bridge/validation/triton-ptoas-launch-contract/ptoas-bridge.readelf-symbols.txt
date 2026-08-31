@@ -1,0 +1,42 @@
+
+Symbol table '.symtab' contains 39 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS launch.cpp
+     2: 000000000000006a     0 NOTYPE  LOCAL  DEFAULT    2 $d.0
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    1 .text
+     4: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS ptoas.hivm.official.vector
+     5: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT    1 $x.0
+     6: 0000000000000300    24 FUNC    LOCAL  DEFAULT    1 vector_add_large_kernel_outlined_vf_0.vector.thread
+     7: 0000000000000400    32 FUNC    LOCAL  DEFAULT    1 vector_add_large_kernel_outlined_vf_2.vector.thread
+     8: 0000000000000300     0 NOTYPE  LOCAL  DEFAULT    1 $k.1
+     9: 0000000000000420     0 NOTYPE  LOCAL  DEFAULT    1 $x.2
+    10: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT    3 $d.3
+    11: 0000000000000000    16 OBJECT  LOCAL  DEFAULT    4 .ParamSummary_vector_add_large_kernel_mix_aiv
+    12: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT    4 $d.4
+    13: 0000000000000010    40 OBJECT  LOCAL  DEFAULT    4 .ParamInfo_vector_add_large_kernel_mix_aiv_0
+    14: 0000000000000010     0 NOTYPE  LOCAL  DEFAULT    4 $d.5
+    15: 0000000000000038    40 OBJECT  LOCAL  DEFAULT    4 .ParamInfo_vector_add_large_kernel_mix_aiv_1
+    16: 0000000000000038     0 NOTYPE  LOCAL  DEFAULT    4 $d.6
+    17: 0000000000000060    40 OBJECT  LOCAL  DEFAULT    4 .ParamInfo_vector_add_large_kernel_mix_aiv_2
+    18: 0000000000000060     0 NOTYPE  LOCAL  DEFAULT    4 $d.7
+    19: 0000000000000088    40 OBJECT  LOCAL  DEFAULT    4 .ParamInfo_vector_add_large_kernel_mix_aiv_3
+    20: 0000000000000088     0 NOTYPE  LOCAL  DEFAULT    4 $d.8
+    21: 00000000000000b0    40 OBJECT  LOCAL  DEFAULT    4 .ParamInfo_vector_add_large_kernel_mix_aiv_4
+    22: 00000000000000b0     0 NOTYPE  LOCAL  DEFAULT    4 $d.9
+    23: 00000000000000d8    40 OBJECT  LOCAL  DEFAULT    4 .ParamInfo_vector_add_large_kernel_mix_aiv_5
+    24: 00000000000000d8     0 NOTYPE  LOCAL  DEFAULT    4 $d.10
+    25: 0000000000000100    40 OBJECT  LOCAL  DEFAULT    4 .ParamInfo_vector_add_large_kernel_mix_aiv_6
+    26: 0000000000000100     0 NOTYPE  LOCAL  DEFAULT    4 $d.11
+    27: 0000000000000128    40 OBJECT  LOCAL  DEFAULT    4 .ParamInfo_vector_add_large_kernel_mix_aiv_7
+    28: 0000000000000128     0 NOTYPE  LOCAL  DEFAULT    4 $d.12
+    29: 0000000000000150    40 OBJECT  LOCAL  DEFAULT    4 .AIV_Kernel_Type_vector_add_large_kernel_mix_aiv
+    30: 0000000000000150     0 NOTYPE  LOCAL  DEFAULT    4 $d.13
+    31: 0000000000000000     0 SECTION LOCAL  DEFAULT    3 __CCE_KernelArgSize
+    32: 0000000000000000     0 SECTION LOCAL  DEFAULT    4 .ascend.meta.vector_add_large_kernel_mix_aiv
+    33: 0000000000000000     0 SECTION LOCAL  DEFAULT    2 .comment
+    34: 0000000000000000    76 FUNC    GLOBAL DEFAULT    1 vector_add_large_kernel_outlined_vf_0.vector
+    35: 000000000000004c    88 FUNC    GLOBAL DEFAULT    1 vector_add_large_kernel_outlined_vf_2.vector
+    36: 00000000000000a4   512 FUNC    GLOBAL DEFAULT    1 vector_add_large_kernel_mix_aiv
+    37: 0000000000000420    44 FUNC    GLOBAL DEFAULT    1 vector_add_large_kernel_outlined_vf_1.vector
+    38: 0000000000000000     4 OBJECT  WEAK   DEFAULT    3 vector_add_large_kernel_mix_aiv__

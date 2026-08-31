@@ -1,6 +1,6 @@
 # Planning Overview
 
-Last updated: 2026-08-23
+Last updated: 2026-08-26
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
@@ -42,6 +42,7 @@ Current vector-bridge milestone:
 |---|---|---|
 | `bridge/planning/README.md` | high-level plan index and short/long-term roadmap | active entry point |
 | `bridge/planning/ave-to-ptoas-vmi-implementation-plan.md` | completed vector-add and row-softmax phases, current bridge contract, and next-stage gates | active vector plan |
+| `bridge/planning/triton-ascend-ptoas-end-to-end-integration-plan.md` | plan for selecting the PTOAS flow from a normal Triton Python run while reusing the existing generated host launcher | proposed integration plan |
 | `bridge/designs/ave-to-ptoas-vmi-conversion-design.md` | durable AVE/HIVM-to-PTOAS VMI implementation decisions and non-direct mapping index | active design log |
 | `bridge/planning/dma-copy-conversion-exploration.md` | current focused investigation for `dma_copy_kernel` | active short-term work |
 | `bridge/planning/dma-template-rewrite-plan.md` | broader DMA category strategy and first PoC constraints | active strategy |

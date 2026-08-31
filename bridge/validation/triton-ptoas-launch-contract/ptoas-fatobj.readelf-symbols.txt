@@ -1,0 +1,17 @@
+
+Symbol table '.symtab' contains 14 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS ptoas-host-stub-6f6882..cpp
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    2 .text
+     3: 0000000000000000    24 OBJECT  LOCAL  DEFAULT    4 .L__unnamed_1
+     4: 00000000000000a0    28 FUNC    LOCAL  DEFAULT    2 rtRegisterGlobals
+     5: 00000000000000c0    21 FUNC    LOCAL  DEFAULT    2 cceModuleCtor
+     6: 0000000000000000    24 OBJECT  LOCAL  DEFAULT    6 __cce_ptc_wrapper
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    5 __aicore_rel_binary
+     8: 0000000000000000     0 SECTION LOCAL  DEFAULT    6 __aicore_rel_rec
+     9: 0000000000000000   158 FUNC    GLOBAL DEFAULT    2 vector_add_large_kernel
+    10: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND __cce_rtKernelLaunchWithFlagV2
+    11: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND __stack_chk_fail
+    12: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND rtFunctionRegister
+    13: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND rtLinkedDevBinaryRegisterDelay

@@ -12,15 +12,15 @@ This is a compatibility wrapper. The implementation lives in:
   bridge/tools/run_comparison_flow.sh
 
 Useful options:
-  early-ir
-  print-all
   npu-sim
+  bridge-sim
   emit-vmi
   emit-vpto
-  bridge-sim
+  print-ir
 
 Flags:
   --clean-build
+  --print-ir-after-all
 EOF
 }
 
@@ -40,8 +40,8 @@ case "${1:-}" in
     ;;
   --all)
     shift
-    "$script_dir/run_comparison_flow.sh" early-ir "$@"
-    "$script_dir/run_comparison_flow.sh" print-all "$@"
+    "$script_dir/run_comparison_flow.sh" npu-sim "$@"
+    "$script_dir/run_comparison_flow.sh" print-ir "$@"
     "$script_dir/run_comparison_flow.sh" emit-vpto "$@"
     exec "$script_dir/run_comparison_flow.sh" bridge-sim "$@"
     ;;
