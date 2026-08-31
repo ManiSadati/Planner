@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 
 ## Current Goal
 
@@ -18,8 +18,10 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - The first 64x64 Cube trace, mapping decision, and strict conversion slice are
   complete. The real fixture emits PTOAS VMI, lowers to VPTO, and passes PTOAS
   simulator numerical comparison for all 4096 f16 outputs.
-- The next gate is a direct trace/performance comparison with the unchanged CCE
-  simulator path, followed by A5 validation.
+- The first external-call experiment now preserves Cube CCE calls and their
+  memref descriptor ABI through PTOAS, links the matching NPU-IR template
+  bitcode, and passes simulator numerical comparison. The passing direct PTO
+  rewrite remains an alternative and comparison path.
 
 ## Current Working Hypothesis
 
@@ -28,14 +30,16 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   branch is newest/relevant before assuming `master` is current.
 - The bridge likely needs row-specific integration points, not one global pass boundary.
 - Vector rows may fit before or around `convert-hivmave-to-ave-intrin`.
-- DMA, cube, and sync rows likely need to be intercepted earlier around HIVM memory/sync planning and before `HIVMToStandard` loses structured operands to CCE-template/library-call lowering.
+- Direct DMA/Cube rewrites need an early structured-HIVM boundary. The separate
+  external-call route deliberately runs after `HIVMToStandard` and must retain
+  the generated memref descriptors and CCE calls through PTOAS.
 - PTO/VMI is expected to cover vector-side semantics.
 - The accepted softmax and RMSNorm fixtures provide good practical evidence for
   that vector-side strategy; remaining vector limitations stay explicit but do
   not block Cube exploration.
-- Many DMA rows may map to concrete PTO dialect movement operations. Some DMA
-  and cube/template rows may require rewriting NPU-IR template lowering to emit
-  PTO-compatible operations rather than mapping a final CCE call one-to-one.
+- Many DMA rows may map to concrete PTO dialect movement operations. Cube now
+  has two explicit routes: preserve and link CCE calls with their memref ABI,
+  or rewrite selected structured regions into PTO operations.
 - PTO tile abstractions or PTO-ISA may be needed for tile/cube/DMA behavior.
 
 ## Development Target
@@ -74,9 +78,13 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   `bridge/examples/npuir-early-ir/replay/dma_copy_kernel/after-convert-hivm-templates-to-pto.mlir`;
   both PTO MTE operations remain valid through a following
   `convert-hivm-to-std` invocation.
-- Current priority: compare the validated strict `cube_dotproduct.py` PTO
-  composition with the unchanged CCE baseline, then generalize from concrete
-  fixtures.
+- The `matmul_64` external-call route now preserves AIC/Cube memrefs through
+  PTOAS, matches the baseline pre-CCE descriptor ABI, links
+  `meta_op.aic.c310.bc`, and passes all 4096 simulator outputs with maximum
+  absolute error `0.001953125` in 3647 total ticks.
+- Current priority: test a genuine split MIX fixture, exercise another Cube
+  shape/template branch, compare all three paths under identical options, and
+  request real A5 hardware validation.
 - The conversion is guarded and default-off, so the CCE path remains the
   fallback and comparison baseline.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.

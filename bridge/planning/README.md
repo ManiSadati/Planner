@@ -1,6 +1,6 @@
 # Planning Overview
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
@@ -25,9 +25,10 @@ Current implementation bias:
 - make Cube plus its required DMA/staging path the active investigation;
 - compare each NPU-IR CCE Cube/DMA template contract against PTOAS/PTO dialect
   operations before choosing an implementation boundary;
-- use direct PTO mappings where semantics match one-to-one; otherwise rewrite
-  the relevant NPU-IR template lowering to emit an equivalent PTO dialect
-  sequence instead of a CCE template call;
+- keep two explicit Cube routes available: a PTO-native rewrite and a
+  CCE-template compatibility route;
+- make preservation of external CCE calls and their memref descriptor ABI the
+  active experiment before generalizing the PTO-native rewrite;
 - keep PTOAS/PTO-ISA as the mapping target and compatibility check.
 
 Completed vector-bridge milestone:
@@ -52,16 +53,34 @@ Current Cube milestone:
 - existing PTO primitives cover the fixture, but `mmadL1` is not equivalent to
   one bare `pto.tmatmul` because its CCE template also owns L1-to-L0 staging, K
   partitioning, double buffering, sync, and barriers;
-- recommended first route: a strict low-level PTO composition in
+- the first implemented route is a strict low-level PTO composition in
   `convert-hivm-templates-to-pto`, preserving NPU-IR memory and sync ownership;
-- that route is now implemented for the exact 64x64 f16/f16/f32/f16,
+- that direct route is implemented for the exact 64x64 f16/f16/f32/f16,
   init=true, no-transpose, NZ2ND fixture and remains guarded by the existing
   default-off bridge switch;
 - the real fixture now emits PTOAS VMI, lowers through unmodified PTOAS to
   VPTO, and passes the PTOAS simulator numerical comparison for all 4096 f16
   outputs;
+- `matmul_64` is now the active experiment: retain the selected CCE template
+  calls and their memrefs through VMI and VPTO, use standard memref-to-LLVM
+  lowering to recover the original descriptor ABI, and link the matching CCE
+  template object or bitcode into the PTOAS device result;
 - longer-term route: `pto.tload -> pto.textract -> pto.tmatmul -> pto.tstore`
   with PTOAS owning tile allocation and sync.
+
+## Two Cube Paths
+
+| Path | Contract | Why keep it | Main risks |
+| --- | --- | --- | --- |
+| External CCE calls, active experiment | Skip the early Cube rewrite. Preserve `nd2nz_half`, `mma_tile_half_to_float`, and fixpipe calls with their ranked memref operands through PTOAS. Let standard MLIR lowering create the C-interface descriptors, then link the matching CCE device implementation. | Reuses the broad, mature NPU-IR template behavior and tests the bridge without first recreating every layout, stride, K-loop, precision, and sync case. It is the fastest way to test general Cube compatibility. | PTOAS passes may reject or accidentally erase memref descriptors; address spaces and descriptor ABI must match NPU-IR exactly; CANN/PTOAS device objects must be linked with compatible tools; MIX modules need separate AIC descriptor and AIV pointer policies; this route retains a CCE dependency and is not the final fully open backend. |
+| Direct PTO rewrite, validated narrow alternative | Intercept structured `nd2nz -> mmadL1 -> fixpipe` before CCE calls and emit PTO MTE/MAD operations directly. | Removes the CCE-template dependency and exposes the complete Cube path to PTOAS optimization and scheduling. The strict 64x64 fixture already passes simulation. | Generalization requires faithfully rebuilding template loops, layouts, large-stride fallbacks, K partitioning, accumulation, precision modes, double buffering, and sync. A superficially similar PTO sequence can be numerically or physically wrong. |
+
+The external-call path is being explored first because it preserves behavior
+already implemented and validated by NPU-IR. It will establish whether PTOAS
+can carry the existing descriptor ABI and link the CCE device code. The direct
+rewrite remains valuable, but broadening it before this compatibility test
+would require reimplementing many template variants without first knowing
+whether that work is necessary.
 
 ## Planning Document Roles
 
@@ -89,19 +108,22 @@ The two DMA planning docs are intentionally different:
 
 ## Short-Term Plan
 
-Immediate objective: compare the validated strict `cube_dotproduct.py` bridge
-path directly with the unchanged CCE baseline, then generalize only from
-observed cases.
+Immediate objective: broaden the now-passing `matmul_64` external-call result
+without changing the passing direct rewrite.
 
 Review order:
 
-1. Preserve the generated VMI and VPTO IR as compiler-side evidence.
-2. Run the unchanged CCE simulator path on the same inputs and compare its
-   trace/ticks with the passing PTO bridge result.
-3. Inspect event ordering and physical buffer addresses in the emitted path.
-4. Request A5 hardware validation after local functional equivalence.
-5. Generalize one contract dimension at a time: K partitioning/accumulation,
-   transpose, bias/precision modes, then additional fixpipe forms.
+1. Preserve the verified ABI invariant: public kernel entries use PTO pointers,
+   while external Cube calls use standard memref descriptors.
+2. Run a genuine split MIX fixture before calling the per-function type policy
+   general; AIC external calls keep descriptors and AIV VMI stays pointer-based.
+3. Exercise another shape/template branch, preferably one with dynamic or
+   nontrivial strides.
+4. Compare external-call, direct-PTO, and unchanged NPU-IR results and traces
+   under identical simulator options.
+5. Validate the linked external-call fat object on real A5 hardware.
+6. Decide which template families should remain external and which justify a
+   direct PTO rewrite.
 
 The detailed plan is `bridge/planning/cube-conversion-exploration.md`.
 
@@ -177,21 +199,18 @@ Existing first DMA code patch:
 
 ## Medium-Term Plan
 
-After the strict Cube slice is functionally validated:
+After the external-call experiment is functionally validated:
 
-1. Choose the smallest end-to-end `cube_dotproduct.py` slice that includes one
-   Cube operation and only the staging DMAs required to execute it.
-2. If the semantics match PTO one-to-one, add guarded NPU-IR conversion patterns
-   that emit those PTO operations directly.
-3. If a Cube or DMA template has no equivalent PTO operation, rewrite that
-   NPU-IR template lowering as an explicit PTO dialect composition while
-   preserving shape, layout, accumulation, precision, and sync behavior.
-4. Keep the PTO path optional so the existing CCE pipeline remains available
-   for baseline comparison.
+1. Decide whether external calls are an acceptable transitional backend or
+   only a compatibility/reference route.
+2. Measure how much fixture and mode coverage the external path inherits from
+   the CCE templates.
+3. Continue the direct PTO route where removing the CCE dependency or exposing
+   optimization opportunities justifies the implementation cost.
+4. Generalize direct mappings one observed contract at a time while retaining
+   the external path and unchanged NPU-IR as comparison baselines.
 5. Validate IR legality and PTOAS lowering locally, then compare simulator
    output and request A5 runtime/performance validation from the human.
-6. Expand to additional Cube modes and related DMAs only after the first fixture
-   is numerically and structurally equivalent.
 
 ## Long-Term Plan
 
@@ -209,8 +228,11 @@ The broader bridge should eventually handle:
 
 ## Current Open Questions
 
-- How does the strict Cube path's simulator trace/tick result compare with the
-  unchanged CCE baseline on the same input?
+- Can PTOAS preserve NPU-IR ranked memref descriptors through VMI, VPTO, and
+  pre-CCE LLVM without a custom descriptor ABI?
+- Where should the matching CCE template object enter PTOAS device linking?
+- Can a split MIX kernel keep descriptor-carrying AIC calls and pointer-based
+  AIV VMI operations in the same compilation flow?
 - Does its preserved event/address plan remain correct on A5 hardware?
 - Which next `mmadL1` mode should drive generalization: K partitioning,
   accumulation, transpose, or bias/precision behavior?

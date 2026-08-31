@@ -1,6 +1,6 @@
 # Cube Conversion Status
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 
 ## Current Milestone
 
@@ -43,8 +43,13 @@ not the selected A5 source for this fixture.
 
 ## Current Decision
 
-- Do not extend `convert-hivmave-to-ptoas-vmi` for Cube. Its rank-4 pointer
-  rejection is expected because that pass is vector-specific.
+- Preserve the passing direct Cube implementation in
+  `convert-hivm-templates-to-pto` as an alternative and comparison path.
+- Make external CCE calls the active experiment. In `external-calls` mode, the
+  later VMI pass should normalize surrounding IR while preserving Cube/AIC
+  memrefs and CCE function calls.
+- Do not use raw `!pto.ptr` arguments for CCE calls that consume memref
+  descriptors. Let standard memref-to-LLVM lowering create the descriptors.
 - Do not replace `mma_tile_half_to_float` or `hivm.hir.mmadL1` with one bare
   `pto.tmatmul`. The CCE template also performs L1-to-L0 staging, K partitioning,
   double buffering, sync, init/accumulate selection, and barriers.
@@ -83,14 +88,66 @@ events coexist.
 - PTO's B-side L1-to-L0B `transpose = true` is required to form the physical
   right-tile `nZ` layout. It does not mean source-level `b_transpose=true`.
 
+## External-Call Experiment
+
+`bridge/testcases/matmul_64/` is a copy of the same 64x64 source and early IR,
+kept separate so the passing direct-rewrite fixture remains unchanged. Run it
+with:
+
+```bash
+bridge/tools/run_comparison_flow.sh \
+  --bridge-mode external-calls emit-vmi matmul_64
+bridge/tools/run_comparison_flow.sh \
+  --bridge-mode external-calls emit-vpto matmul_64
+bridge/tools/run_comparison_flow.sh \
+  --bridge-mode external-calls bridge-sim matmul_64
+```
+
+Verified through 2026-08-28:
+
+- the external mode skips `convert-hivm-templates-to-pto` but still runs the
+  later VMI pass;
+- VMI and VPTO preserve two `nd2nz_half` calls, one
+  `mma_tile_half_to_float` call, and one
+  `fixpipe_nz2nd_float_to_half_4d_to_2d_gm` call;
+- all HIVM/AVE types and operations are removed, and the module is classified
+  as a Cube module;
+- the VMI kernel entry remains five raw GM pointers plus three scalars, while
+  the external CCE declarations and calls retain ranked memrefs;
+- standard PTOAS memref-to-LLVM lowering emits descriptor wrappers whose
+  signatures and `_mlir_ciface_*` calls match the unchanged NPU-IR pre-CCE
+  baseline;
+- both the beta and CANN 9.x PTOAS LLVM emitters support the marked external
+  path;
+- `bridge-sim` supplies the installed NPU-IR AIC template bitcode to PTOAS,
+  builds the fat object, and resolves all three CCE template symbols;
+- simulator output passes all 4096 elements with maximum absolute error
+  `0.001953125`; the external-call run reports 3647 total ticks.
+
+The runner discovers
+`$ASCEND_NPU_IR_ROOT/build/install/lib/meta_op.aic.c310.bc` and exports it as
+`PTOAS_AICORE_LL_MODULE` only in external-call mode. PTOAS forwards it to Cube
+Bisheng compilation with `-cce-link-aicore-ll-module`. Its
+`_mlir_ciface_*` entry points receive the ranked memref descriptors created by
+standard MLIR lowering; the public kernel entry remains raw pointers.
+
+Main external-path risks are descriptor/address-space ABI mismatch, rejection
+of memrefs by PTOAS stages, compatible device linking of the CCE object, MIX
+packaging, and continued dependence on CCE templates. The direct PTO path
+avoids that dependency but carries the larger risk of incompletely recreating
+template layouts, loops, precision modes, buffering, and synchronization.
+
 ## Next Validation
 
-- Run the unchanged NPU-IR/CCE simulator path on the same fixture for direct
-  trace and performance comparison.
-- Validate preserved addresses and explicit event ordering.
-- Run the accepted path on A5 hardware through the human validation loop.
-- Generalize only from concrete fixtures; all non-matching modes retain the CCE
-  path.
+- Validate a genuine split MIX fixture with descriptor-carrying AIC and
+  pointer-based AIV functions.
+- Exercise another Cube shape or template branch so the experiment is not
+  overfit to fixed 64x64 descriptor views.
+- Compare external-call, direct PTO, and unchanged NPU-IR traces and ticks
+  under identical simulator options.
+- Run the linked fat object on real A5 hardware.
+- Decide whether the external route is a transitional backend, a compatibility
+  baseline, or both before broadening the direct rewrite.
 
 The detailed evidence, mapping table, risks, and staged implementation proposal
 are in `bridge/planning/cube-conversion-exploration.md`.

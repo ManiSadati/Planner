@@ -1,10 +1,11 @@
 # Cube Conversion Exploration Plan
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 
-Status: the strict conversion is implemented and verified through PTOAS
-VMI-to-VPTO lowering and numerical simulator execution for the first 64x64
-fixture. Direct CCE performance comparison and A5 validation remain pending.
+Status: both first 64x64 routes pass numerical simulator execution. The strict
+direct conversion emits PTO operations. The external-call experiment preserves
+the CCE calls and memref descriptor ABI through PTOAS, links the matching
+NPU-IR template bitcode, and executes successfully.
 
 ## Goal
 
@@ -64,8 +65,10 @@ sync-block finalization passes, immediately before `convert-hivm-to-std`:
 
 `convert-hivm-to-std` replaces those four operations with calls to
 `nd2nz_half`, `mma_tile_half_to_float`, and
-`fixpipe_nz2nd_float_to_half_4d_to_2d_gm`. The call layer is useful as a
-baseline, but it is too late to be the bridge boundary.
+`fixpipe_nz2nd_float_to_half_4d_to_2d_gm`. The structured layer remains the
+right boundary for a direct PTO rewrite. The call layer is the boundary for the
+separate compatibility route because its memrefs retain the runtime shape,
+stride, offset, and address-space information consumed by the CCE functions.
 
 ## What The CCE Templates Actually Do
 
@@ -150,7 +153,92 @@ precision modes, padding, address ownership, pipeline assignment, and sync.
 | L0C -> GM | `hivm.hir.fixpipe`, NZ2ND, F322F16 | Tile route: `pto.tstore` from ACC. Low-level route: `pto.mte_l0c_gm` or `pto.copy_matrix_cc_to_gm`. | `direct` for this exact mode after verifier proof | guarded direct mappings per destination/quant/relu/layout mode | Packed fixpipe mode, dtype conversion, stride, relu/quant/dual destination |
 | Synchronization | NPU-IR set/wait flags and barriers | First route: preserve and translate explicit events around low-level PTO ops. Long-term tile route: let PTOAS insert sync after removing NPU-IR-owned duplicates. | preserve NPU-IR ownership | explicit per route | Double synchronization or an event pair attached to the wrong physical pipe |
 
-## Decision
+## Two Implementation Paths
+
+### Path A: Preserve External CCE Calls
+
+This is the active experiment. Skip the early Cube rewrite, retain the
+`nd2nz_half`, `mma_tile_half_to_float`, and fixpipe calls, and preserve their
+ranked memref operands through PTOAS. Standard MLIR memref-to-LLVM conversion
+should then construct the same descriptor representation used by the normal
+NPU-IR path. The resulting PTOAS device object must be linked with the matching
+CCE template implementation.
+
+Why explore it first:
+
+- it reuses the complete selected CCE template behavior, including runtime
+  sizes and strides, K partitioning, layout handling, fallbacks, precision
+  modes, double buffering, and synchronization;
+- it can establish broad Cube compatibility without first translating every
+  template branch into PTO;
+- it provides a close comparison against unchanged NPU-IR and isolates the
+  PTOAS carrier/linking problem from template reimplementation.
+
+Risks:
+
+- PTOAS VMI/VPTO and final emission must legally carry standard memrefs without
+  collapsing them into raw `!pto.ptr` values;
+- HIVM memory spaces must map to LLVM address spaces with a descriptor ABI that
+  exactly matches the CCE bitcode;
+- the CCE template object and PTOAS device object must use compatible CANN,
+  target, data-layout, symbol, and link conventions;
+- split MIX kernels require per-function behavior: AIC calls keep memrefs while
+  AIV VMI operations use PTO pointers;
+- it retains a dependency on CCE template code, so it is a compatibility or
+  transitional route rather than a fully open replacement backend.
+
+### Path B: Rewrite Directly To PTO
+
+This is the already validated narrow alternative. Intercept the structured
+`nd2nz -> mmadL1 -> fixpipe` region before `convert-hivm-to-std` and emit PTO
+MTE/MAD operations. The strict 64x64 fixture passes PTOAS simulation.
+
+Benefits:
+
+- removes the runtime dependency on CCE templates;
+- exposes Cube movement, compute, and sync to PTOAS analysis and optimization;
+- can eventually converge on the tile-level PTO abstraction.
+
+Risks:
+
+- every supported CCE template branch must be understood and reproduced;
+- layout, stride limits, K partitioning, accumulation, transpose, precision,
+  quantization, double buffering, and event ordering create a large semantic
+  surface;
+- support can become a collection of narrow special cases, and a legal-looking
+  PTO sequence can still compute the wrong physical layout.
+
+Path B remains passing evidence and a long-term option. It will not be removed
+or changed by the external-call experiment.
+
+## External-Call Implementation Checkpoint
+
+Verified on 2026-08-28 with `bridge/testcases/matmul_64/`:
+
+- `external-calls` mode skips the structured Cube rewrite and enables memref
+  preservation in `convert-hivmave-to-ptoas-vmi`;
+- the VMI kernel entry uses the normal five GM pointers plus three scalars,
+  while `nd2nz_half`, `mma_tile_half_to_float`, and fixpipe retain ranked
+  memref declarations and call operands;
+- VPTO preserves those call-site memrefs until LLVM ABI preparation;
+- both PTOAS LLVM emitters, including the CANN 9.x path selected by the local
+  simulator, lower the retained memrefs with standard descriptor structs;
+- the pre-CCE LLVM wrapper signatures and `_mlir_ciface_*` calls match the
+  unchanged NPU-IR baseline;
+- external mode automatically supplies
+  `$ASCEND_NPU_IR_ROOT/build/install/lib/meta_op.aic.c310.bc` to PTOAS through
+  `PTOAS_AICORE_LL_MODULE`; PTOAS passes it to Cube Bisheng compilation with
+  `-cce-link-aicore-ll-module`;
+- the resulting fat object links and runs in the A5 operator simulator;
+- all 4096 f16 outputs pass comparison with maximum absolute error
+  `0.001953125`; the run reports 3647 total ticks.
+
+This proves the compatibility architecture for the observed template set. It
+does not yet prove general Cube coverage. The next evidence must include
+additional shapes/template branches and a genuine split MIX fixture containing
+both AIC and AIV functions. Real A5 hardware validation also remains required.
+
+## Direct-Path Decision
 
 The first fixture does not justify adding a new PTOAS Cube instruction or
 continuing inside the AVE-to-VMI pass. PTO already contains all required
@@ -228,6 +316,47 @@ PTO's right-tile `nZ` layout. With `false`, the output matched `A @ B.T` rather
 than the Triton kernel's `A @ B`. This physical flag is separate from the
 source-level `b_transpose` semantic.
 
+## Active External CCE Template Experiment
+
+The direct PTO composition remains a passing comparison path. A separate
+`bridge/testcases/matmul_64/` fixture tests the active compatibility route:
+allow `convert-hivm-to-std` to emit CCE template calls, then use
+`convert-hivmave-to-ptoas-vmi` only to normalize the surrounding IR.
+
+The runner exposes this as `--bridge-mode external-calls`. For the copied
+64x64 input, the existing prototype preserves the three external declarations
+and four calls and marks the output as a Cube module. It currently converts
+their memrefs to raw PTO pointers, which is the behavior this experiment must
+replace.
+
+The simulator link then fails on exactly these symbols:
+
+```text
+_mlir_ciface_nd2nz_half
+_mlir_ciface_mma_tile_half_to_float
+_mlir_ciface_fixpipe_nz2nd_float_to_half_4d_to_2d_gm
+```
+
+This is not only a missing-library problem. The functions in
+`meta_op.aic.c310.bc` take pointers to NPU-IR `memref_t` descriptors. The
+current PTOAS lowering calls them with raw address-space pointers. The next
+experiment must therefore preserve those memrefs rather than inventing
+shape-specific adapters:
+
+1. Enable memref preservation only under `--bridge-mode external-calls`.
+2. For AIC/Cube functions, map HIVM memory-space attributes but keep memref
+   shape, layout, offset, sizes, and strides through VMI and VPTO.
+3. For AIV/vector functions, retain the existing `!pto.ptr` conversion at VMI
+   uses. In a split MIX module, choose this policy by function core type.
+4. Confirm that final memref-to-LLVM lowering creates descriptor allocas and
+   `_mlir_ciface_*` calls equivalent to the unchanged NPU-IR output.
+5. Integrate the matching CCE template device code into the PTOAS link.
+6. Run `matmul_64`, then a true MIX fixture, and compare with both the direct
+   PTO result and unchanged NPU-IR baseline.
+
+Do not claim success from VMI/VPTO legality or symbol resolution alone. The
+pre-CCE LLVM descriptor ABI and numerical simulator result are both required.
+
 ## Proposed Source Layout
 
 Keep the new Cube lowering separate from both the CCE template tree and the
@@ -274,9 +403,9 @@ sync, and matmul structure in `ptodsl/examples/fa_dn_matmul.py`. Adopting that
 route means PTOAS must own tile allocation and synchronization for the region;
 it should not be mixed casually with NPU-IR's existing address and event plan.
 
-## Conversion Boundary
+## Conversion Boundaries
 
-Use the existing optional bridge location in the NPU-IR driver:
+The direct PTO rewrite uses the existing optional bridge location:
 
 ```text
 hivm-mark-disable-load
@@ -290,7 +419,18 @@ scheduling, and sync, but early enough that `nd2nz`, `mmadL1`, and `fixpipe`
 still carry structured semantics. The later AVE-to-VMI pass remains responsible
 for vector-side operations only.
 
-## Approved Starter Contract
+The external-call experiment deliberately skips that early pass:
+
+```text
+convert-hivm-to-std                    # emits selected CCE calls with memrefs
+  -> expand-strided-metadata
+  -> convert-hivmave-to-ptoas-vmi      # preserves AIC call memrefs
+  -> PTOAS VMI/VPTO
+  -> standard memref-to-LLVM lowering
+  -> link matching CCE template device code
+```
+
+## Validated Direct-Path Contract
 
 - low-level PTO composition rather than a new CCE template;
 - strict 64x64 f16/f16/f32/f16 specialization;
@@ -299,14 +439,15 @@ for vector-side operations only.
 - local IR/PTOAS verification and simulator numerical comparison first,
   followed by direct CCE comparison and A5 validation.
 
-## Remaining Implementation Stages
+## Active Implementation Stages
 
-1. Run the unchanged CCE simulator path with the same fixture and compare
-   trace/ticks with the passing bridge path.
-2. Request A5 hardware validation from the human.
-3. Preserve the B physical-layout regression check while adding new modes.
-4. Generalize one dimension at a time: K partitioning, accumulation, transpose,
-   bias, precision modes, then additional fixpipe modes.
+1. Preserve the external call memrefs for pure AIC `matmul_64`.
+2. Verify VMI, VPTO, and pre-CCE LLVM descriptor structure.
+3. Integrate the matching CCE template device definitions and run simulation.
+4. Add a true MIX test and verify separate AIC/AIV type policies and packaging.
+5. Compare the external-call result with the direct PTO and unchanged NPU-IR
+   paths.
+6. Request A5 hardware validation from the human after local equivalence.
 
 ## Related Documents
 

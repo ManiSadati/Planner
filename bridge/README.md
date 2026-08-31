@@ -78,6 +78,27 @@ bridge/tools/run_comparison_flow.sh emit-vpto vadd
 bridge/tools/run_comparison_flow.sh --clean-build bridge-sim vadd
 ```
 
+The bridge defaults to the direct PTO rewrite. The active Cube compatibility
+experiment uses `external-calls` to skip the early HIVM template rewrite,
+preserve selected CCE template calls and their memrefs, and run the later VMI
+conversion around them:
+
+```bash
+bridge/tools/run_comparison_flow.sh \
+  --bridge-mode external-calls emit-vmi matmul_64
+bridge/tools/run_comparison_flow.sh \
+  --bridge-mode external-calls emit-vpto matmul_64
+bridge/tools/run_comparison_flow.sh \
+  --bridge-mode external-calls bridge-sim matmul_64
+```
+
+The `matmul_64` external-call path now passes end to end. Public kernel inputs
+remain raw PTO pointers, CCE calls retain ranked memrefs, standard MLIR lowering
+creates the C-interface descriptors, and external mode links NPU-IR's installed
+`meta_op.aic.c310.bc` automatically. The simulator run passes all 4096 outputs
+with maximum absolute error `0.001953125` and reports 3647 total ticks. No
+shape-specific descriptor adapter is used.
+
 The older `bridge/tools/run_npuir_ptoas_bridge_tests.sh` script is now only a
 small wrapper around the same implementation.
 
@@ -95,6 +116,10 @@ small wrapper around the same implementation.
 `--clean-build` can be passed before or after the option. It removes
 `bridge/testcases/<name>/out/build/` and the legacy
 `bridge/testcases/<name>/build/` directory, then rebuilds the selected flow.
+`--bridge-mode direct` is the default and keeps the existing structured HIVM
+template-to-PTO rewrite. `--bridge-mode external-calls` skips that early pass
+and runs `convert-hivmave-to-ptoas-vmi` after `convert-hivm-to-std` has emitted
+the external CCE calls.
 
 ### Testcase Layout
 
