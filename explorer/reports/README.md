@@ -1,17 +1,17 @@
 # PTOAS State
 
-Last updated: 2026-08-27T11:03:09+00:00
+Last updated: 2026-08-31T11:03:35+00:00
 
-## Upstream VPTO pipeline ordering fixes; VMI physical-access legalization design and code land on branch; unified masked VMI-to-VPTO lowering PR; active fork signals on VMI fusion and C++ bridge
+## PTOAS main lands VMI physical-access legalization + stateful stream fusion; VMI dist-mode rename; mask-preserving VPTO lowering in review; DSL signless-int fixes
 
-Upstream PTOAS main moved fc8db5e -> 80ac6d0. Notable merged changes: added VPTOGuardedLICM (new pass and lit coverage), reordered VPTO pipeline so VPTOCombineReductions and a final CSE run before the optional scheduler (tools/ptoas/ptoas.cpp), and fixed PTODSL With-slot liveness. An AI-prefixed upstream branch codex/vmi-unaligned-load-store added a VPTOMemoryDist contract and introduced a two-stage VMI physical-access planner + VPTO legalizer inside VMIToVPTO with a detailed design doc. Multiple forks show large, design-adjacent work (vecscope-aware CSE, VMI fusion and load/store elision, VPTO C++ bridge) but are not yet upstream truth.
+Upstream PTOAS main advanced cc519bc9 -> 5eb87c21 with major VMI/VPTO memory legalization and stateful stream fusion; GraphSyncSolver removed; VMI store dist-mode renamed and VMI unpack load dropped; VMI vgather gained i8/ui8->i16/ui16; multiple PTODSL fixes for signless integer arithmetic under review. No AscendNPU-IR changes in this window.
 
 ## Scan Coverage
 
-- PTOAS Markham fork: 4 changed branches
-- PTOAS Markham fork GitHub fork network: 44 changed branches
+- PTOAS Markham fork: 5 changed branches
+- PTOAS Markham fork GitHub fork network: 22 changed branches
 - AscendNPU-IR fork: 0 changed branches
-- hw-native-sys/PTOAS: 14 updated issues, 26 updated PRs
+- hw-native-sys/PTOAS: 2 updated issues, 25 updated PRs
 
 ## Persistent Watch Context
 
