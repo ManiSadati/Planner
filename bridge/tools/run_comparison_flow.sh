@@ -24,6 +24,8 @@ Usage:
 Options:
   early-ir     Generate <testcase>/input.mlir from the Triton Python testcase.
   print-all    Run bishengir-compile and save the print-after-all log.
+  bridge-print-all
+                Run bridge-enabled bishengir-compile and save every pass dump.
   npu-sim      Run the Triton Python testcase through the NPU-IR simulator.
   emit-vmi     Emit PTOAS VMI MLIR from <testcase>/input.mlir.
   emit-vpto    Emit PTOAS VPTO MLIR from the VMI MLIR.
@@ -517,12 +519,21 @@ run_compile() {
   local output_stem="$5"
   local log_file="$6"
   local input="$case_dir/input.mlir"
-  local bishengir_compile status
+  local bishengir_compile status bridge_enabled=0
+  local save_temps_args=()
 
   [[ -f "$input" ]] || die "missing $input; run early-ir first"
   source_cann_env
   bishengir_compile="$(find_bishengir_compile)"
-  mkdir -p "$build_dir/temps-$mode" "$(dirname -- "$output_stem")"
+  mkdir -p "$(dirname -- "$output_stem")"
+
+  if [[ "$mode" == "vmi" || "$mode" == "bridge-after-all" ]]; then
+    bridge_enabled=1
+  fi
+  if [[ "$mode" != "bridge-after-all" ]]; then
+    mkdir -p "$build_dir/temps-$mode"
+    save_temps_args+=("--save-temps=$build_dir/temps-$mode")
+  fi
 
   mapfile -d '' flags < <(compile_flags)
   local cmd=(
@@ -530,17 +541,17 @@ run_compile() {
     "$input"
     "${flags[@]}"
     "$print_arg"
-    "--save-temps=$build_dir/temps-$mode"
+    "${save_temps_args[@]}"
     "-o"
     "$output_stem"
   )
   write_command "$build_dir/$mode.command.txt" "${cmd[@]}"
-  if [[ "$mode" == "vmi" ]]; then
+  if [[ "$bridge_enabled" == "1" ]]; then
     printf '%s\n' "$bridge_mode" >"$build_dir/$mode.bridge-mode.txt"
   fi
 
   set +e
-  if [[ "$mode" == "vmi" ]]; then
+  if [[ "$bridge_enabled" == "1" ]]; then
     BISHENGIR_ENABLE_PTOAS_BRIDGE=1 \
       BISHENGIR_PTOAS_BRIDGE_MODE="$bridge_mode" \
       "${cmd[@]}" >"$log_file" 2>&1
@@ -573,6 +584,26 @@ run_print_all() {
     return 0
   fi
   die "compiler failed before pass dumps; see $log_file"
+}
+
+run_bridge_print_all() {
+  local case_dir="$1"
+  local out_dir="$case_dir/out"
+  local build_dir="$out_dir/build"
+  local log_file="$out_dir/bridge-after-all.log"
+  mkdir -p "$build_dir"
+
+  log "bridge-enabled bishengir-compile print-after-all ($bridge_mode)"
+  if run_compile "$case_dir" "$build_dir" "bridge-after-all" "--mlir-print-ir-after-all" "$build_dir/bridge-after-all/kernel" "$log_file"; then
+    log "wrote $log_file"
+    return 0
+  fi
+
+  if grep -q "IR Dump After" "$log_file"; then
+    log "compiler exited nonzero, but bridge pass dumps were captured: $log_file"
+    return 0
+  fi
+  die "compiler failed before bridge pass dumps; see $log_file"
 }
 
 run_emit_vmi() {
@@ -865,6 +896,9 @@ case "$option" in
     ;;
   print-all|after-all)
     run_print_all "$case_dir"
+    ;;
+  bridge-print-all|bridge-after-all)
+    run_bridge_print_all "$case_dir"
     ;;
   npu-sim|baseline-sim)
     run_python_simulator "$case_dir" "$build_dir" 0
