@@ -14,11 +14,12 @@ npu_sim_soc="Ascend950PR_9589"
 ptoas_sim_soc="Ascend950PR_9599"
 core_id="0"
 target_pass="convert-hivmave-to-ptoas-vmi"
+bridge_mode="direct"
 
 usage() {
   cat >&2 <<EOF
 Usage:
-  bridge/tools/run_comparison_flow.sh [--clean-build] <option> <testcase>
+  bridge/tools/run_comparison_flow.sh [--clean-build] [--bridge-mode <mode>] <option> <testcase>
 
 Options:
   early-ir     Generate <testcase>/input.mlir from the Triton Python testcase.
@@ -29,7 +30,13 @@ Options:
   bridge-sim   Run input.mlir -> VMI -> VPTO -> PTOAS simulator fixture.
 
 Flags:
-  --clean-build  Remove testcase build directories before running.
+  --clean-build                Remove testcase build directories before running.
+  --bridge-mode <mode>         Select direct (default) or external-calls.
+  --bridge-mode=<mode>         Equivalent spelling.
+
+Bridge modes:
+  direct          Rewrite supported HIVM DMA/Cube templates into PTO operations.
+  external-calls  Preserve CCE template calls and convert the surrounding IR.
 
 Required environment:
   ASCEND_NPU_IR_ROOT=/path/to/AscendNPU-IR
@@ -125,6 +132,22 @@ find_bishengir_compile() {
     fi
   done
   die "cannot find bishengir-compile under $npuir_root"
+}
+
+find_npuir_aicore_bitcode() {
+  require_npuir_root
+  local candidates=(
+    "$npuir_root/build/install/lib/meta_op.aic.c310.bc"
+    "$npuir_root/build/lib/meta_op.aic.c310.bc"
+  )
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      abs_path "$candidate"
+      return 0
+    fi
+  done
+  die "cannot find meta_op.aic.c310.bc under $npuir_root/build"
 }
 
 find_ptoas() {
@@ -512,12 +535,19 @@ run_compile() {
     "$output_stem"
   )
   write_command "$build_dir/$mode.command.txt" "${cmd[@]}"
+  if [[ "$mode" == "vmi" ]]; then
+    printf '%s\n' "$bridge_mode" >"$build_dir/$mode.bridge-mode.txt"
+  fi
 
   set +e
   if [[ "$mode" == "vmi" ]]; then
-    BISHENGIR_ENABLE_PTOAS_BRIDGE=1 "${cmd[@]}" >"$log_file" 2>&1
+    BISHENGIR_ENABLE_PTOAS_BRIDGE=1 \
+      BISHENGIR_PTOAS_BRIDGE_MODE="$bridge_mode" \
+      "${cmd[@]}" >"$log_file" 2>&1
   else
-    env -u BISHENGIR_ENABLE_PTOAS_BRIDGE "${cmd[@]}" >"$log_file" 2>&1
+    env -u BISHENGIR_ENABLE_PTOAS_BRIDGE \
+      -u BISHENGIR_PTOAS_BRIDGE_MODE \
+      "${cmd[@]}" >"$log_file" 2>&1
   fi
   status=$?
   set -e
@@ -726,7 +756,7 @@ run_bridge_sim() {
   local out_dir="$case_dir/out"
   local build_dir="$out_dir/build"
   local vpto_file="$out_dir/$case_name.vpto.mlir"
-  local ptoas_bin kernel_name cmake_bin python_bin
+  local ptoas_bin kernel_name cmake_bin python_bin aicore_bitcode
 
   ensure_bridge_sim_fixture "$case_dir"
   [[ -f "$vpto_file" ]] || run_emit_vpto "$case_dir" "$case_name"
@@ -761,6 +791,10 @@ run_bridge_sim() {
   if [[ -n "$kernel_name" ]]; then
     env_cmd+=("KERNEL_NAME=$kernel_name")
   fi
+  if [[ "$bridge_mode" == "external-calls" ]]; then
+    aicore_bitcode="$(find_npuir_aicore_bitcode)"
+    env_cmd+=("PTOAS_AICORE_LL_MODULE=$aicore_bitcode")
+  fi
   env_cmd+=(bash "$case_dir/run_sim.sh")
 
   write_command "$build_dir/bridge-sim.command.txt" "${env_cmd[@]}"
@@ -781,6 +815,15 @@ while [[ $# -gt 0 ]]; do
       clean_build=1
       shift
       ;;
+    --bridge-mode)
+      [[ $# -ge 2 ]] || die "--bridge-mode requires direct or external-calls"
+      bridge_mode="$2"
+      shift 2
+      ;;
+    --bridge-mode=*)
+      bridge_mode="${1#*=}"
+      shift
+      ;;
     --)
       shift
       while [[ $# -gt 0 ]]; do
@@ -795,6 +838,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 set -- "${args[@]}"
+
+case "$bridge_mode" in
+  direct|external-calls) ;;
+  *) die "unknown bridge mode: $bridge_mode (expected direct or external-calls)" ;;
+esac
 
 if [[ $# -ne 2 ]]; then
   usage
