@@ -29,15 +29,17 @@ Options:
   npu-sim      Run the Triton Python testcase through the NPU-IR simulator.
   emit-vmi     Emit PTOAS VMI MLIR from <testcase>/input.mlir.
   emit-vpto    Emit PTOAS VPTO MLIR from the VMI MLIR.
+  fatobj       Build the VPTO A5 fat object and copy it into the testcase.
   bridge-sim   Run input.mlir -> VMI -> VPTO -> PTOAS simulator fixture.
 
 Flags:
   --clean-build                Remove testcase build directories before running.
-  --bridge-mode <mode>         Select direct (default) or external-calls.
+  --bridge-mode <mode>         Select direct (default), ptodsl, or external-calls.
   --bridge-mode=<mode>         Equivalent spelling.
 
 Bridge modes:
-  direct          Rewrite supported HIVM DMA/Cube templates into PTO operations.
+  direct          Rewrite supported non-Cube HIVM DMA templates into PTO operations.
+  ptodsl          Compile and link the NPU-IR PTODSL MmadL1 helper, then emit PTO IR.
   external-calls  Preserve CCE template calls and convert the surrounding IR.
 
 Required environment:
@@ -222,6 +224,41 @@ find_python_with_numpy() {
   done
 
   die "cannot find a Python that can import numpy"
+}
+
+find_ptodsl_python() {
+  local candidates=()
+  local candidate
+
+  if [[ -n "${BISHENGIR_PTODSL_PYTHON:-}" ]]; then
+    candidates+=("$BISHENGIR_PTODSL_PYTHON")
+  fi
+  while IFS= read -r candidate; do
+    candidates+=("$candidate")
+  done < <(type -P -a python3 python 2>/dev/null || true)
+  candidates+=(
+    "$HOME/miniconda3/envs/ptoas/bin/python3"
+    "$HOME/anaconda3/envs/ptoas/bin/python3"
+  )
+
+  for candidate in "${candidates[@]}"; do
+    if [[ -x "$candidate" ]] &&
+       "$candidate" -c 'from ptodsl import pto' >/dev/null 2>&1; then
+      abs_path "$candidate"
+      return 0
+    fi
+  done
+
+  die "ptodsl bridge mode needs a Python that can import ptodsl; set BISHENGIR_PTODSL_PYTHON"
+}
+
+configure_ptodsl_template_env() {
+  local template
+  require_npuir_root
+  template="$npuir_root/bishengir/lib/Template/lib/RegBase/Cube/nd2nz_mmadl1_64_ptodsl.py"
+  [[ -f "$template" ]] || die "PTODSL MmadL1 template not found: $template"
+  export BISHENGIR_PTODSL_PYTHON="$(find_ptodsl_python)"
+  export BISHENGIR_PTODSL_MMADL1_TEMPLATE="$template"
 }
 
 source_cann_env() {
@@ -552,6 +589,9 @@ run_compile() {
 
   set +e
   if [[ "$bridge_enabled" == "1" ]]; then
+    if [[ "$bridge_mode" == "ptodsl" ]]; then
+      configure_ptodsl_template_env
+    fi
     BISHENGIR_ENABLE_PTOAS_BRIDGE=1 \
       BISHENGIR_PTOAS_BRIDGE_MODE="$bridge_mode" \
       "${cmd[@]}" >"$log_file" 2>&1
@@ -613,6 +653,7 @@ run_emit_vmi() {
   local build_dir="$out_dir/build"
   local log_file="$build_dir/emit-vmi.log"
   local vmi_file="$out_dir/$case_name.vmi.mlir"
+  local mode_file="$out_dir/$case_name.vmi.bridge-mode.txt"
   local count_file="$build_dir/after-$target_pass.dump-count.txt"
   mkdir -p "$build_dir"
 
@@ -623,6 +664,7 @@ run_emit_vmi() {
 
   extract_pass_dump "$log_file" "$vmi_file" "$target_pass" "$count_file" ||
     die "could not extract a successful dump after $target_pass; see $log_file"
+  printf '%s\n' "$bridge_mode" >"$mode_file"
   log "wrote $vmi_file"
 }
 
@@ -633,17 +675,29 @@ run_emit_vpto() {
   local build_dir="$out_dir/build"
   local vmi_file="$out_dir/$case_name.vmi.mlir"
   local vpto_file="$out_dir/$case_name.vpto.mlir"
+  local vmi_mode_file="$out_dir/$case_name.vmi.bridge-mode.txt"
+  local vpto_mode_file="$out_dir/$case_name.vpto.bridge-mode.txt"
   local ptoas_bin
 
-  [[ -f "$vmi_file" ]] || run_emit_vmi "$case_dir" "$case_name"
+  if [[ ! -f "$vmi_file" || ! -f "$vmi_mode_file" ||
+        "$(<"$vmi_mode_file")" != "$bridge_mode" ]]; then
+    run_emit_vmi "$case_dir" "$case_name"
+  fi
   source_cann_env
   ptoas_bin="$(find_ptoas)"
   configure_ptoas_env "$ptoas_bin"
+
+  local pto_level_args=()
+  if [[ "$bridge_mode" == "ptodsl" ]]; then
+    # This staged mode keeps NPU-IR's explicit local addresses and sync plan.
+    pto_level_args=("--pto-level=level3")
+  fi
 
   local cmd=(
     "$ptoas_bin"
     "--pto-arch=a5"
     "--pto-backend=vpto"
+    "${pto_level_args[@]}"
     "--emit-vpto"
     "$vmi_file"
     "-o"
@@ -653,6 +707,7 @@ run_emit_vpto() {
   write_command "$build_dir/emit-vpto.command.txt" "${cmd[@]}"
   log "PTOAS VMI -> VPTO"
   run_logged "$build_dir/emit-vpto.log" "${cmd[@]}"
+  printf '%s\n' "$bridge_mode" >"$vpto_mode_file"
   log "wrote $vpto_file"
 }
 
@@ -787,10 +842,14 @@ run_bridge_sim() {
   local out_dir="$case_dir/out"
   local build_dir="$out_dir/build"
   local vpto_file="$out_dir/$case_name.vpto.mlir"
+  local vpto_mode_file="$out_dir/$case_name.vpto.bridge-mode.txt"
   local ptoas_bin kernel_name cmake_bin python_bin aicore_bitcode
 
   ensure_bridge_sim_fixture "$case_dir"
-  [[ -f "$vpto_file" ]] || run_emit_vpto "$case_dir" "$case_name"
+  if [[ ! -f "$vpto_file" || ! -f "$vpto_mode_file" ||
+        "$(<"$vpto_mode_file")" != "$bridge_mode" ]]; then
+    run_emit_vpto "$case_dir" "$case_name"
+  fi
 
   source_cann_env
   ptoas_bin="$(find_ptoas)"
@@ -834,6 +893,62 @@ run_bridge_sim() {
   log "simulator log: $build_dir/bridge-sim.log"
 }
 
+run_bridge_fatobj() {
+  local case_dir="$1"
+  local case_name="$2"
+  local out_dir="$case_dir/out"
+  local build_dir="$out_dir/build"
+  local fatobj_build_dir="$build_dir/ptoas-fatobj"
+  local vpto_file="$out_dir/$case_name.vpto.mlir"
+  local vpto_mode_file="$out_dir/$case_name.vpto.bridge-mode.txt"
+  local ptoas_bin cmake_bin aicore_bitcode fatobj published_fatobj
+  local -a fatobjs=()
+
+  ensure_bridge_sim_fixture "$case_dir"
+  if [[ ! -f "$vpto_file" || ! -f "$vpto_mode_file" ||
+        "$(<"$vpto_mode_file")" != "$bridge_mode" ]]; then
+    run_emit_vpto "$case_dir" "$case_name"
+  fi
+
+  source_cann_env
+  ptoas_bin="$(find_ptoas)"
+  cmake_bin="$(find_cmake)"
+  configure_ptoas_env "$ptoas_bin"
+  if [[ "$bridge_mode" == "external-calls" ]]; then
+    aicore_bitcode="$(find_npuir_aicore_bitcode)"
+    export PTOAS_AICORE_LL_MODULE="$aicore_bitcode"
+  else
+    unset PTOAS_AICORE_LL_MODULE || true
+  fi
+
+  mkdir -p "$fatobj_build_dir"
+  write_command "$build_dir/fatobj-configure.command.txt" \
+    "$cmake_bin" -S "$case_dir" -B "$fatobj_build_dir" \
+    "-DSOC_VERSION=$ptoas_sim_soc" \
+    "-DPTOAS_BIN=$ptoas_bin" \
+    "-DKERNEL_MLIR=$vpto_file"
+  run_logged "$build_dir/fatobj-configure.log" \
+    "$cmake_bin" -S "$case_dir" -B "$fatobj_build_dir" \
+    "-DSOC_VERSION=$ptoas_sim_soc" \
+    "-DPTOAS_BIN=$ptoas_bin" \
+    "-DKERNEL_MLIR=$vpto_file"
+
+  write_command "$build_dir/fatobj-build.command.txt" \
+    "$cmake_bin" --build "$fatobj_build_dir" --parallel "$(nproc)"
+  run_logged "$build_dir/fatobj-build.log" \
+    "$cmake_bin" --build "$fatobj_build_dir" --parallel "$(nproc)"
+
+  mapfile -t fatobjs < <(
+    find "$fatobj_build_dir" -type f -name '*_ptoas_fatobj.o' | sort
+  )
+  [[ ${#fatobjs[@]} -eq 1 ]] || \
+    die "expected one generated PTOAS fat object under $fatobj_build_dir; found ${#fatobjs[@]}"
+  fatobj="${fatobjs[0]}"
+  published_fatobj="$case_dir/$(basename -- "$fatobj")"
+  cp -f "$fatobj" "$published_fatobj"
+  log "fat object: $published_fatobj"
+}
+
 clean_build=0
 args=()
 while [[ $# -gt 0 ]]; do
@@ -847,7 +962,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --bridge-mode)
-      [[ $# -ge 2 ]] || die "--bridge-mode requires direct or external-calls"
+      [[ $# -ge 2 ]] || die "--bridge-mode requires direct, ptodsl, or external-calls"
       bridge_mode="$2"
       shift 2
       ;;
@@ -871,8 +986,8 @@ done
 set -- "${args[@]}"
 
 case "$bridge_mode" in
-  direct|external-calls) ;;
-  *) die "unknown bridge mode: $bridge_mode (expected direct or external-calls)" ;;
+  direct|ptodsl|external-calls) ;;
+  *) die "unknown bridge mode: $bridge_mode (expected direct, ptodsl, or external-calls)" ;;
 esac
 
 if [[ $# -ne 2 ]]; then
@@ -908,6 +1023,9 @@ case "$option" in
     ;;
   emit-vpto|vpto)
     run_emit_vpto "$case_dir" "$case_name"
+    ;;
+  fatobj|bridge-fatobj)
+    run_bridge_fatobj "$case_dir" "$case_name"
     ;;
   bridge-sim|ptoas-sim)
     run_bridge_sim "$case_dir" "$case_name"

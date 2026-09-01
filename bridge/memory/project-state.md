@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-08-28
+Last updated: 2026-09-01
 
 ## Current Goal
 
@@ -15,13 +15,16 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   kernels, not the active exploration target.
 - Active focus is Cube plus its relevant DMA/staging sequence, starting from
   `bridge/triton-example/cube_dotproduct.py`.
-- The first 64x64 Cube trace, mapping decision, and strict conversion slice are
-  complete. The real fixture emits PTOAS VMI, lowers to VPTO, and passes PTOAS
-  simulator numerical comparison for all 4096 f16 outputs.
+- The first 64x64 Cube trace and mapping decision are complete. The real PTODSL
+  fixture emits PTOAS VMI, lowers to VPTO, and passes PTOAS simulator numerical
+  comparison for all 4096 f16 outputs.
 - The first external-call experiment now preserves Cube CCE calls and their
   memref descriptor ABI through PTOAS, links the matching NPU-IR template
-  bitcode, and passes simulator numerical comparison. The passing direct PTO
-  rewrite remains an alternative and comparison path.
+  bitcode, and passes simulator numerical comparison.
+- The manager-selected default direction is now PTODSL/PTO-visible Cube
+  expansion, not opaque external CCE calls. `bishengir-compile` now invokes the
+  normalized Python PTODSL source, imports its `MmadL1` PTO helper, and calls it
+  from the converted kernel. The 64x64 simulator comparison passes.
 
 ## Current Working Hypothesis
 
@@ -30,16 +33,18 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   branch is newest/relevant before assuming `master` is current.
 - The bridge likely needs row-specific integration points, not one global pass boundary.
 - Vector rows may fit before or around `convert-hivmave-to-ave-intrin`.
-- Direct DMA/Cube rewrites need an early structured-HIVM boundary. The separate
-  external-call route deliberately runs after `HIVMToStandard` and must retain
-  the generated memref descriptors and CCE calls through PTOAS.
+- PTODSL/PTO-native Cube lowering needs the early structured-HIVM boundary so
+  shape, layout, init/accumulate, memory, and dependency facts remain visible.
+  The separate external-call route deliberately runs after `HIVMToStandard`
+  and retains generated memref descriptors and CCE calls only as a working
+  compatibility/reference path.
 - PTO/VMI is expected to cover vector-side semantics.
 - The accepted softmax and RMSNorm fixtures provide good practical evidence for
   that vector-side strategy; remaining vector limitations stay explicit but do
   not block Cube exploration.
-- Many DMA rows may map to concrete PTO dialect movement operations. Cube now
-  has two explicit routes: preserve and link CCE calls with their memref ABI,
-  or rewrite selected structured regions into PTO operations.
+- Many DMA rows may map to concrete PTO dialect movement operations. Cube has
+  a preferred PTODSL/PTO-visible route plus an external-call compatibility and
+  reference route.
 - PTO tile abstractions or PTO-ISA may be needed for tile/cube/DMA behavior.
 
 ## Development Target
@@ -82,9 +87,18 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   PTOAS, matches the baseline pre-CCE descriptor ABI, links
   `meta_op.aic.c310.bc`, and passes all 4096 simulator outputs with maximum
   absolute error `0.001953125` in 3647 total ticks.
-- Current priority: test a genuine split MIX fixture, exercise another Cube
-  shape/template branch, compare all three paths under identical options, and
-  request real A5 hardware validation.
+- Current priority: generalize the connected PTODSL Cube contract, define the
+  NPU-IR-to-PTOAS memory/sync ownership transition, and validate partial and
+  accumulating tiles numerically. `q_kt_matmul` now compiles, builds a fat
+  object, and launches all 32 AIC blocks through PTODSL mode; full numerical
+  completion remains for A5 hardware or a much longer cycle-simulator run.
+- The PTODSL source at
+  `$HOME/AscendNPU-IR/bishengir/lib/Template/lib/RegBase/Cube/nd2nz_mmadl1_64_ptodsl.py`
+  now accepts normalized M/K/N values up to 64, caller-owned local buffers,
+  init/accumulate, and event IDs. Its source checks pass, `bishengir-compile`
+  imports its helper, PTOAS lowers it, and the 64x64 simulator comparison
+  passes with maximum absolute difference `0.001953125` in 3276 total ticks.
+  Partial and accumulating cases remain compile/IR checks, not numerical proof.
 - The conversion is guarded and default-off, so the CCE path remains the
   fallback and comparison baseline.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
@@ -116,8 +130,8 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - Codex-server A5 simulator workflow is tracked at `NPUIR/coding-guide/simulator-workflow.md`.
 - The local-source-backed NPU-IR-to-PTOAS mapping draft exists at
   `bridge/planning/npuir-to-ptoas-mapping.md`. Vector and first DMA rows have
-  concrete evidence; the strict first Cube row is now implemented and verified
-  through VMI-to-VPTO lowering.
+  concrete evidence; the first PTODSL Cube row is now implemented and verified
+  through VMI-to-VPTO lowering and simulator comparison.
 - DMA/template rewrite planning exists at `bridge/planning/dma-template-rewrite-plan.md`, with compact memory at `bridge/memory/dma-template-mapping.md`.
 - Focused DMA-copy conversion exploration plan exists at `bridge/planning/dma-copy-conversion-exploration.md`.
 - Focused DMA-copy conversion trace exists at `bridge/memory/dma-copy-conversion-trace.md`. It confirms low-level VPTO `pto.mte_gm_ub` / `pto.mte_ub_gm` plus explicit `pto.set_flag` / `pto.wait_flag` as the most concrete first PTOAS target for the simple DMA row.

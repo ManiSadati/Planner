@@ -49,6 +49,36 @@ The current working hypothesis is:
   `pto.mte_gm_ub` / `pto.mte_ub_gm`. Some DMA and cube/template rows may not
   have a clean direct mapping; those may require rewriting the NPU-IR template
   lowering to emit PTO/PTOAS-compatible operations instead of CCE calls.
+- The preferred production Cube path is PTO-visible PTODSL template
+  substitution. At the last structured HIVM boundary, replace a CCE-oriented
+  template operation or call such as `hivm.hir.mmadL1` with a call to a
+  PTODSL-generated PTO implementation that preserves the original template's
+  shape, layout, accumulation, buffering, precision, and dependency contract.
+- The PTODSL Python template is intended implementation source, not merely a
+  prototype or specification for duplicating the template in a C++ rewrite
+  pass. For example,
+  `$HOME/AscendNPU-IR/bishengir/lib/Template/lib/RegBase/Cube/nd2nz_mmadl1_64_ptodsl.py`
+  should evolve into a shape-general PTO-native replacement for the selected
+  CCE `MmadL1` behavior.
+- `bishengir-compile` must compile/materialize the PTODSL-generated PTO function
+  and link it into the same MLIR module. The call may remain as a normal
+  internal function call or be inlined, but by the completion of
+  `convert-hivmave-to-ptoas-vmi` the implementation must be present and visible
+  as PTO operations, with no unresolved CCE template dependency.
+- Do not maintain a second C++ implementation that directly expands `mmadL1`
+  into PTO operations. C++ may match the structured operation, adapt its
+  arguments, import the Python-generated helper, and convert separate caller
+  operations such as ND2NZ/Fixpipe, but the MmadL1 body must remain owned by the
+  PTODSL Python template. Reintroduce a C++ Cube body only if the human
+  explicitly requests a separate experiment.
+- Preserved external CCE calls remain a compatibility/reference fallback, not
+  the intended default backend. Their behavior should be used as an equivalence
+  oracle while the PTODSL template is made shape-general and semantically
+  complete.
+- A standalone Python PTODSL file is not compiler integration by itself. Do not
+  report a PTODSL template as integrated until `bishengir-compile` invokes its
+  compilation path, materializes or links its PTO body into the kernel module,
+  and the result passes PTOAS lowering plus numerical validation.
 - The likely integration point is around `convert-hivmave-to-ave-intrin`, but some constructs may need to be intercepted earlier, possibly around `HIVMToStandard`, if CCE template calls hide information needed for PTO mapping.
 - Current upstream PTOAS has a PTODSL `pto.vmi.*` surface, but current upstream
   TileLib templates are not yet VMI-based by default. Branch evidence, especially

@@ -1,11 +1,12 @@
 # Cube Conversion Exploration Plan
 
-Last updated: 2026-08-28
+Last updated: 2026-09-01
 
-Status: both first 64x64 routes pass numerical simulator execution. The strict
-direct conversion emits PTO operations. The external-call experiment preserves
-the CCE calls and memref descriptor ABI through PTOAS, links the matching
-NPU-IR template bitcode, and executes successfully.
+Status: both active 64x64 routes pass numerical simulator execution. The
+external route preserves and links CCE calls, while the preferred PTODSL route
+imports the Python-generated `MmadL1` PTO helper into the kernel module. The
+old direct C++ Cube body has been removed. General-shape coverage is not yet
+established.
 
 ## Goal
 
@@ -18,6 +19,30 @@ bridge/triton-example/cube_dotproduct.py
 
 The current deliverable is a narrow, source-backed implementation plus a clear
 record of what it does and does not support.
+
+## 2026-09-01 Direction Update
+
+The external-call experiment proved that PTOAS can carry the CCE memref ABI and
+link the selected device templates. It remains a valuable compatibility and
+numerical reference, but it is not the intended default because PTOAS sees the
+Cube implementation only as opaque calls.
+
+The preferred path should resemble PTOAS PTODSL TileLib:
+
+1. intercept the structured region before `convert-hivm-to-std`;
+2. preserve shape, layout, init/accumulate, dependency, and tail facts;
+3. emit PTO tile operations for PTOAS's in-process Python TileLib, or
+   materialize and inline an equivalent PTODSL-generated PTO body;
+4. let PTOAS optimize the resulting PTO/VMI/VPTO operations;
+5. use the external path and unchanged NPU-IR as references.
+
+The Python source added by commit
+`9d97eff1240434e537e45ee9154c65df80208e2e` is now a normalized f16 template
+rather than a fixed whole-kernel implementation. It accepts M/K/N up to 64,
+caller-owned local buffers, init/accumulate, and NPU-IR event IDs. In `ptodsl`
+mode, `bishengir-compile` invokes it, imports the helper selected by
+`pto.ptodsl.logical_name`, and calls that helper in place of structured
+`hivm.hir.mmadL1`.
 
 ## Starting State
 
@@ -66,9 +91,10 @@ sync-block finalization passes, immediately before `convert-hivm-to-std`:
 `convert-hivm-to-std` replaces those four operations with calls to
 `nd2nz_half`, `mma_tile_half_to_float`, and
 `fixpipe_nz2nd_float_to_half_4d_to_2d_gm`. The structured layer remains the
-right boundary for a direct PTO rewrite. The call layer is the boundary for the
-separate compatibility route because its memrefs retain the runtime shape,
-stride, offset, and address-space information consumed by the CCE functions.
+right boundary for PTODSL/PTO-native expansion. The call layer is the boundary
+for the separate compatibility route because its memrefs retain the runtime
+shape, stride, offset, and address-space information consumed by the CCE
+functions.
 
 ## What The CCE Templates Actually Do
 
@@ -187,11 +213,11 @@ Risks:
 - it retains a dependency on CCE template code, so it is a compatibility or
   transitional route rather than a fully open replacement backend.
 
-### Path B: Rewrite Directly To PTO
+### Historical Direct C++ Rewrite
 
-This is the already validated narrow alternative. Intercept the structured
-`nd2nz -> mmadL1 -> fixpipe` region before `convert-hivm-to-std` and emit PTO
-MTE/MAD operations. The strict 64x64 fixture passes PTOAS simulation.
+This was a validated narrow proof. It intercepted the structured
+`nd2nz -> mmadL1 -> fixpipe` region before `convert-hivm-to-std` and emitted PTO
+MTE/MAD operations. The strict 64x64 fixture passed PTOAS simulation.
 
 Benefits:
 
@@ -208,8 +234,10 @@ Risks:
 - support can become a collection of narrow special cases, and a legal-looking
   PTO sequence can still compute the wrong physical layout.
 
-Path B remains passing evidence and a long-term option. It will not be removed
-or changed by the external-call experiment.
+The result remains useful evidence that the primitive PTO mapping can compute
+the fixture correctly. Its hand-written C++ Cube body has now been removed so
+the PTODSL source is the only PTO-native implementation. Reintroducing a second
+C++ implementation requires an explicit human decision.
 
 ## External-Call Implementation Checkpoint
 
@@ -238,13 +266,15 @@ does not yet prove general Cube coverage. The next evidence must include
 additional shapes/template branches and a genuine split MIX fixture containing
 both AIC and AIV functions. Real A5 hardware validation also remains required.
 
-## Direct-Path Decision
+## Historical First Direct-Path Decision
 
-The first fixture does not justify adding a new PTOAS Cube instruction or
-continuing inside the AVE-to-VMI pass. PTO already contains all required
-primitive operations.
+This decision produced the first passing numerical comparison and remains
+historical evidence. It is no longer an active implementation strategy.
+The first fixture did not justify adding a new PTOAS Cube instruction or
+continuing inside the AVE-to-VMI pass because PTO already contained all
+required primitive operations.
 
-The recommended first implementation route is a **low-level PTO composition**
+The first implementation route was a **low-level PTO composition**
 inside `convert-hivm-templates-to-pto`:
 
 1. Match the complete guarded `nd2nz -> mmadL1 -> fixpipe` region, not isolated
@@ -266,9 +296,9 @@ This is a conversion recipe that emits PTO MLIR directly, not another CCE
 device template and not a new intermediate operation that needs a second
 expansion pass.
 
-## Implementation Result
+## Historical Implementation Result
 
-The approved starter route is implemented in AscendNPU-IR under:
+The starter route was implemented in AscendNPU-IR under:
 
 ```text
 bishengir/lib/Conversion/HIVMTemplatesToPTO/Cube/
@@ -276,10 +306,10 @@ bishengir/lib/Conversion/HIVMTemplatesToPTO/Cube/
   MatmulRegionToPTO.cpp
 ```
 
-The matcher is atomic and deliberately strict. It accepts the observed 64x64
+The matcher was atomic and deliberately strict. It accepted the observed 64x64
 f16/f16/f32/f16, init=true, no-transpose, NZ2ND region with the expected
 ping-pong addresses and sync operands. Unsupported shapes, layouts, modes, or
-partial regions remain on the normal CCE path.
+  partial regions remained on the normal CCE path.
 
 For the real `cube_dotproduct` fixture it emits:
 
@@ -297,7 +327,7 @@ it does not become the Cube pattern owner.
 
 Verification completed on 2026-08-27:
 
-- focused lit coverage passes for existing DMA behavior, strict Cube PTO
+- focused lit coverage passed for existing DMA behavior, strict Cube PTO
   emission, and the Cube-to-VMI continuation;
 - the real bridge runner writes
   `bridge/testcases/cube_dotproduct/out/cube_dotproduct.vmi.mlir`;
@@ -310,58 +340,31 @@ Verification completed on 2026-08-27:
 - the clean simulator run passes all 4096 outputs with maximum absolute error
   `0.001953125` and reports 3250 total ticks.
 
-The numerical run also established an important physical-layout rule: a
+That implementation has now been removed. Its result still established an
+important physical-layout rule: a
 row-major source B requires `pto.mte_l1_l0b {transpose = true}` to construct
 PTO's right-tile `nZ` layout. With `false`, the output matched `A @ B.T` rather
 than the Triton kernel's `A @ B`. This physical flag is separate from the
 source-level `b_transpose` semantic.
 
-## Active External CCE Template Experiment
+## External CCE Compatibility Route
 
-The direct PTO composition remains a passing comparison path. A separate
+The direct PTO composition is no longer present. A separate
 `bridge/testcases/matmul_64/` fixture tests the active compatibility route:
 allow `convert-hivm-to-std` to emit CCE template calls, then use
 `convert-hivmave-to-ptoas-vmi` only to normalize the surrounding IR.
 
-The runner exposes this as `--bridge-mode external-calls`. For the copied
-64x64 input, the existing prototype preserves the three external declarations
-and four calls and marks the output as a Cube module. It currently converts
-their memrefs to raw PTO pointers, which is the behavior this experiment must
-replace.
+The runner exposes this as `--bridge-mode external-calls`. It preserves the
+three external declarations and four calls, retains ranked memrefs until
+standard memref-to-LLVM lowering builds the C-interface descriptors, and links
+`meta_op.aic.c310.bc`. The 64x64 simulator result passes all 4096 outputs with
+maximum absolute error `0.001953125`. This remains a compatibility/reference
+backend because PTOAS cannot optimize inside the external CCE calls.
 
-The simulator link then fails on exactly these symbols:
+## Current Source Layout
 
-```text
-_mlir_ciface_nd2nz_half
-_mlir_ciface_mma_tile_half_to_float
-_mlir_ciface_fixpipe_nz2nd_float_to_half_4d_to_2d_gm
-```
-
-This is not only a missing-library problem. The functions in
-`meta_op.aic.c310.bc` take pointers to NPU-IR `memref_t` descriptors. The
-current PTOAS lowering calls them with raw address-space pointers. The next
-experiment must therefore preserve those memrefs rather than inventing
-shape-specific adapters:
-
-1. Enable memref preservation only under `--bridge-mode external-calls`.
-2. For AIC/Cube functions, map HIVM memory-space attributes but keep memref
-   shape, layout, offset, sizes, and strides through VMI and VPTO.
-3. For AIV/vector functions, retain the existing `!pto.ptr` conversion at VMI
-   uses. In a split MIX module, choose this policy by function core type.
-4. Confirm that final memref-to-LLVM lowering creates descriptor allocas and
-   `_mlir_ciface_*` calls equivalent to the unchanged NPU-IR output.
-5. Integrate the matching CCE template device code into the PTOAS link.
-6. Run `matmul_64`, then a true MIX fixture, and compare with both the direct
-   PTO result and unchanged NPU-IR baseline.
-
-Do not claim success from VMI/VPTO legality or symbol resolution alone. The
-pre-CCE LLVM descriptor ABI and numerical simulator result are both required.
-
-## Proposed Source Layout
-
-Keep the new Cube lowering separate from both the CCE template tree and the
-existing vector conversion. Add it as a `Cube/` component of the existing
-structured-HIVM conversion:
+The bridge integration is separate from both the CCE template implementation
+and the existing vector conversion:
 
 ```text
 bishengir/lib/Conversion/HIVMTemplatesToPTO/
@@ -369,25 +372,15 @@ bishengir/lib/Conversion/HIVMTemplatesToPTO/
   HIVMTemplatesToPTO.cpp           # pass entry and pattern registration
   Cube/
     CubePatterns.h
-    MatmulRegionToPTO.cpp          # guarded ND2NZ -> MMAD -> fixpipe recipe
-    MmadL1ToPTO.cpp                # factor out after semantics are proven
-  DMA/
-    ND2NZToPTO.cpp                 # factor out guarded reusable DMA later
-    FixpipeToPTO.cpp
+    MatmulRegionToPTO.cpp          # validation, call adaptation, ND2NZ/Fixpipe
+    PTODSLTemplateImporter.cpp     # imports the Python-generated PTO helper
+    PTODSLTemplateImporter.h
 ```
 
-For the first implementation, keep the complete guarded fixture recipe in
-`Cube/MatmulRegionToPTO.cpp`. Splitting the three operations too early could
-partially rewrite a region and leave an invalid mix of PTO and CCE lowering.
-Once each operation has a proven independent contract, reusable ND2NZ and
-fixpipe patterns can move into `DMA/`.
-
-The main file should retain pass construction and call a helper such as
-`populateHIVMCubeTemplatesToPTOPatterns(patterns)`. Use one pass and the
-existing pipeline switch initially, because all these patterns share the same
-interception point and memory/sync ownership. A separate
-`HIVMCubeTemplatesToPTO` pass is only useful later if Cube needs independent
-ordering or enablement.
+`MatmulRegionToPTO.cpp` must not contain another implementation of the
+`MmadL1` staging/MAD body. That implementation is owned by
+`nd2nz_mmadl1_64_ptodsl.py`; C++ only imports it, validates/adapts the call, and
+converts the separate caller-side operations.
 
 The longer-term route is a **tile-level PTO composition**:
 
@@ -403,14 +396,80 @@ sync, and matmul structure in `ptodsl/examples/fa_dn_matmul.py`. Adopting that
 route means PTOAS must own tile allocation and synchronization for the region;
 it should not be mixed casually with NPU-IR's existing address and event plan.
 
+## Preferred PTODSL Integration Plan
+
+The normalized template boundary is one `MmadL1` microtile with actual M/K/N
+values no larger than 64. Whole matmuls such as `q_kt_matmul` remain outer
+loops over those calls. The source contract is:
+
+```text
+ND2NZ(A/B, actual rows/cols and padded physical extent)
+  -> wait caller dependencies
+  -> L1-to-L0A/B staging
+  -> pto.mad when init, otherwise pto.mad_acc
+  -> release caller dependencies
+```
+
+The probe's FixPipe writeback is deliberately outside `mmadl1_f16_f32`, just
+as the structured NPU-IR operation records that result FixPipe is inserted by
+its caller.
+
+Implemented compiler handoff:
+
+1. The bridge invokes the PTODSL Python source once per compilation and parses
+   its generated PTO module in the active MLIR context.
+2. It selects `mmadl1_f16_f32`, imports it under the stable private symbol
+   `@__pto_mmadl1_f16_f32_ptodsl`, and adapts the NPU-IR pointers, M/K/N,
+   init state, and event IDs to a normal `func.call`.
+3. PTOAS sees the complete helper body and inlines/lowers it to VPTO. The C++
+   bridge does not duplicate the Python template's L1-to-L0 and MAD sequence.
+
+The subprocess is a staged integration. A cached or in-process service modeled
+after `tools/ptoas/NativeModule.cpp` is preferable once the template contract
+stabilizes, but that change must retain Python as the implementation source.
+
+### 64x64 Coverage Boundary
+
+| Category | Behavior |
+| --- | --- |
+| Required and working | f16 L1 A/B and f32 L0C pointers; observed L0A/L0B ping-pong addresses; 64x64x64 extents; L1-to-L0A/B staging; physical L0B nZ packing; MTE2/MTE1 and MTE1/M dependencies; `pto.mad` initialization; result-side Fixpipe and ND2NZ caller mappings |
+| Present but not numerically proven | `pto.mad_acc` for `init = false`; runtime M/K/N arguments below 64 |
+| Not needed by this fixture | internal K segmentation; edge padding; source transpose; bias; HF32/integer/I4/MX; unit flags; quant/ReLU/alternate Fixpipe; ND2NZ large-stride fallback; MIX fallback policy |
+| Unmapped or unresolved generally | complete CATLASS scheduling branches; general local-memory capacity and address ownership; PTOAS auto-allocation/auto-sync transition; precision/bias/transpose variants; arbitrary edge-tile zero fill |
+
+No new PTO primitive was required for the observed 64x64 path. Deferred rows
+must not be inferred to work merely because their operation names resemble the
+implemented sequence.
+
+The compiler integration must choose one owner for local allocation and sync:
+
+- NPU-IR-owned mode passes explicit local addresses and event dependencies to
+  a low-level PTODSL body and disables PTOAS auto-allocation/auto-sync there.
+- PTOAS-owned mode emits logical tile dependencies and removes the corresponding
+  NPU-IR physical event/address plan for that region before TileLib expansion.
+
+The second mode may eventually provide more optimization freedom. The current
+first mode is nevertheless a real PTODSL-template path: Python owns the helper
+body, while C++ only adapts and imports it. It must not drift back into a
+hand-written C++ copy of the CCE template.
+
+Generalization order:
+
+1. 64x64x64 init and a partial M/N/K microtile;
+2. init=false accumulation across an outer K loop;
+3. `q_kt_matmul` multi-tile execution;
+4. ND2NZ stride fallback and tail/padding behavior;
+5. transpose, bias, HF32, integer/I4, unit flags, and remaining FixPipe modes;
+6. split MIX ownership and fallback to external CCE calls for unsupported rows.
+
 ## Conversion Boundaries
 
-The direct PTO rewrite uses the existing optional bridge location:
+The PTODSL route uses the existing optional bridge location:
 
 ```text
 hivm-mark-disable-load
   -> sync-block finalization
-  -> convert-hivm-templates-to-pto     # Cube conversion belongs here
+  -> convert-hivm-templates-to-pto     # import/adapt PTODSL Cube helper here
   -> convert-hivm-to-std
 ```
 
@@ -430,9 +489,9 @@ convert-hivm-to-std                    # emits selected CCE calls with memrefs
   -> link matching CCE template device code
 ```
 
-## Validated Direct-Path Contract
+## Historical Direct-Path Contract
 
-- low-level PTO composition rather than a new CCE template;
+- this low-level C++ PTO composition has been removed;
 - strict 64x64 f16/f16/f32/f16 specialization;
 - NPU-IR ownership of memory placement and explicit sync;
 - unchanged CCE path as the default/fallback;
@@ -441,13 +500,19 @@ convert-hivm-to-std                    # emits selected CCE calls with memrefs
 
 ## Active Implementation Stages
 
-1. Preserve the external call memrefs for pure AIC `matmul_64`.
-2. Verify VMI, VPTO, and pre-CCE LLVM descriptor structure.
-3. Integrate the matching CCE template device definitions and run simulation.
-4. Add a true MIX test and verify separate AIC/AIV type policies and packaging.
-5. Compare the external-call result with the direct PTO and unchanged NPU-IR
-   paths.
-6. Request A5 hardware validation from the human after local equivalence.
+1. Keep the passing 64x64 PTODSL import, PTOAS lowering, and numerical fixture
+   green.
+2. Prove partial-tile and `init = false` accumulation numerically, not only in
+   generated IR.
+3. Run the published `q_kt_matmul` fat object on A5. Its PTODSL VMI, VPTO,
+   fat-object build, and 32-core simulator launch are verified, but the full
+   cycle simulation is too slow for routine local numerical comparison.
+4. Add observed CCE branches one at a time: K segmentation, tails/padding,
+   transpose, bias, precision modes, ND2NZ fallback, and Fixpipe variants.
+5. Compare PTODSL, external-call, and unchanged NPU-IR paths.
+6. Add a true MIX test and verify ownership/fallback policy and packaging.
+7. Make PTODSL operationally default only after broader local numerical
+   equivalence, then request A5 hardware validation from the human.
 
 ## Related Documents
 

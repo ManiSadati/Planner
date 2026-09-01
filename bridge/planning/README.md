@@ -1,6 +1,6 @@
 # Planning Overview
 
-Last updated: 2026-08-28
+Last updated: 2026-09-01
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
@@ -25,10 +25,12 @@ Current implementation bias:
 - make Cube plus its required DMA/staging path the active investigation;
 - compare each NPU-IR CCE Cube/DMA template contract against PTOAS/PTO dialect
   operations before choosing an implementation boundary;
-- keep two explicit Cube routes available: a PTO-native rewrite and a
-  CCE-template compatibility route;
-- make preservation of external CCE calls and their memref descriptor ABI the
-  active experiment before generalizing the PTO-native rewrite;
+- make PTODSL/TileLib-style, PTO-visible Cube expansion the intended production
+  default so PTOAS can optimize and evolve the generated operations;
+- keep preservation of external CCE calls and their memref descriptor ABI as a
+  working compatibility/reference route, not the intended default;
+- do not duplicate the PTODSL Cube body in a hand-written C++ rewrite; C++ may
+  match/adapt the NPU-IR operation and import the Python-generated helper;
 - keep PTOAS/PTO-ISA as the mapping target and compatibility check.
 
 Completed vector-bridge milestone:
@@ -46,41 +48,36 @@ Completed vector-bridge milestone:
 Current Cube milestone:
 
 - first fixture: `bridge/triton-example/cube_dotproduct.py`;
-- the first source trace, mapping decision, and strict compiler-side conversion
-  slice are complete;
+- the first source trace and mapping decision are complete;
 - the observed path is two GM-to-L1 ND2NZ loads, one `hivm.hir.mmadL1`, and one
   NZ2ND f32-to-f16 fixpipe store;
 - existing PTO primitives cover the fixture, but `mmadL1` is not equivalent to
   one bare `pto.tmatmul` because its CCE template also owns L1-to-L0 staging, K
   partitioning, double buffering, sync, and barriers;
-- the first implemented route is a strict low-level PTO composition in
-  `convert-hivm-templates-to-pto`, preserving NPU-IR memory and sync ownership;
-- that direct route is implemented for the exact 64x64 f16/f16/f32/f16,
-  init=true, no-transpose, NZ2ND fixture and remains guarded by the existing
-  default-off bridge switch;
-- the real fixture now emits PTOAS VMI, lowers through unmodified PTOAS to
-  VPTO, and passes the PTOAS simulator numerical comparison for all 4096 f16
-  outputs;
-- `matmul_64` is now the active experiment: retain the selected CCE template
-  calls and their memrefs through VMI and VPTO, use standard memref-to-LLVM
-  lowering to recover the original descriptor ABI, and link the matching CCE
-  template object or bitcode into the PTOAS device result;
-- longer-term route: `pto.tload -> pto.textract -> pto.tmatmul -> pto.tstore`
-  with PTOAS owning tile allocation and sync.
+- the earlier strict 64x64 C++ rewrite proved the low-level mapping and passed
+  simulation, but has been removed to avoid maintaining a second Cube-template
+  implementation;
+- the external-call `matmul_64` route is complete enough to serve as a working
+  compatibility and numerical reference;
+- commit `9d97eff1240434e537e45ee9154c65df80208e2e` added the PTODSL Cube source.
+  `bishengir-compile` now executes that source in `ptodsl` mode, imports its
+  `mmadl1_f16_f32` helper into the kernel module, and replaces the structured
+  `MmadL1` with an internal call;
+- PTOAS inlines and lowers the imported body, and the 64x64 simulator fixture
+  passes. The Python template is the implementation source; the C++ bridge owns
+  matching, argument adaptation, and materialization rather than duplicating
+  the template body.
 
-## Two Cube Paths
+## Cube Paths
 
 | Path | Contract | Why keep it | Main risks |
 | --- | --- | --- | --- |
-| External CCE calls, active experiment | Skip the early Cube rewrite. Preserve `nd2nz_half`, `mma_tile_half_to_float`, and fixpipe calls with their ranked memref operands through PTOAS. Let standard MLIR lowering create the C-interface descriptors, then link the matching CCE device implementation. | Reuses the broad, mature NPU-IR template behavior and tests the bridge without first recreating every layout, stride, K-loop, precision, and sync case. It is the fastest way to test general Cube compatibility. | PTOAS passes may reject or accidentally erase memref descriptors; address spaces and descriptor ABI must match NPU-IR exactly; CANN/PTOAS device objects must be linked with compatible tools; MIX modules need separate AIC descriptor and AIV pointer policies; this route retains a CCE dependency and is not the final fully open backend. |
-| Direct PTO rewrite, validated narrow alternative | Intercept structured `nd2nz -> mmadL1 -> fixpipe` before CCE calls and emit PTO MTE/MAD operations directly. | Removes the CCE-template dependency and exposes the complete Cube path to PTOAS optimization and scheduling. The strict 64x64 fixture already passes simulation. | Generalization requires faithfully rebuilding template loops, layouts, large-stride fallbacks, K partitioning, accumulation, precision modes, double buffering, and sync. A superficially similar PTO sequence can be numerically or physically wrong. |
+| PTODSL/PTO-native expansion, preferred | Preserve the structured Cube contract before `convert-hivm-to-std`, import the Python-generated PTO helper, and call it with NPU-IR's pointers, dimensions, init state, and event IDs. | The 64x64 path works and keeps Cube semantics visible to PTOAS instead of treating CCE code as a black box. | Only the observed f16 64x64x64 path is numerically proven; memory/sync ownership, tails, K segmentation, precision modes, bias, transpose, and fallbacks remain. |
+| External CCE calls, compatibility/reference | Preserve `nd2nz_half`, `mma_tile_half_to_float`, and fixpipe calls with their ranked memrefs through PTOAS, then link the matching CCE implementation. | Already works and provides broad mature behavior plus a strong numerical/ABI baseline. | Cube remains opaque to PTOAS; the route retains CCE and descriptor/linker dependencies and complicates MIX packaging. |
 
-The external-call path is being explored first because it preserves behavior
-already implemented and validated by NPU-IR. It will establish whether PTOAS
-can carry the existing descriptor ABI and link the CCE device code. The direct
-rewrite remains valuable, but broadening it before this compatibility test
-would require reimplementing many template variants without first knowing
-whether that work is necessary.
+The external path answered the compatibility question successfully. The next
+work is therefore the preferred PTODSL/PTO-native path, using the external path
+and unchanged NPU-IR as references.
 
 ## Planning Document Roles
 
@@ -108,22 +105,25 @@ The two DMA planning docs are intentionally different:
 
 ## Short-Term Plan
 
-Immediate objective: broaden the now-passing `matmul_64` external-call result
-without changing the passing direct rewrite.
+Immediate objective: generalize the now-connected PTODSL Cube template without
+regressing the external-call compatibility route.
 
 Review order:
 
-1. Preserve the verified ABI invariant: public kernel entries use PTO pointers,
-   while external Cube calls use standard memref descriptors.
-2. Run a genuine split MIX fixture before calling the per-function type policy
-   general; AIC external calls keep descriptors and AIV VMI stays pointer-based.
-3. Exercise another shape/template branch, preferably one with dynamic or
-   nontrivial strides.
-4. Compare external-call, direct-PTO, and unchanged NPU-IR results and traces
-   under identical simulator options.
-5. Validate the linked external-call fat object on real A5 hardware.
-6. Decide which template families should remain external and which justify a
-   direct PTO rewrite.
+1. Preserve the passing 64x64 contract: caller-owned local buffers, M/K/N,
+   init/accumulate, and NPU-IR event IDs enter the imported Python helper.
+2. Add numerical tests for a partial tile and `init = false` accumulation,
+   comparing each result with unchanged NPU-IR and the CCE template route.
+3. Define the longer-term memory/sync ownership transition. Do not run both the NPU-IR
+   physical event plan and PTOAS automatic allocation/sync for the same region.
+4. Complete numerical validation for a partial tile and accumulating K
+   iteration. The multi-tile `q_kt_matmul` PTODSL path already reaches VMI,
+   VPTO, fat-object generation, and 32-core simulator launch; run its published
+   object on A5 for practical full-shape validation.
+5. Compare PTODSL, external-call, and unchanged NPU-IR output and traces under
+   identical options.
+6. Run a genuine split MIX fixture and request A5 hardware validation before
+   making the PTODSL bridge mode operationally default.
 
 The detailed plan is `bridge/planning/cube-conversion-exploration.md`.
 
@@ -151,7 +151,7 @@ Current local simulator status:
   successfully in simulator;
 - the NPU-IR-to-PTOAS `row_softmax` bridge fixture has run successfully through
   VMI, VPTO, and PTOAS simulator numerical comparison;
-- the strict 64x64 `cube_dotproduct` bridge fixture passes the PTOAS simulator
+- the PTODSL 64x64 `cube_dotproduct` bridge fixture passes the PTOAS simulator
   numerical comparison with maximum absolute error `0.001953125`;
 - accepted RMSNorm fixtures are also supported and provide the second complex
   vector-kernel milestone;
@@ -199,16 +199,16 @@ Existing first DMA code patch:
 
 ## Medium-Term Plan
 
-After the external-call experiment is functionally validated:
+After the first PTODSL-integrated Cube fixture passes:
 
-1. Decide whether external calls are an acceptable transitional backend or
-   only a compatibility/reference route.
-2. Measure how much fixture and mode coverage the external path inherits from
-   the CCE templates.
-3. Continue the direct PTO route where removing the CCE dependency or exposing
-   optimization opportunities justifies the implementation cost.
-4. Generalize direct mappings one observed contract at a time while retaining
-   the external path and unchanged NPU-IR as comparison baselines.
+1. Move K segmentation, double buffering, and init/accumulate scheduling into
+   the PTO-visible template contract one observed branch at a time.
+2. Add ND2NZ stride fallback, tails/padding, transpose, bias, and precision
+   variants based on concrete NPU-IR fixtures.
+3. Measure optimization and scheduling differences against external CCE calls;
+   this is the main reason to prefer the PTODSL route.
+4. Keep external calls as the compatibility/reference backend for unsupported
+   variants, with explicit fallback reasons rather than silent behavior changes.
 5. Validate IR legality and PTOAS lowering locally, then compare simulator
    output and request A5 runtime/performance validation from the human.
 
@@ -228,14 +228,16 @@ The broader bridge should eventually handle:
 
 ## Current Open Questions
 
-- Can PTOAS preserve NPU-IR ranked memref descriptors through VMI, VPTO, and
-  pre-CCE LLVM without a custom descriptor ABI?
-- Where should the matching CCE template object enter PTOAS device linking?
+- Should the first compiler-integrated PTODSL route emit PTO tile operations
+  for `ExpandTileOp`, or materialize and inline generated PTO bodies directly?
+- Which layer owns local-memory addresses and event scheduling during the
+  transition from NPU-IR's explicit plan to PTOAS TileLib expansion?
+- What is the smallest tile-level representation that preserves ND2NZ layout,
+  partial M/N/K, and the first-versus-accumulating K iteration?
 - Can a split MIX kernel keep descriptor-carrying AIC calls and pointer-based
-  AIV VMI operations in the same compilation flow?
-- Does its preserved event/address plan remain correct on A5 hardware?
-- Which next `mmadL1` mode should drive generalization: K partitioning,
-  accumulation, transpose, or bias/precision behavior?
+  AIV VMI operations when an unsupported Cube variant falls back to CCE?
+- Which next `mmadL1` mode should follow the normalized f16 path: internal K
+  segmentation, transpose, or bias/precision behavior?
 - How should the bridge preserve full IEEE behavior for the row-softmax
   negative-infinity initializer on the current PTOAS path?
 - How should signed integer scalar min/max be generalized beyond constant

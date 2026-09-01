@@ -1,16 +1,18 @@
 # Cube Conversion Status
 
-Last updated: 2026-08-28
+Last updated: 2026-09-01
 
 ## Current Milestone
 
 The active bridge milestone is Cube compute plus the DMA/staging required by
 Cube. The first fixture is `bridge/triton-example/cube_dotproduct.py`.
 
-The first fixture has been traced, classified, and implemented as a strict
-compiler-side slice. It reaches PTOAS VMI and VPTO; simulator and A5 runtime
-equivalence against the Triton-equivalent numerical reference now passes. A5
-hardware validation remains pending.
+The first fixture has been traced and validated through the two active routes:
+preserved external CCE calls and the preferred PTODSL-template route. In the
+PTODSL route, `bishengir-compile` imports the Python-generated `MmadL1` PTO
+body, calls it from the converted kernel, and PTOAS lowers it successfully.
+The 64x64 simulator comparison passes. A5 hardware validation and general-shape
+coverage remain pending.
 
 ## Completed Foundation
 
@@ -43,11 +45,19 @@ not the selected A5 source for this fixture.
 
 ## Current Decision
 
-- Preserve the passing direct Cube implementation in
-  `convert-hivm-templates-to-pto` as an alternative and comparison path.
-- Make external CCE calls the active experiment. In `external-calls` mode, the
-  later VMI pass should normalize surrounding IR while preserving Cube/AIC
-  memrefs and CCE function calls.
+- Make PTODSL/PTO-native expansion the intended default Cube architecture.
+  Preserve structured shape/layout/init/dependency facts before
+  `convert-hivm-to-std`, then let PTOAS see and optimize the generated PTO
+  operations.
+- Use the Python PTODSL `MmadL1` implementation as the source of the imported
+  PTO body. The current staged integration invokes it once per compile and
+  materializes its helper into the same module; a cached or in-process service
+  can replace that mechanism later without moving template semantics into C++.
+- Keep external CCE calls as a compatibility/reference route. They work, but
+  their implementation remains a black box to PTOAS optimization.
+- Do not maintain a second hand-written C++ implementation of the PTODSL Cube
+  body. The earlier direct 64x64 rewrite remains historical mapping evidence,
+  but its implementation has been removed.
 - Do not use raw `!pto.ptr` arguments for CCE calls that consume memref
   descriptors. Let standard memref-to-LLVM lowering create the descriptors.
 - Do not replace `mma_tile_half_to_float` or `hivm.hir.mmadL1` with one bare
@@ -55,14 +65,9 @@ not the selected A5 source for this fixture.
   double buffering, sync, init/accumulate selection, and barriers.
 - No new PTO primitive appears necessary for the starter fixture. Existing PTO
   operations cover ND2NZ, L1-to-L0A/B, MAD, and L0C-to-GM fixpipe movement.
-- The first code route extends `convert-hivm-templates-to-pto` with a strict
-  low-level PTO composition while preserving NPU-IR memory and sync ownership.
-- Put Cube conversion code in a new
-  `bishengir/lib/Conversion/HIVMTemplatesToPTO/Cube/` subdirectory. It should
-  emit PTO MLIR directly and must not be added to the CCE
-  `bishengir/lib/Template/` tree.
-- Longer term: represent the region with `pto.tload -> pto.textract ->
-  pto.tmatmul -> pto.tstore` and let PTOAS own tile allocation and sync.
+- Do not claim that a standalone Python file is integrated. Success requires
+  `bishengir-compile` to place its PTO semantics in the kernel module, followed
+  by PTOAS lowering and numerical validation.
 
 ## Conversion Point
 
@@ -83,16 +88,55 @@ events coexist.
   `pto.load_cbuf_to_ca`, `pto.load_cbuf_to_cb`, and `pto.mad_raw`.
 - The simulator fixture matches the Triton contract: row-major 64x64 f16 A/B,
   f32 accumulation rounded to an f16 output, and one launched program.
-- The clean bridge simulator run passes all 4096 output elements with maximum
-  absolute error `0.001953125`; the run reports 3250 total ticks.
+- The removed direct C++ proof passed all 4096 output elements with maximum
+  absolute error `0.001953125`; its historical run reported 3250 total ticks.
 - PTO's B-side L1-to-L0B `transpose = true` is required to form the physical
   right-tile `nZ` layout. It does not mean source-level `b_transpose=true`.
+
+## PTODSL Template Path
+
+Commit `9d97eff1240434e537e45ee9154c65df80208e2e` added:
+
+```text
+bishengir/lib/Template/lib/RegBase/Cube/nd2nz_mmadl1_64_ptodsl.py
+bishengir/lib/Template/lib/RegBase/Cube/ptodsl_64x64_blockers.md
+```
+
+The source has been generalized from one fixed whole-kernel 64x64 case into a
+normalized f16 microtemplate contract. It now accepts actual M/K/N values up to
+64, caller-owned L1/L0 buffers, init versus accumulate, and NPU-IR event IDs.
+It emits ND2NZ, L1-to-L0A/B, `pto.mad`/`pto.mad_acc`, and a probe-only f32-to-f16
+writeback. A hidden non-square ND2NZ layout error was fixed by using the padded
+K/N extent rather than the row count for the destination physical extent.
+
+The source-contract checks pass for 64x64x64 initialization and 16x32x48
+accumulation. In `--bridge-mode ptodsl`, NPU-IR now invokes the Python source,
+selects `mmadl1_f16_f32` by its logical-name attribute, imports it as
+`@__pto_mmadl1_f16_f32_ptodsl`, and replaces the structured `MmadL1` with a
+normal internal call. The VMI therefore contains both the call and its visible
+PTO implementation. PTOAS inlines and lowers it to
+`pto.load_cbuf_to_ca`, `pto.load_cbuf_to_cb`, and `pto.mad_raw`.
+
+The PTODSL 64x64 simulator run passes all 4096 f16 outputs with maximum
+absolute error `0.001953125` and reports 3276 total ticks. This proves only the
+observed f16 64x64x64 initialization path. Partial tiles and the emitted
+`mad_acc` branch still need numerical coverage.
+
+The multi-tile `q_kt_matmul` fixture also reaches VMI and VPTO in PTODSL mode.
+Its one imported helper call remains inside the four-step K loop, and PTOAS
+emits both initializing and accumulating `mad_raw` forms. The generated fat
+object links and launches all 32 AIC blocks. The full 8192-logical-tile cycle
+simulation did not complete during a five-minute smoke window, so its numerical
+result remains for A5 hardware or a much longer simulator run.
+
+PTOAS already supplies the model to follow in `lib/TileOps/a5/tmatmul.py`,
+`tmatmul_acc.py`, `ptodsl/examples/fa_dn_matmul.py`, and the in-process Python
+TileLib service in `tools/ptoas/NativeModule.cpp`.
 
 ## External-Call Experiment
 
 `bridge/testcases/matmul_64/` is a copy of the same 64x64 source and early IR,
-kept separate so the passing direct-rewrite fixture remains unchanged. Run it
-with:
+kept separate for the external-call compatibility experiment. Run it with:
 
 ```bash
 bridge/tools/run_comparison_flow.sh \
@@ -133,21 +177,22 @@ standard MLIR lowering; the public kernel entry remains raw pointers.
 
 Main external-path risks are descriptor/address-space ABI mismatch, rejection
 of memrefs by PTOAS stages, compatible device linking of the CCE object, MIX
-packaging, and continued dependence on CCE templates. The direct PTO path
-avoids that dependency but carries the larger risk of incompletely recreating
-template layouts, loops, precision modes, buffering, and synchronization.
+packaging, and continued dependence on CCE templates. The PTODSL path avoids
+that dependency, but must faithfully recreate template layouts, loops,
+precision modes, buffering, and synchronization.
 
 ## Next Validation
 
-- Validate a genuine split MIX fixture with descriptor-carrying AIC and
-  pointer-based AIV functions.
-- Exercise another Cube shape or template branch so the experiment is not
-  overfit to fixed 64x64 descriptor views.
-- Compare external-call, direct PTO, and unchanged NPU-IR traces and ticks
-  under identical simulator options.
-- Run the linked fat object on real A5 hardware.
-- Decide whether the external route is a transitional backend, a compatibility
-  baseline, or both before broadening the direct rewrite.
+- Validate a partial tile and an accumulating K iteration numerically. The
+  multi-tile `q_kt_matmul` compile/build/launch path is complete, but its full
+  numerical result still needs A5 hardware or a long simulator run.
+- Generalize address/layout and sync ownership beyond the observed A5
+  64x64x64 microtile before enabling PTOAS automatic allocation/scheduling.
+- Compare the imported Python template against the selected CCE implementation
+  for tails, K segmentation, transpose, bias, precision modes, and fallbacks.
+- Compare PTODSL, external-call, and unchanged NPU-IR traces and ticks under
+  identical simulator options.
+- Validate a genuine split MIX fixture and run the resulting fat object on A5.
 
 The detailed evidence, mapping table, risks, and staged implementation proposal
 are in `bridge/planning/cube-conversion-exploration.md`.
