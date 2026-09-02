@@ -1,6 +1,6 @@
 # Cube Conversion Status
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 ## Current Milestone
 
@@ -9,8 +9,8 @@ Cube. The first fixture is `bridge/triton-example/cube_dotproduct.py`.
 
 The first fixture has been traced and validated through the two active routes:
 preserved external CCE calls and the preferred PTODSL-template route. In the
-PTODSL route, `bishengir-compile` imports the Python-generated `MmadL1` PTO
-body, calls it from the converted kernel, and PTOAS lowers it successfully.
+PTODSL route, `bishengir-compile` imports pre-generated `MmadL1` and ND2NZ PTO
+bodies, calls them from the converted kernel, and PTOAS lowers them successfully.
 The 64x64 simulator comparison passes. A5 hardware validation and general-shape
 coverage remain pending.
 
@@ -49,10 +49,9 @@ not the selected A5 source for this fixture.
   Preserve structured shape/layout/init/dependency facts before
   `convert-hivm-to-std`, then let PTOAS see and optimize the generated PTO
   operations.
-- Use the Python PTODSL `MmadL1` implementation as the source of the imported
-  PTO body. The current staged integration invokes it once per compile and
-  materializes its helper into the same module; a cached or in-process service
-  can replace that mechanism later without moving template semantics into C++.
+- Use the Python PTODSL implementation as the authoring source. Check in its
+  explicit MLIR instantiations and load installed copies directly during
+  compilation; do not launch Python or a service from `bishengir-compile`.
 - Keep external CCE calls as a compatibility/reference route. They work, but
   their implementation remains a black box to PTOAS optimization.
 - Do not maintain a second hand-written C++ implementation of the PTODSL Cube
@@ -110,15 +109,15 @@ writeback. A hidden non-square ND2NZ layout error was fixed by using the padded
 K/N extent rather than the row count for the destination physical extent.
 
 The source-contract checks pass for 64x64x64 initialization and 16x32x48
-accumulation. In `--bridge-mode ptodsl`, NPU-IR now invokes the Python source,
-selects `mmadl1_f16_f32` by its logical-name attribute, imports it as
-`@__pto_mmadl1_f16_f32_ptodsl`, and replaces the structured `MmadL1` with a
-normal internal call. The VMI therefore contains both the call and its visible
-PTO implementation. PTOAS inlines and lowers it to
+accumulation. In `--bridge-mode ptodsl`, NPU-IR parses the installed
+`mmadl1_f16_f32_nn.mlir` and `nd2nz_f16_gm_l1.mlir` resources, imports
+`@__pto_mmadl1_f16_f32_nn` and `@__pto_nd2nz_f16_gm_l1`, and replaces both
+structured operations with normal internal calls. The VMI therefore contains
+the calls and their visible PTO implementations. PTOAS inlines and lowers them to
 `pto.load_cbuf_to_ca`, `pto.load_cbuf_to_cb`, and `pto.mad_raw`.
 
-The PTODSL 64x64 simulator run passes all 4096 f16 outputs with maximum
-absolute error `0.001953125` and reports 3276 total ticks. This proves only the
+The latest PTODSL 64x64 simulator run passes all 4096 f16 outputs with maximum
+absolute error `0.001953125` and reports 3265 total ticks. This proves only the
 observed f16 64x64x64 initialization path. Partial tiles and the emitted
 `mad_acc` branch still need numerical coverage.
 

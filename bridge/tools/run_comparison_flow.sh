@@ -39,7 +39,7 @@ Flags:
 
 Bridge modes:
   direct          Rewrite supported non-Cube HIVM DMA templates into PTO operations.
-  ptodsl          Compile and link the NPU-IR PTODSL MmadL1 helper, then emit PTO IR.
+  ptodsl          Import pre-generated PTO Cube helpers, then emit PTO IR.
   external-calls  Preserve CCE template calls and convert the surrounding IR.
 
 Required environment:
@@ -224,41 +224,6 @@ find_python_with_numpy() {
   done
 
   die "cannot find a Python that can import numpy"
-}
-
-find_ptodsl_python() {
-  local candidates=()
-  local candidate
-
-  if [[ -n "${BISHENGIR_PTODSL_PYTHON:-}" ]]; then
-    candidates+=("$BISHENGIR_PTODSL_PYTHON")
-  fi
-  while IFS= read -r candidate; do
-    candidates+=("$candidate")
-  done < <(type -P -a python3 python 2>/dev/null || true)
-  candidates+=(
-    "$HOME/miniconda3/envs/ptoas/bin/python3"
-    "$HOME/anaconda3/envs/ptoas/bin/python3"
-  )
-
-  for candidate in "${candidates[@]}"; do
-    if [[ -x "$candidate" ]] &&
-       "$candidate" -c 'from ptodsl import pto' >/dev/null 2>&1; then
-      abs_path "$candidate"
-      return 0
-    fi
-  done
-
-  die "ptodsl bridge mode needs a Python that can import ptodsl; set BISHENGIR_PTODSL_PYTHON"
-}
-
-configure_ptodsl_template_env() {
-  local template
-  require_npuir_root
-  template="$npuir_root/bishengir/lib/Template/lib/RegBase/Cube/nd2nz_mmadl1_64_ptodsl.py"
-  [[ -f "$template" ]] || die "PTODSL MmadL1 template not found: $template"
-  export BISHENGIR_PTODSL_PYTHON="$(find_ptodsl_python)"
-  export BISHENGIR_PTODSL_MMADL1_TEMPLATE="$template"
 }
 
 source_cann_env() {
@@ -589,9 +554,6 @@ run_compile() {
 
   set +e
   if [[ "$bridge_enabled" == "1" ]]; then
-    if [[ "$bridge_mode" == "ptodsl" ]]; then
-      configure_ptodsl_template_env
-    fi
     BISHENGIR_ENABLE_PTOAS_BRIDGE=1 \
       BISHENGIR_PTOAS_BRIDGE_MODE="$bridge_mode" \
       "${cmd[@]}" >"$log_file" 2>&1

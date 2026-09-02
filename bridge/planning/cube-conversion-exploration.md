@@ -1,12 +1,12 @@
 # Cube Conversion Exploration Plan
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 Status: both active 64x64 routes pass numerical simulator execution. The
 external route preserves and links CCE calls, while the preferred PTODSL route
-imports the Python-generated `MmadL1` PTO helper into the kernel module. The
-old direct C++ Cube body has been removed. General-shape coverage is not yet
-established.
+imports pre-generated `MmadL1` and ND2NZ PTO helpers into the kernel module.
+The old direct C++ Cube body has been removed. General-shape coverage is not
+yet established.
 
 ## Goal
 
@@ -373,7 +373,7 @@ bishengir/lib/Conversion/HIVMTemplatesToPTO/
   Cube/
     CubePatterns.h
     MatmulRegionToPTO.cpp          # validation, call adaptation, ND2NZ/Fixpipe
-    PTODSLTemplateImporter.cpp     # imports the Python-generated PTO helper
+    PTODSLTemplateImporter.cpp     # imports pre-generated PTO helper MLIR
     PTODSLTemplateImporter.h
 ```
 
@@ -416,17 +416,18 @@ its caller.
 
 Implemented compiler handoff:
 
-1. The bridge invokes the PTODSL Python source once per compilation and parses
-   its generated PTO module in the active MLIR context.
-2. It selects `mmadl1_f16_f32`, imports it under the stable private symbol
-   `@__pto_mmadl1_f16_f32_ptodsl`, and adapts the NPU-IR pointers, M/K/N,
-   init state, and event IDs to a normal `func.call`.
-3. PTOAS sees the complete helper body and inlines/lowers it to VPTO. The C++
-   bridge does not duplicate the Python template's L1-to-L0 and MAD sequence.
+1. PTODSL is run explicitly during development to generate the checked-in
+   `mmadl1_f16_f32_nn.mlir` and `nd2nz_f16_gm_l1.mlir` instantiations.
+2. CMake copies and installs those files under `lib/bishengir/ptodsl/cube/`.
+3. The bridge parses both files in the active MLIR context, validates their
+   stable symbols and instantiation attributes, and imports them as
+   `@__pto_mmadl1_f16_f32_nn` and `@__pto_nd2nz_f16_gm_l1`.
+4. C++ adapts NPU-IR pointers, dimensions, strides, init state, and events to
+   normal `func.call`s. PTOAS then inlines and lowers both visible bodies.
 
-The subprocess is a staged integration. A cached or in-process service modeled
-after `tools/ptoas/NativeModule.cpp` is preferable once the template contract
-stabilizes, but that change must retain Python as the implementation source.
+Normal compilation has no Python subprocess, daemon, or socket dependency.
+Python remains the implementation source used for intentional regeneration;
+C++ does not duplicate the helpers' PTO instruction sequences.
 
 ### 64x64 Coverage Boundary
 

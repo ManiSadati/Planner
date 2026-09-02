@@ -1,6 +1,6 @@
 # Planning Overview
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
@@ -30,7 +30,8 @@ Current implementation bias:
 - keep preservation of external CCE calls and their memref descriptor ABI as a
   working compatibility/reference route, not the intended default;
 - do not duplicate the PTODSL Cube body in a hand-written C++ rewrite; C++ may
-  match/adapt the NPU-IR operation and import the Python-generated helper;
+  match/adapt NPU-IR operations and import pre-generated helpers whose authoring
+  source is Python;
 - keep PTOAS/PTO-ISA as the mapping target and compatibility check.
 
 Completed vector-bridge milestone:
@@ -60,9 +61,9 @@ Current Cube milestone:
 - the external-call `matmul_64` route is complete enough to serve as a working
   compatibility and numerical reference;
 - commit `9d97eff1240434e537e45ee9154c65df80208e2e` added the PTODSL Cube source.
-  `bishengir-compile` now executes that source in `ptodsl` mode, imports its
-  `mmadl1_f16_f32` helper into the kernel module, and replaces the structured
-  `MmadL1` with an internal call;
+  Its explicit MmadL1 and ND2NZ MLIR instantiations are now checked in and
+  installed; `bishengir-compile` parses those files and replaces the structured
+  operations with internal calls without executing Python;
 - PTOAS inlines and lowers the imported body, and the 64x64 simulator fixture
   passes. The Python template is the implementation source; the C++ bridge owns
   matching, argument adaptation, and materialization rather than duplicating
@@ -72,7 +73,7 @@ Current Cube milestone:
 
 | Path | Contract | Why keep it | Main risks |
 | --- | --- | --- | --- |
-| PTODSL/PTO-native expansion, preferred | Preserve the structured Cube contract before `convert-hivm-to-std`, import the Python-generated PTO helper, and call it with NPU-IR's pointers, dimensions, init state, and event IDs. | The 64x64 path works and keeps Cube semantics visible to PTOAS instead of treating CCE code as a black box. | Only the observed f16 64x64x64 path is numerically proven; memory/sync ownership, tails, K segmentation, precision modes, bias, transpose, and fallbacks remain. |
+| PTODSL/PTO-native expansion, preferred | Preserve the structured Cube contract before `convert-hivm-to-std`, import pre-generated PTO helpers, and call them with NPU-IR's pointers, dimensions, init state, strides, and event IDs. | The 64x64 path works and keeps Cube semantics visible to PTOAS instead of treating CCE code as a black box. | Only the observed f16 64x64x64 path is numerically proven; memory/sync ownership, tails, K segmentation, precision modes, bias, transpose, and fallbacks remain. |
 | External CCE calls, compatibility/reference | Preserve `nd2nz_half`, `mma_tile_half_to_float`, and fixpipe calls with their ranked memrefs through PTOAS, then link the matching CCE implementation. | Already works and provides broad mature behavior plus a strong numerical/ABI baseline. | Cube remains opaque to PTOAS; the route retains CCE and descriptor/linker dependencies and complicates MIX packaging. |
 
 The external path answered the compatibility question successfully. The next

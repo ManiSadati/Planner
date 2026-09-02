@@ -15,15 +15,14 @@ Repo-specific docs or scripts should live under `NPUIR/`, `PTOAS/`, or
 `PTO-ISA/` instead of `bridge/`. `bridge/` should keep material that needs both
 sides or exists to compare them.
 
-The current practical scope is comparison infrastructure plus the first vector
-and DMA bridge rows. Cube/template work remains planning-only until a mapping
-or template-rewrite strategy is selected.
+The current practical scope includes comparison infrastructure, the vector and
+DMA bridge rows, and the first working PTO-native Cube template path.
 
 ## Current Status
 
 - Explorer bot is installed as a user systemd timer and runs daily at 7:00am Eastern.
 - Latest configured-scope PTOAS report: `explorer/reports/README.md`.
-- Latest big-change report: `explorer/reports/daily/2026-08-20.md`.
+- Latest big-change report: `explorer/reports/daily/2026-09-02.md`.
 - Current priority: clean up the comparison structure so baseline NPU-IR and
   NPU-IR-to-PTOAS runs have comparable commands, targets, core counts,
   tick/cycle interpretation, and host behavior.
@@ -126,8 +125,9 @@ small wrapper around the same implementation.
 `bridge/testcases/<name>/out/build/` and the legacy
 `bridge/testcases/<name>/build/` directory, then rebuilds the selected flow.
 `--bridge-mode direct` is the default and rewrites supported non-Cube HIVM DMA
-templates. `--bridge-mode ptodsl` imports the Python-owned `MmadL1` PTO helper
-and converts its separate ND2NZ/Fixpipe caller operations. `--bridge-mode
+templates. `--bridge-mode ptodsl` imports installed, pre-generated `MmadL1` and
+ND2NZ PTO helpers and converts the separate Fixpipe caller operation. Normal
+bridge compilation does not execute Python. `--bridge-mode
 external-calls` skips the early Cube conversion and runs
 `convert-hivmave-to-ptoas-vmi` after `convert-hivm-to-std` has emitted the CCE
 calls.
