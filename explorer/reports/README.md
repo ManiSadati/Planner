@@ -1,20 +1,17 @@
 # PTOAS State
 
-Last updated: 2026-09-01T11:03:56+00:00
+Last updated: 2026-09-02T11:03:25+00:00
 
-## PTOAS: VMI optional-mask unification tracked; PTODSL signless int fixes landed across branches; Canonical Sync model emerges in forks; A2/A3 MGather cycles; upstream sync brings packaging
+## Upstream VMI compact-layout fix branch opened; AscendNPU-IR switches Cube template path to PTODSL; fork network proposes VMI VF-fusion and physical-access designs
 
-- Upstream main advanced via PR #1404 (sync GitCode-only infra): adds build/packaging/OAT config, minor memory-planner tweak; no direct VMI/VPTO semantic change in this merge.
-- Multiple active branches/forks moved with design-relevant VMI/VPTO work: PTODSL integer arithmetic typing fixes (signless reconciliation) propagated; VMI physical-access legalization + VPTO stateful-stream fusion appear in fork mains; Canonical Sync transforms added in feature branches.
-- High-volume bug/compat issues opened against VMI (small-VL, masks, cast, convert, vgather) and scheduler/perf; one new tracking issue to unify optional all-active masks across VMI APIs (ties to bridge mask handling and vector-scalar ops).
-- AscendNPU-IR fork added a Cube external-call expansion pass (pto dialect), expanding bridge-side lowering surface.
+Upstream PTOAS main advanced to bdcb319 (PR #1423 codecheck fixes in ptoas/ptobc); new upstream branch fix/issue-1377-compact-layout (415154c) adds VMI compact group-slot→contiguous materialization and tests. Multiple high-signal forks-of-forks propose VMI physical-access legalization, VF fusion, and canonical sync frameworks.
 
 ## Scan Coverage
 
-- PTOAS Markham fork: 4 changed branches
-- PTOAS Markham fork GitHub fork network: 16 changed branches
-- AscendNPU-IR fork: 2 changed branches
-- hw-native-sys/PTOAS: 23 updated issues, 23 updated PRs
+- PTOAS Markham fork: 5 changed branches
+- PTOAS Markham fork GitHub fork network: 19 changed branches
+- AscendNPU-IR fork: 3 changed branches
+- hw-native-sys/PTOAS: 8 updated issues, 24 updated PRs
 
 ## Persistent Watch Context
 
