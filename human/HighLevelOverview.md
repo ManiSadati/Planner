@@ -105,3 +105,11 @@ read ~/Planner/AGENT.md every time!
 
 ## Current stage
 Right now we have a softmax and RMSNorm that are fully working and performance is on par with NPUIR. I think right now the goal is to cover Cube and its relevent DMAs. for this we need to check first if there is a one to one mapping from cce templates in npuir to pto insturction in PTOAS. if yes, good. but if not, we need to rewrite the cce templates but in pto dialect.
+
+ so far we;ve been using the lowering path of external function calls to ccec and memrefs to be  in ptoas and get linked. this seems to be working but i guess the problem with this approach is that it basically overpass all the optimizations in ptoas (for now and future) and we treating them as black boxes. but the good thing it works. 
+any way the manger doesnt want this to be the main / default approach. the default approach should be something similar to ptodsl in PTOAS.you know how they have are able to make a python kernel and parse it down to pto instructions?
+I think the same thing could be useful for us here. this commit (9d97eff1240434e537e45ee9154c65df80208e2e) adds two files for a simple poc of this appraoch.
+bishengir/lib/Template/lib/RegBase/Cube/nd2nz_mmadl1_64_ptodsl.py
+bishengir/lib/Template/lib/RegBase/Cube/ptodsl_64x64_blockers.md
+
+it tries to make the mmadL1 and things like nd2nz work for the 64 by 64 size. from our experiments with q_kt_matmul test case we found out that underneath, mmadL1 is using 64by64 kernels. the idea is to first, fix any issue, find risks, and then update our plan, and finally do the job, make this not only for a fixed shape but generalizable enough. this ultimately should be mimicing what the cce templates are doing but instead of c++ and cce intrinsics, we use python and pto instruction. 

@@ -22,6 +22,18 @@ bridge/tools/run_comparison_flow.sh early-ir matmul_513
 bridge/tools/run_comparison_flow.sh print-all matmul_513
 ```
 
+Build through the default PTODSL bridge path:
+
+```bash
+bridge/tools/run_comparison_flow.sh emit-vmi matmul_513
+bridge/tools/run_comparison_flow.sh emit-vpto matmul_513
+bridge/tools/run_comparison_flow.sh fatobj matmul_513
+```
+
+This route imports the pre-generated `mmadl1_f16_f32_nn.mlir` and
+`nd2nz_f16_gm_l1.mlir` helpers. Passing `--bridge-mode ptodsl` explicitly is
+equivalent; PTODSL is now the runner default.
+
 Exercise the external CCE-call compatibility route:
 
 ```bash
@@ -35,3 +47,15 @@ bridge/tools/run_comparison_flow.sh \
 
 `early-ir` creates `input.mlir`. Generated VMI, VPTO, build products, logs,
 profiles, and the fat object are written under `out/` and are ignored by Git.
+
+## A5 Result
+
+The PTODSL fat object was reported numerically successful on A5 on 2026-09-03.
+This validates the complete `513x513` result, including 81 logical output
+programs, nine K iterations, accumulation after the first K tile, and masked
+global boundaries.
+
+The generated `hivm.hir.mmadL1` calls still operate on padded `64x64x64`
+microtiles. The successful odd whole shape therefore proves the surrounding
+tail padding/masking path, but it does not yet prove a helper invocation with
+runtime `actual_m`, `actual_k`, or `actual_n` below 64.
