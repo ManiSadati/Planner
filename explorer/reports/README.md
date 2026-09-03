@@ -1,17 +1,22 @@
 # PTOAS State
 
-Last updated: 2026-09-02T11:03:25+00:00
+Last updated: 2026-09-03T11:03:48+00:00
 
-## Upstream VMI compact-layout fix branch opened; AscendNPU-IR switches Cube template path to PTODSL; fork network proposes VMI VF-fusion and physical-access designs
+## Upstream reverts VPTO scheduler; VMI convert/layout patch lands in PR; L2-bypass tload branch advances; new cast/signless bug filed
 
-Upstream PTOAS main advanced to bdcb319 (PR #1423 codecheck fixes in ptoas/ptobc); new upstream branch fix/issue-1377-compact-layout (415154c) adds VMI compact group-slot→contiguous materialization and tests. Multiple high-signal forks-of-forks propose VMI physical-access legalization, VF fusion, and canonical sync frameworks.
+- Upstream PTOAS head: 75e4a224 (2026-09-03). PR #1451 reverted PR #1310 (VPTO scheduler phase two). Pipeline returns to the pre-scheduler state; keep scheduler off/analysis-only for A5.
+- Persistent fragment auto-promotion (PR #1341) is merged and documented; pass pto-promote-persistent-fragment-loops runs before pto-unroll-loops.
+- VMI convert/layout: an upstream PR (#1452) preserves compact VL4 i8/i16→ui32 widening layout and clarifies signless-int convert uses unsigned semantics; a lit test was added.
+- DMA: a branch adds an optional L2-bypass cache policy to pto.tload, using PTO-ISA L2 hint API (not yet merged upstream).
+- Open issues affecting bridge: #1454 cross-width signedness cast (i64→si32) survives and fails LLVM translation; #1374 vmula accumulator misbinding; #1446 VPTO scheduler overflow (now mitigated by revert).
 
 ## Scan Coverage
 
-- PTOAS Markham fork: 5 changed branches
-- PTOAS Markham fork GitHub fork network: 19 changed branches
-- AscendNPU-IR fork: 3 changed branches
-- hw-native-sys/PTOAS: 8 updated issues, 24 updated PRs
+- PTOAS Markham fork: 7 changed branches
+- PTOAS Markham fork GitHub fork network: 25 changed branches
+  - warning: compare Zhendong404/PTOAS: HTTP Error 404: Not Found
+- AscendNPU-IR fork: 2 changed branches
+- hw-native-sys/PTOAS: 8 updated issues, 22 updated PRs
 
 ## Persistent Watch Context
 
