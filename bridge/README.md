@@ -77,14 +77,13 @@ bridge/tools/run_comparison_flow.sh emit-vpto vadd
 bridge/tools/run_comparison_flow.sh --clean-build bridge-sim vadd
 ```
 
-The bridge defaults to `direct`, which now rewrites supported non-Cube DMA
-templates only. Use `ptodsl` for the preferred PTO-visible Cube path:
+The bridge defaults to `ptodsl`. This keeps the supported non-Cube DMA
+rewrites and also imports the pre-generated PTO-visible Cube helpers. The
+preferred Cube path therefore needs no mode flag:
 
 ```bash
-bridge/tools/run_comparison_flow.sh \
-  --bridge-mode ptodsl emit-vpto cube_dotproduct
-bridge/tools/run_comparison_flow.sh \
-  --bridge-mode ptodsl bridge-sim cube_dotproduct
+bridge/tools/run_comparison_flow.sh emit-vpto cube_dotproduct
+bridge/tools/run_comparison_flow.sh bridge-sim cube_dotproduct
 ```
 
 Use `external-calls` for the Cube compatibility/reference route. It skips the
@@ -124,11 +123,11 @@ small wrapper around the same implementation.
 `--clean-build` can be passed before or after the option. It removes
 `bridge/testcases/<name>/out/build/` and the legacy
 `bridge/testcases/<name>/build/` directory, then rebuilds the selected flow.
-`--bridge-mode direct` is the default and rewrites supported non-Cube HIVM DMA
-templates. `--bridge-mode ptodsl` imports installed, pre-generated `MmadL1` and
-ND2NZ PTO helpers and converts the separate Fixpipe caller operation. Normal
-bridge compilation does not execute Python. `--bridge-mode
-external-calls` skips the early Cube conversion and runs
+`--bridge-mode ptodsl` is the default. It rewrites supported non-Cube HIVM DMA
+templates, imports installed pre-generated `MmadL1` and ND2NZ PTO helpers, and
+converts the separate Fixpipe caller operation. Normal bridge compilation does
+not execute Python. Use `--bridge-mode direct` to run only the non-Cube DMA
+rewrites. `--bridge-mode external-calls` skips the early Cube conversion and runs
 `convert-hivmave-to-ptoas-vmi` after `convert-hivm-to-std` has emitted the CCE
 calls.
 

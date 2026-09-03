@@ -14,7 +14,7 @@ npu_sim_soc="Ascend950PR_9589"
 ptoas_sim_soc="Ascend950PR_9599"
 core_id="0"
 target_pass="convert-hivmave-to-ptoas-vmi"
-bridge_mode="direct"
+bridge_mode="ptodsl"
 
 usage() {
   cat >&2 <<EOF
@@ -34,12 +34,12 @@ Options:
 
 Flags:
   --clean-build                Remove testcase build directories before running.
-  --bridge-mode <mode>         Select direct (default), ptodsl, or external-calls.
+  --bridge-mode <mode>         Select ptodsl (default), direct, or external-calls.
   --bridge-mode=<mode>         Equivalent spelling.
 
 Bridge modes:
+  ptodsl          Import pre-generated PTO Cube helpers, then emit PTO IR (default).
   direct          Rewrite supported non-Cube HIVM DMA templates into PTO operations.
-  ptodsl          Import pre-generated PTO Cube helpers, then emit PTO IR.
   external-calls  Preserve CCE template calls and convert the surrounding IR.
 
 Required environment:

@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-09-01
+Last updated: 2026-09-03
 
 ## Current Goal
 
@@ -21,10 +21,11 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 - The first external-call experiment now preserves Cube CCE calls and their
   memref descriptor ABI through PTOAS, links the matching NPU-IR template
   bitcode, and passes simulator numerical comparison.
-- The manager-selected default direction is now PTODSL/PTO-visible Cube
-  expansion, not opaque external CCE calls. `bishengir-compile` now invokes the
-  normalized Python PTODSL source, imports its `MmadL1` PTO helper, and calls it
-  from the converted kernel. The 64x64 simulator comparison passes.
+- The manager-selected default direction is PTODSL/PTO-visible Cube expansion,
+  not opaque external CCE calls. `bishengir-compile` imports checked-in,
+  pre-generated `MmadL1` and ND2NZ PTO helpers without executing Python and
+  calls them from the converted kernel. The 64x64 simulator comparison and the
+  `513x513` A5 hardware comparison pass.
 
 ## Current Working Hypothesis
 
@@ -88,19 +89,28 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   `meta_op.aic.c310.bc`, and passes all 4096 simulator outputs with maximum
   absolute error `0.001953125` in 3647 total ticks.
 - Current priority: generalize the connected PTODSL Cube contract, define the
-  NPU-IR-to-PTOAS memory/sync ownership transition, and validate partial and
-  accumulating tiles numerically. `q_kt_matmul` now compiles, builds a fat
+  NPU-IR-to-PTOAS memory/sync ownership transition, and add distinct datatype
+  and transpose contracts. `q_kt_matmul` now compiles, builds a fat
   object, and launches all 32 AIC blocks through PTODSL mode; full numerical
   completion remains for A5 hardware or a much longer cycle-simulator run.
 - The PTODSL source at
   `$HOME/AscendNPU-IR/bishengir/lib/Template/lib/RegBase/Cube/nd2nz_mmadl1_64_ptodsl.py`
   now accepts normalized M/K/N values up to 64, caller-owned local buffers,
   init/accumulate, and event IDs. Its source checks pass, `bishengir-compile`
-  imports its helper, PTOAS lowers it, and the 64x64 simulator comparison
-  passes with maximum absolute difference `0.001953125` in 3276 total ticks.
-  Partial and accumulating cases remain compile/IR checks, not numerical proof.
-- The conversion is guarded and default-off, so the CCE path remains the
-  fallback and comparison baseline.
+  imports its helpers, PTOAS lowers them, and the 64x64 simulator comparison
+  passes with maximum absolute difference `0.001953125` in 3265 total ticks.
+  The `matmul_513` A5 result additionally validates nine-step K accumulation
+  and odd whole-shape boundaries, although each generated MMAD microtile remains
+  padded to 64 in the current IR.
+- The comparison runner now selects `ptodsl` when no bridge mode is specified.
+  Normal NPU-IR compilation remains unchanged when the bridge itself is not
+  enabled, and explicit `direct` and `external-calls` modes remain available.
+- Four aligned Cube configuration fixtures now have tracked early IR and
+  simulator-verified PTODSL paths: F16 B-transpose, BF16/F32 NN, signed
+  INT8/INT32 NN, and F32/HF32 NN. Their explicit helpers emit VMI and VPTO,
+  link, and pass numerical comparison. The F32 frontend still emits the known
+  `input_precison` typo; its tracked early IR uses NPU-IR's expected
+  `input_precision` spelling.
 - Expected workflow for A5-dependent validation: Codex edits/plans locally, the human runs on the A5 server, then returns logs/results for the next debugging pass.
 - The A5 installation/runtime workflow is tracked in `NPUIR/coding-guide/a5-installation.md`; the non-A5 Codex-server build/replay workflow is tracked in `NPUIR/coding-guide/codex-server-build.md`; the simulator workflow is tracked in `NPUIR/coding-guide/simulator-workflow.md`.
 - Temporary LLVM IR capture after `hivmc-a5` and before CCE `bisheng` is

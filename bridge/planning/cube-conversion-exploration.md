@@ -1,12 +1,13 @@
 # Cube Conversion Exploration Plan
 
-Last updated: 2026-09-02
+Last updated: 2026-09-03
 
 Status: both active 64x64 routes pass numerical simulator execution. The
 external route preserves and links CCE calls, while the preferred PTODSL route
 imports pre-generated `MmadL1` and ND2NZ PTO helpers into the kernel module.
-The old direct C++ Cube body has been removed. General-shape coverage is not
-yet established.
+The old direct C++ Cube body has been removed. The 513x513 PTODSL fat object
+also passes on A5. F16 B-transpose, BF16 NN, signed INT8 NN, and F32/HF32 NN
+now pass the local bridge simulator as explicit PTODSL specializations.
 
 ## Goal
 
@@ -19,6 +20,31 @@ bridge/triton-example/cube_dotproduct.py
 
 The current deliverable is a narrow, source-backed implementation plus a clear
 record of what it does and does not support.
+
+## Active Specialization Work
+
+The next implementation step is no longer hypothetical. Four `64x64x64`
+fixtures expose four distinct CCE contracts now implemented as PTO-visible
+PTODSL instantiations:
+
+| Contract | PTODSL MMAD helper | PTODSL ND2NZ helper | Fixpipe mapping |
+| --- | --- | --- | --- |
+| F16/F32 with B transposed | `mmadl1_f16_f32_tb` | reuse `nd2nz_f16_gm_l1` | reuse f32-to-f16; simulator passes |
+| BF16/F32 NN | `mmadl1_bf16_f32_nn` | `nd2nz_bf16_gm_l1` | f32-to-bf16; exact BF16 simulator match |
+| INT8/INT32 NN | `mmadl1_i8_i32_nn` | `nd2nz_i8_gm_l1` | i32-to-i32; exact INT32 simulator match |
+| F32/F32 HF32 NN | `mmadl1_f32_f32_hf32_nn` | `nd2nz_f32_gm_l1` | f32-to-f32; zero-error simulator match |
+
+Each helper is authored in the shared PTODSL Python source and checked in as a
+separate pre-generated MLIR resource. C++ selects and imports the matching
+resource; it must not duplicate the MMAD body. ND2NZ and Fixpipe remain guarded
+direct PTO conversions around that body.
+
+The HF32 early IR currently requires one known correction:
+`input_precison = "hf32"` must be `input_precision = "hf32"`. Evidence points
+to the installed Ascend Triton adapter as the producer of the typo, while
+NPU-IR consistently consumes the correct spelling. This is not a PTODSL
+template failure, and the bridge must not silently reinterpret arbitrary
+unknown attributes as HF32.
 
 ## 2026-09-01 Direction Update
 
@@ -39,9 +65,10 @@ The preferred path should resemble PTOAS PTODSL TileLib:
 The Python source added by commit
 `9d97eff1240434e537e45ee9154c65df80208e2e` is now a normalized f16 template
 rather than a fixed whole-kernel implementation. It accepts M/K/N up to 64,
-caller-owned local buffers, init/accumulate, and NPU-IR event IDs. In `ptodsl`
-mode, `bishengir-compile` invokes it, imports the helper selected by
-`pto.ptodsl.logical_name`, and calls that helper in place of structured
+caller-owned local buffers, init/accumulate, and NPU-IR event IDs. Python is
+used only to generate checked-in MLIR resources. In `ptodsl` mode,
+`bishengir-compile` selects a helper by `pto.ptodsl.logical_name`, loads that
+resource without running Python, and calls it in place of structured
 `hivm.hir.mmadL1`.
 
 ## Starting State
@@ -433,10 +460,10 @@ C++ does not duplicate the helpers' PTO instruction sequences.
 
 | Category | Behavior |
 | --- | --- |
-| Required and working | f16 L1 A/B and f32 L0C pointers; observed L0A/L0B ping-pong addresses; 64x64x64 extents; L1-to-L0A/B staging; physical L0B nZ packing; MTE2/MTE1 and MTE1/M dependencies; `pto.mad` initialization; result-side Fixpipe and ND2NZ caller mappings |
+| Required and working | f16/f32 NN and B-transpose, bf16/f32 NN, signed i8/i32 NN, and f32/f32 HF32 NN pointers and helpers; observed ping-pong addresses; 64x64x64 extents; L1-to-L0A/B staging; physical L0B nZ packing; explicit dependencies; initialization; typed Fixpipe and ND2NZ mappings |
 | Present but not numerically proven | `pto.mad_acc` for `init = false`; runtime M/K/N arguments below 64 |
-| Not needed by this fixture | internal K segmentation; edge padding; source transpose; bias; HF32/integer/I4/MX; unit flags; quant/ReLU/alternate Fixpipe; ND2NZ large-stride fallback; MIX fallback policy |
-| Unmapped or unresolved generally | complete CATLASS scheduling branches; general local-memory capacity and address ownership; PTOAS auto-allocation/auto-sync transition; precision/bias/transpose variants; arbitrary edge-tile zero fill |
+| Not needed by the initial fixture | internal K segmentation; edge padding; A transpose; bias; I4/MX; unit flags; quant/ReLU/remaining Fixpipe modes; ND2NZ large-stride fallback; MIX fallback policy |
+| Unmapped or unresolved generally | complete CATLASS scheduling branches; general local-memory capacity and address ownership; PTOAS auto-allocation/auto-sync transition; remaining precision/bias/transpose variants; arbitrary edge-tile zero fill |
 
 No new PTO primitive was required for the observed 64x64 path. Deferred rows
 must not be inferred to work merely because their operation names resemble the
@@ -456,12 +483,14 @@ hand-written C++ copy of the CCE template.
 
 Generalization order:
 
-1. 64x64x64 init and a partial M/N/K microtile;
-2. init=false accumulation across an outer K loop;
-3. `q_kt_matmul` multi-tile execution;
-4. ND2NZ stride fallback and tail/padding behavior;
-5. transpose, bias, HF32, integer/I4, unit flags, and remaining FixPipe modes;
-6. split MIX ownership and fallback to external CCE calls for unsupported rows.
+1. keep the passing 64x64 simulator and 513x513 A5 paths green;
+2. force a true sub-64 runtime M/K/N helper call, since `matmul_513` pads each
+   MMAD microtile to 64 even though its global boundaries are odd;
+3. keep the passing BF16 NN, INT8-to-INT32 NN, F32/HF32 NN, and f16
+   B-transpose specializations green;
+4. add ND2NZ stride fallback, A transpose, bias, I4/MX, unit flags, and remaining FixPipe
+   modes from concrete fixtures;
+5. validate split MIX ownership and external-CCE fallback for unsupported rows.
 
 ## Conversion Boundaries
 
@@ -501,19 +530,19 @@ convert-hivm-to-std                    # emits selected CCE calls with memrefs
 
 ## Active Implementation Stages
 
-1. Keep the passing 64x64 PTODSL import, PTOAS lowering, and numerical fixture
-   green.
-2. Prove partial-tile and `init = false` accumulation numerically, not only in
-   generated IR.
-3. Run the published `q_kt_matmul` fat object on A5. Its PTODSL VMI, VPTO,
-   fat-object build, and 32-core simulator launch are verified, but the full
-   cycle simulation is too slow for routine local numerical comparison.
-4. Add observed CCE branches one at a time: K segmentation, tails/padding,
-   transpose, bias, precision modes, ND2NZ fallback, and Fixpipe variants.
-5. Compare PTODSL, external-call, and unchanged NPU-IR paths.
-6. Add a true MIX test and verify ownership/fallback policy and packaging.
-7. Make PTODSL operationally default only after broader local numerical
-   equivalence, then request A5 hardware validation from the human.
+1. Keep the passing 64x64 simulator and 513x513 A5 PTODSL paths green.
+2. Treat PTODSL as the comparison runner's default bridge mode while retaining
+   explicit `direct` and `external-calls` modes. This does not enable the bridge
+   in ordinary NPU-IR compilation.
+3. Prove a helper invocation with a runtime M/K/N value below 64; the 513 case
+   proves odd global boundaries and accumulation but still uses padded MMAD
+   microtiles.
+4. Preserve the four configuration fixtures completed on 2026-09-03. The
+   upstream HF32 `input_precison` spelling mismatch remains documented and the
+   tracked early IR retains the corrected `input_precision` spelling.
+5. Compare each accepted PTODSL configuration with external-call and unchanged
+   NPU-IR results before adding its pre-generated helper to the default set.
+6. Add a true MIX test and verify ownership, fallback policy, and packaging.
 
 ## Related Documents
 

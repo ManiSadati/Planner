@@ -1,6 +1,6 @@
 # Cube Conversion Status
 
-Last updated: 2026-09-02
+Last updated: 2026-09-03
 
 ## Current Milestone
 
@@ -11,7 +11,10 @@ The first fixture has been traced and validated through the two active routes:
 preserved external CCE calls and the preferred PTODSL-template route. In the
 PTODSL route, `bishengir-compile` imports pre-generated `MmadL1` and ND2NZ PTO
 bodies, calls them from the converted kernel, and PTOAS lowers them successfully.
-The 64x64 simulator comparison passes. A5 hardware validation and general-shape
+The 64x64 simulator comparison passes, and the `matmul_513` PTODSL fat object
+passes numerical comparison on A5 hardware. Four additional 64x64 contracts
+now pass local simulation: F16 B-transpose, BF16/F32 NN, signed INT8/INT32 NN,
+and F32/HF32 NN. A-transpose, bias, further datatypes, and mixed-kernel
 coverage remain pending.
 
 ## Completed Foundation
@@ -118,8 +121,26 @@ the calls and their visible PTO implementations. PTOAS inlines and lowers them t
 
 The latest PTODSL 64x64 simulator run passes all 4096 f16 outputs with maximum
 absolute error `0.001953125` and reports 3265 total ticks. This proves only the
-observed f16 64x64x64 initialization path. Partial tiles and the emitted
-`mad_acc` branch still need numerical coverage.
+observed f16 64x64x64 initialization path.
+
+The `matmul_513` PTODSL fat object also passes on A5. Its 81 logical output
+programs and nine K steps validate odd whole-shape boundaries and the
+initialize-then-accumulate sequence. NPU-IR pads each generated MMAD microtile
+to 64, so this does not yet validate a helper call whose runtime M/K/N operand
+is below 64.
+
+Four aligned configuration probes were implemented on 2026-09-03. Each has a
+separate pre-generated MMAD helper; BF16, INT8, and F32 additionally have typed
+ND2NZ helpers. The bridge validates their A5 rank-4 Cube layouts, dispatches
+typed Fixpipe mappings, and preserves signed INT8 across the rank-changing
+Cube pointer view. All four emit VMI and VPTO, link, and pass the local
+simulator: exact BF16 and INT32 matches, with zero maximum absolute difference
+for F16 B-transpose and F32/HF32.
+
+The F32/HF32 input still exposes an upstream frontend contract mismatch: the
+captured Linalg op is emitted with `input_precison`, while NPU-IR consumes
+`input_precision`. The tracked fixture uses the corrected spelling; regenerating
+its early IR will restore the typo until the adapter or runner is fixed.
 
 The multi-tile `q_kt_matmul` fixture also reaches VMI and VPTO in PTODSL mode.
 Its one imported helper call remains inside the four-step K loop, and PTOAS
@@ -182,9 +203,13 @@ precision modes, buffering, and synchronization.
 
 ## Next Validation
 
-- Validate a partial tile and an accumulating K iteration numerically. The
-  multi-tile `q_kt_matmul` compile/build/launch path is complete, but its full
-  numerical result still needs A5 hardware or a long simulator run.
+- Construct one focused fixture that reaches `MmadL1` with a runtime M/K/N
+  value below 64 instead of relying only on padded global boundaries.
+- Keep the BF16, INT8, F32/HF32, and F16 B-transpose simulator regressions
+  green. Resolve the upstream HF32 attribute spelling mismatch at the
+  early-IR generation boundary.
+- The multi-tile `q_kt_matmul` compile/build/launch path is complete, but its
+  full numerical result still needs A5 hardware or a long simulator run.
 - Generalize address/layout and sync ownership beyond the observed A5
   64x64x64 microtile before enabling PTOAS automatic allocation/scheduling.
 - Compare the imported Python template against the selected CCE implementation
