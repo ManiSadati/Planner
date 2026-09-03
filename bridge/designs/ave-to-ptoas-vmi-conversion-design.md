@@ -261,18 +261,29 @@ rewritten call and drops the source-only `hivm.vector_function` call attribute.
 This conversion is scoped to direct `func.call`; indirect calls are not
 supported in Stage 1.
 
-## Decision 11: Emit A Minimal PTOAS Kernel Contract
+## Decision 11: Emit A PTOAS Kernel Contract At The Correct Scope
 
 Phase 1F removes the source-only Ascend metadata after successful dialect
-conversion and emits the minimal PTOAS contract proven by the hand-authored
-target:
+conversion and emits the PTOAS target and kernel-domain contract:
 
-- module attributes become `pto.target_arch = "a5"` and
-  `pto.kernel_kind = #pto.kernel_kind<vector>`;
+- `pto.target_arch = "a5"` remains on the module;
+- a pure AIV or AIC module receives
+  `pto.kernel_kind = #pto.kernel_kind<vector>` or `<cube>` respectively;
+- a mixed module has no outer `pto.kernel_kind`; every defined AIC/AIV
+  function body is wrapped in `pto.section.cube` or `pto.section.vector`, and
+  PTOAS's VPTO pipeline splits those sections into canonical per-kind child
+  modules;
 - the original `hacc.entry` function is marked with `pto.kernel`;
 - helper functions keep `no_inline` when it was present;
 - source-only module, function, and argument attributes from HACC, HIVM, TT,
   and DLTI are dropped.
+
+The function classification is consumed from `hivm.func_core_type` before that
+attribute is removed. Every definition in a mixed module must have a precise
+`AIC` or `AIV` classification. Unsplit `MIX`, `AIC_OR_AIV`, missing, and invalid
+classifications are rejected rather than assigned heuristically. The current
+section representation requires void, single-block function bodies; nested
+structured control flow remains supported.
 
 This pass does not yet claim a general Ascend-target-to-PTO-architecture
 mapping. The hard-coded `a5` contract is tied to the Stage 1
@@ -412,4 +423,4 @@ more than rename an operation while preserving the same operands and results.
 | `vload <BRC_B32>` | Multi-lane VMI broadcast load; one-lane scalar load plus broadcast (Decision 16) |
 | rank-zero scalar and one-point stores | PTO scalar store, zero-offset vector store, or `PAT_VL1` masked store (Decision 17) |
 | stored `f32 -inf` initializer | Narrow replacement with `-FLT_MAX` for the finite-input softmax path (Decision 18) |
-| source module/function metadata | Remove source-only attributes and emit the minimal PTOAS kernel contract (Decision 11) |
+| source module/function metadata | Consume function core type, emit pure module metadata or mixed physical sections, then remove source-only attributes (Decision 11) |
