@@ -1,19 +1,73 @@
 # Flash-Attention PTODSL Simulator Link Plan
 
-Last updated: 2026-09-03
+Last updated: 2026-09-09
 
 ## Status
 
-The `flash_atten` testcase successfully lowers through the NPU-IR bridge to
-PTOAS VMI and then through PTOAS to VPTO. Simulator device-object generation
-currently fails at fat-object link time because several legacy C-interface
-helpers are declared and called but are not defined by any linked object.
+The current `flash_atten` testcase produces complete VMI and VPTO modules in
+the default PTODSL bridge mode. Both `hivm.hir.mmadL1` operations and their
+ND2NZ inputs use imported PTO helpers. Fixpipe and all three previously
+unresolved vector-side DMA helpers now lower to native PTO operations.
 
-This is not a failure to propagate `--bridge-mode ptodsl` through the
-comparison flow. It is an incomplete PTODSL replacement boundary for this
-mixed Cube/Vector kernel.
+The VMI contains two `pto.mte_ub_ub`, one padded dynamic
+`pto.mte_gm_ub`, two `pto.mte_ub_l1`, and two `pto.mte_l0c_ub`
+operations. It contains no calls or declarations for
+`copy_ubuf_to_ubuf_1d_float`, `load_gm_to_ubuf_2d_half`, or
+`copy_ubuf_to_cbuf_2d_half`.
 
-## Observed Failure
+PTOAS lowers the complete VMI to VPTO. Compiling the complete MIX container,
+rather than separately compiling its AIV and AIC VPTO modules, now produces a
+valid fat object with one public `flash_atten_kernel` symbol. The active logical
+blocks then stall in simulation and do not produce `output.bin`; inactive
+blocks exit normally. The current blocker is the converted Cube/Vector sync
+contract, not packaging or the three DMA mappings.
+
+NPU-IR's vendored PTO dialect says `pto.sync.set` / `pto.sync.wait` lower to
+A5 intra-block synchronization. Current PTOAS changed those operations to FFTS
+cross-core synchronization and added separate `pto.set_intra_block` /
+`pto.wait_intra_block` operations. The generated pre-CCE LLVM confirms that the
+bridge syncs currently become `llvm.hivm.SET.CROSS.CORE` and
+`llvm.hivm.WAIT.FLAG.DEV.PIPE.*`.
+
+A temporary direct substitution to the named intra-block operations changed
+the stall but did not fix it: AIV0 and AIV1 occupy physical semaphore ranges
+`0-15` and `16-31`. A blanket duplication using `id` and `id + 16` also failed,
+because not every dependency involves both vector subblocks. The production
+translation must retain which producer and consumer subblocks participate.
+
+## Current Conversion Boundary
+
+The generated VMI contains the expected Cube-side sequence:
+
+```text
+__pto_nd2nz_f16_gm_l1
+__pto_mmadl1_f16_f32_nn
+pto.mte_l0c_ub ..., dst_mode(0), nz2nd
+```
+
+This confirms that:
+
+- each MMAD A/B/C pointer comes from its real memref through
+  `pto.tile_buf_addr`, rather than a reconstructed fixed address;
+- the first MMAD's empty `sync_related_args` become disabled (`-1`) optional
+  helper events;
+- the second MMAD preserves its explicit event values;
+- caller-side block and pipeline synchronization remains around both calls;
+- each accumulator-to-UB transfer preserves its real L0C and UB pointers,
+  64x64 extent, row stride, NZ2ND mode, and single-destination contract.
+
+The observed DMA contracts are deliberately narrow:
+
+- f32 contiguous `memref<64>` UB-to-UB becomes `pto.mte_ub_ub` with one
+  burst of eight 32-byte blocks;
+- f16 GM `[1,64]` to UB `[64,1]` implicit-transpose load becomes padded
+  `pto.mte_gm_ub`, with dynamic valid-column count and 128-byte rows;
+- f16 UB `4x1024 [1040,1]` to contiguous L1 becomes `pto.mte_ub_l1` with
+  four bursts of 64 blocks and a one-block source gap.
+
+L0A/L0B scratch allocation remains a separate policy risk.
+
+## Historical Link Failure
 
 The failing log is:
 
@@ -21,7 +75,8 @@ The failing log is:
 bridge/testcases/flash_atten/out/build/bridge-sim.log
 ```
 
-The linker reports unresolved `_mlir_ciface_*` symbols for:
+The earlier partial conversion reported five unresolved `_mlir_ciface_*`
+symbols:
 
 ```text
 copy_ubuf_to_ubuf_1d_float
@@ -31,61 +86,26 @@ mma_tile_half_to_float
 fixpipe_nz2nd_float_to_float_4d_to_2d_ubuf
 ```
 
-The generated VMI and VPTO contain private `func.func` declarations for these
-helpers with `llvm.emit_c_interface`, but no function bodies. PTOAS therefore
-emits calls to the corresponding `_mlir_ciface_*` ABI symbols. The fat-object
-link cannot resolve those calls because PTODSL mode does not link the NPU-IR
-AICore bitcode fallback.
+MMAD and Fixpipe were removed from that list by the PTODSL MMAD helper and
+direct PTO Fixpipe mapping. The three DMA declarations were then removed by
+structured HIVM-to-PTO conversion before `convert-hivm-to-std`. This history
+is useful when comparing an older output directory, but it is no longer the
+current blocker.
 
-## Verified Mode Behavior
+## Current Work
 
-The following evidence confirms that PTODSL mode is active:
+The three structured DMA mappings and focused conversion tests are complete.
+`emit-vmi` and `emit-vpto` pass for `flash_atten`; `matmul_64` still links,
+runs, and compares successfully after the change. Next work is:
 
-- both `flash_atten.vmi.bridge-mode.txt` and
-  `flash_atten.vpto.bridge-mode.txt` contain `ptodsl`;
-- VMI-to-VPTO lowering is invoked with `--pto-level=level3`;
-- generated VMI contains imported PTODSL helper bodies such as
-  `__pto_nd2nz_f16_gm_l1` and `__pto_mmadl1_f16_f32_nn`;
-- `bridge-sim` consumes the existing mode-matched
-  `flash_atten.vpto.mlir`; it only reruns VPTO emission when that artifact or
-  its mode marker is absent or mismatched.
-
-The option is therefore working as currently implemented. It replaces only
-the helper forms covered by the bridge's PTODSL import and call-rewrite logic.
-The five unresolved helpers remain outside that coverage.
-
-## Required Resolution
-
-The preferred fix is to eliminate each remaining external declaration in the
-AscendNPU-IR bridge output by mapping the source operation or legacy helper
-call to PTO operations or an imported, pre-generated PTODSL helper body. PTOAS
-files must remain unchanged.
-
-Handle one helper family at a time:
-
-1. Trace each call back to the structured NPU-IR operation and template that
-   produced it.
-2. Record its complete contract: memory spaces, element types, dimensions,
-   layout, padding, strides, synchronization ownership, and kernel section.
-3. Determine whether existing PTO operations express the contract directly.
-4. For multi-operation behavior, add a generated PTODSL instantiation and
-   import it using the established bridge mechanism rather than duplicating
-   the template body in C++.
-5. Rewrite the legacy call to the PTO/PTODSL form and remove its declaration
-   only when no calls remain.
-6. Add focused conversion tests and then rerun the complete flash-attention
-   VMI, VPTO, fat-object, simulator, and numerical-comparison flow.
-
-Suggested investigation order:
-
-1. `copy_ubuf_to_ubuf_1d_float`
-2. `load_gm_to_ubuf_2d_half`
-3. `copy_ubuf_to_cbuf_2d_half`
-4. `mma_tile_half_to_float`
-5. `fixpipe_nz2nd_float_to_float_4d_to_2d_ubuf`
-
-The copy/load helpers are narrower movement contracts and should establish the
-DMA mapping before the Cube compute and fixpipe helpers are changed.
+1. Update or isolate the stale vendored PTO synchronization contract used by
+   the NPU-IR bridge.
+2. Map each NPU-IR synchronization mode to the current PTO operation family.
+3. Preserve AIV0/AIV1 participation when converting logical flag IDs to the
+   physical intra-block semaphore IDs expected by PTOAS.
+4. Rerun the complete fat-object, simulator, and numerical-comparison flow.
+5. Generalize each DMA mapping only when another real fixture proves a new
+   shape, layout, datatype, padding, or stride contract.
 
 ## Compatibility Alternative
 
@@ -102,8 +122,8 @@ implementations and would hide incomplete conversion.
 
 The PTODSL flash-attention simulator milestone is complete when:
 
-- the generated VMI and VPTO contain no calls or bodyless declarations for the
-  five helpers listed above;
+- the generated VMI and VPTO contain no unresolved legacy CCE helper calls
+  (complete for the three DMA helpers covered here);
 - all replacement operations preserve source memory, layout, synchronization,
   and mixed-kernel section semantics;
 - PTOAS emits and links the mixed fat object without NPU-IR AICore bitcode;
@@ -114,15 +134,11 @@ The PTODSL flash-attention simulator milestone is complete when:
 
 ## Open Questions
 
-- Which of the five calls still have a structured representation at the
-  current bridge insertion point, and which have already been lowered to
-  legacy calls?
-- Are existing PTODSL instantiations available for the exact flash-attention
-  type, shape, layout, and synchronization contracts?
-- Which sync operations are caller-owned versus helper-owned for each DMA and
-  Cube helper?
-- Can the existing imported MmadL1 helper replace every
-  `mma_tile_half_to_float` call in this kernel, or do the remaining calls use a
-  distinct contract?
-- Does the f32 NZ2ND-to-UB fixpipe form require a new PTODSL instantiation or
-  only argument adaptation to an existing one?
+- Does NPU-IR's `INTRA_BLOCK_SYNCHRONIZATION` require one vector subblock or a
+  collective pair at each generated dependency site?
+- Which existing NPU-IR control-flow guards identify AIV0-only, AIV1-only, and
+  both-AIV dependencies strongly enough for deterministic conversion?
+- Should NPU-IR vendor the current named PTO sync operations, or should the
+  bridge first introduce a local compatibility operation and lower it later?
+- Can L0A/L0B scratch eventually be passed from an explicit allocator instead
+  of being selected by the adapter's provisional two-bank policy?

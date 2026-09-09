@@ -269,7 +269,11 @@ configure_ptoas_env() {
   prepend_path "$ptoas_bin_dir"
   prepend_ld_library_path "$ptoas_bin_dir/../lib"
   prepend_ld_library_path "$ptoas_root/build/lib"
+  prepend_ld_library_path "$ptoas_root/build/python/ptoas/mlir/_mlir_libs"
   prepend_ld_library_path "$ptoas_root/PTOAS_Markham/build/lib"
+  prepend_ld_library_path "$ptoas_root/PTOAS_Markham/build/python/ptoas/mlir/_mlir_libs"
+  prepend_ld_library_path "$ptoas_root/../llvm-project/build-llvm19-shared/lib"
+  prepend_ld_library_path "$ptoas_root/llvm-project/build-llvm19-shared/lib"
   prepend_ld_library_path "$cann_root/tools/simulator/$ptoas_sim_soc/lib"
   prepend_ld_library_path "$cann_root/runtime/lib64/stub"
   prepend_ld_library_path "$cann_root/lib64"
@@ -608,6 +612,17 @@ run_bridge_print_all() {
   die "compiler failed before bridge pass dumps; see $log_file"
 }
 
+print_template_diagnostics() {
+  local log_file="$1"
+
+  if grep -qF "failed to convert PTODSL template" "$log_file"; then
+    printf '%s\n' "PTODSL template conversion failures:" >&2
+    grep -F "failed to convert PTODSL template" "$log_file" |
+      sort -u |
+      sed 's/^/  /' >&2
+  fi
+}
+
 run_emit_vmi() {
   local case_dir="$1"
   local case_name="$2"
@@ -624,8 +639,10 @@ run_emit_vmi() {
     log "compiler exited nonzero; trying to extract the requested pass dump"
   fi
 
-  extract_pass_dump "$log_file" "$vmi_file" "$target_pass" "$count_file" ||
+  if ! extract_pass_dump "$log_file" "$vmi_file" "$target_pass" "$count_file"; then
+    print_template_diagnostics "$log_file"
     die "could not extract a successful dump after $target_pass; see $log_file"
+  fi
   printf '%s\n' "$bridge_mode" >"$mode_file"
   log "wrote $vmi_file"
 }

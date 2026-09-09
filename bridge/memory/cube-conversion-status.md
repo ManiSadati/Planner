@@ -149,6 +149,33 @@ object links and launches all 32 AIC blocks. The full 8192-logical-tile cycle
 simulation did not complete during a five-minute smoke window, so its numerical
 result remains for A5 hardware or a much longer simulator run.
 
+As of 2026-09-09, the MMAD call adapter uses each `MmadL1` operation's actual
+A, B, and C memref values as the source of `pto.tile_buf_addr`. It no longer
+accepts only one hard-coded L1/L0C ping-pong layout or reconstructs those
+addresses independently of the operation. Empty `sync_related_args` are legal
+in NPU-IR and are now represented as disabled (`-1`) optional helper events;
+an explicit seven-event contract remains unchanged. The imported helper still
+owns its mandatory internal MTE1-to-M synchronization, and caller-side sync
+around the operation is preserved.
+
+This change converts both MMADs in the current `flash_atten` fixture, including
+the first call with no sync arguments and the second call with four active or
+disabled event operands. The f32 L0C-to-UB NZ2ND Fixpipe pair lowers to guarded
+`pto.mte_l0c_ub`. The three vector-side DMA helpers now lower from structured
+HIVM to two `pto.mte_ub_ub`, one dynamic padded `pto.mte_gm_ub`, and two
+`pto.mte_ub_l1` operations. Flash reaches complete VMI and VPTO with none of
+those legacy helper calls left. Compiling the whole MIX container instead of
+separate VPTO components removes the duplicate-host-stub failure and produces
+a valid fat object with one public `flash_atten_kernel` symbol. Simulation now
+stalls for active blocks at converted Cube/Vector synchronization. NPU-IR's
+vendored PTO dialect gives `pto.sync.*` the old A5 intra-block meaning, while
+current PTOAS lowers those names to FFTS cross-core intrinsics and has separate
+named intra-block operations. A correct fix must preserve participant-specific
+AIV0/AIV1 semaphore IDs; blindly replacing or duplicating every sync operation
+is not valid. The helper's L0A/L0B scratch pointers still use the provisional
+0/32768 two-bank policy selected from the C-buffer bank; general scratch
+ownership remains unresolved.
+
 PTOAS already supplies the model to follow in `lib/TileOps/a5/tmatmul.py`,
 `tmatmul_acc.py`, `ptodsl/examples/fa_dn_matmul.py`, and the in-process Python
 TileLib service in `tools/ptoas/NativeModule.cpp`.

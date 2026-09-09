@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-09-03
+Last updated: 2026-09-09
 
 ## Current Goal
 
@@ -26,6 +26,13 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   pre-generated `MmadL1` and ND2NZ PTO helpers without executing Python and
   calls them from the converted kernel. The 64x64 simulator comparison and the
   `513x513` A5 hardware comparison pass.
+- The Flash-Attention fixture now reaches complete VMI and VPTO. Its Fixpipe
+  and three vector-side DMA contracts lower to native PTO operations, with no
+  corresponding CCE helper calls left. Mixed AIV/AIC packaging produces a
+  valid fat object with one public kernel symbol. The next blocker is runtime
+  Cube/Vector synchronization: the bridge emits `pto.sync.*` using an older
+  vendored contract, but current PTOAS assigns those names FFTS cross-core
+  semantics and exposes separate named A5 intra-block operations.
 
 ## Current Working Hypothesis
 

@@ -1,6 +1,6 @@
 # Planning Overview
 
-Last updated: 2026-09-03
+Last updated: 2026-09-09
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
@@ -75,6 +75,22 @@ Current Cube milestone:
 - `run_comparison_flow.sh` now defaults bridge actions to `ptodsl`. Explicit
   `direct` and `external-calls` modes remain available, and ordinary NPU-IR
   compilation is unaffected when the bridge is not enabled.
+- The PTODSL MMAD adapter now derives A, B, and C pointers from the actual
+  `MmadL1` memref operands with `pto.tile_buf_addr`; it no longer requires or
+  reconstructs one fixed L1/L0C ping-pong address pattern. An omitted
+  `sync_related_args` list is normalized to disabled (`-1`) optional events,
+  while an explicit seven-event list is preserved.
+- This admits both MMAD forms currently emitted by `flash_atten`. Its f32
+  L0C-to-UB NZ2ND Fixpipe and three vector-side DMA contracts now lower to PTO,
+  and the testcase reaches complete VMI and VPTO without those legacy helper
+  calls. Mixed AIV/AIC packaging now emits one valid fat object and one public
+  `flash_atten_kernel` symbol. Active blocks then stall in the simulator on the
+  converted Cube/Vector synchronization. NPU-IR's vendored PTO contract still
+  treats `pto.sync.*` as A5 intra-block synchronization, while current PTOAS
+  lowers those names as FFTS cross-core synchronization and provides separate
+  `pto.set_intra_block` / `pto.wait_intra_block` operations. Correct conversion
+  must also account for AIV0/AIV1 physical semaphore IDs and participation.
+  L0A/L0B scratch allocation remains a separate memory-policy question.
 
 ## Cube Paths
 
@@ -121,16 +137,19 @@ Review order:
 1. Preserve the passing 64x64 simulator and 513x513 A5 contracts:
    caller-owned local buffers, M/K/N, init/accumulate, and NPU-IR event IDs
    enter the imported pre-generated helper.
-2. Add one numerical test that produces a true sub-64 runtime M/K/N helper
+2. Align the NPU-IR sync conversion with current PTOAS. Preserve NPU-IR's
+   producer/consumer and synchronization-mode contract while selecting the
+   correct named PTO sync operation and AIV0/AIV1 physical semaphore IDs.
+3. Add one numerical test that produces a true sub-64 runtime M/K/N helper
    call, comparing it with unchanged NPU-IR and the CCE template route.
-3. Define the longer-term memory/sync ownership transition. Do not run both the NPU-IR
+4. Define the longer-term memory/sync ownership transition. Do not run both the NPU-IR
    physical event plan and PTOAS automatic allocation/sync for the same region.
-4. Add further explicit helper instantiations only after early IR proves that
+5. Add further explicit helper instantiations only after early IR proves that
    a fixture reaches a distinct `MmadL1` contract. The first four configuration
    variants below are implemented and simulator-verified.
-5. Compare PTODSL, external-call, and unchanged NPU-IR output and traces under
+6. Compare PTODSL, external-call, and unchanged NPU-IR output and traces under
    identical options.
-6. Run a genuine split MIX fixture and request A5 hardware validation before
+7. Run a genuine split MIX fixture and request A5 hardware validation before
    treating PTODSL as broadly supported beyond the current default test path.
 
 ## Matmul Configuration Fixtures
