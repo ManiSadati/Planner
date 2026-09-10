@@ -6,6 +6,8 @@ import torch_npu
 import triton
 import triton.language as tl
 
+from compile_timing import enable_compile_timing
+
 
 @triton.jit
 def vector_add_kernel(
@@ -23,6 +25,8 @@ def vector_add_kernel(
 
 
 def main():
+    enable_compile_timing()
+
     tile_size = 256
     lhs_cpu = torch.linspace(-1.0, 1.0, tile_size, dtype=torch.float32)
     rhs_cpu = torch.linspace(2.0, -2.0, tile_size, dtype=torch.float32)
