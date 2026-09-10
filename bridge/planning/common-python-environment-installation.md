@@ -1,8 +1,8 @@
 # Common Python Environment for the NPU-IR to PTOAS Flow
 
-This guide creates one Python 3.10 virtual environment for testing the current
+This guide creates one Python 3.11 Conda environment for testing the current
 checkouts of AscendNPU-IR, PTOAS, and Triton-Ascend. It avoids mixing packages
-from `~/.local`, Conda, or older virtual environments.
+from `~/.local`, other Conda environments, or older virtual environments.
 
 The expected source branches are:
 
@@ -23,24 +23,28 @@ AscendNPU-IR is primarily consumed through its compiler executables. PTOAS and
 Triton-Ascend contain Python ABI-specific native extensions, so they must be
 built with the same Python interpreter used to run the Triton kernel.
 
-## 1. Create the Virtual Environment
+## 1. Create the Conda Environment
 
 Keep the environment outside all three repositories so deleting or rebuilding
-one checkout does not remove it.
+one checkout does not remove it. This procedure assumes that `conda` is already
+installed and available in `PATH`; it does not require a system Python 3.11 or
+root access because Conda installs the interpreter inside the environment.
 
 ```bash
 export WORKSPACE=/home/m00967009/Workspace
-export BRIDGE_VENV=$HOME/.venv/ascend-bridge-py310
+export BRIDGE_VENV=$HOME/.conda/envs/ascend-bridge-py311
 
-python3.10 -m venv "$BRIDGE_VENV"
-source "$BRIDGE_VENV/bin/activate"
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda create --yes --prefix "$BRIDGE_VENV" python=3.11 pip
+conda activate "$BRIDGE_VENV"
 export PYTHONNOUSERSITE=1
 
 python -m pip install --upgrade pip setuptools wheel
 ```
 
-Do not use `--system-site-packages`. A normal isolated virtual environment
-prevents packages from `~/.local` or another environment from being imported.
+Do not install these packages into Conda's `base` environment and do not use
+`pip --user`. The dedicated environment and `PYTHONNOUSERSITE=1` prevent
+packages from `~/.local` or another environment from being imported.
 
 Install the build and runtime dependencies shared by the projects:
 
@@ -72,14 +76,15 @@ python -m pip uninstall -y triton
 
 ## 2. Configure CANN
 
-Source CANN before activating the virtual environment for the final time. This
+Source CANN before activating the Conda environment for the final time. This
 keeps the environment's `python`, `cmake`, and `ptoas` commands first in `PATH`.
 
 ```bash
 export CANN_ROOT=/home/a84369921/Ascend/cann-9.1.0-beta.3
 source "$CANN_ROOT/set_env.sh"
 
-source "$BRIDGE_VENV/bin/activate"
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate "$BRIDGE_VENV"
 export PYTHONNOUSERSITE=1
 
 export ASCEND_HOME_PATH="$CANN_ROOT"
@@ -139,11 +144,11 @@ export PYTHON_BIN="$BRIDGE_VENV/bin/python"
 ```
 
 An existing VPTO LLVM build can be reused only if its MLIR Python bindings were
-built for Python 3.10:
+built for Python 3.11:
 
 ```bash
 find "$LLVM_BUILD_DIR/tools/mlir/python_packages" \
-  -name '*cpython-310*.so' | head
+  -name '*cpython-311*.so' | head
 ```
 
 If that command produces no output, rebuild VPTO LLVM with the common Python:
@@ -164,7 +169,7 @@ cmake --build "$LLVM_BUILD_DIR" -j32
 
 ## 5. Build and Install PTOAS
 
-Remove the old PTOAS build directory so CMake cannot reuse a Python 3.11 path
+Remove the old PTOAS build directory so CMake cannot reuse another Python ABI
 or another environment's `pybind11` location.
 
 ```bash
@@ -179,7 +184,7 @@ PTO_BUILD_DIR="$PTOAS_ROOT/build" \
 ```
 
 The quick installer performs an editable install with build isolation disabled.
-This makes the `ptoas` command and Python package belong to the common virtual
+This makes the `ptoas` command and Python package belong to the common Conda
 environment while retaining an incremental CMake build tree.
 
 Configure PTOAS runtime lookup and verify the extension ABI:
@@ -193,7 +198,7 @@ ptoas --version
 python -c "import ptoas._core; print(ptoas._core.__file__)"
 ```
 
-The printed `_core` filename must contain `cpython-310`.
+The printed `_core` filename must contain `cpython-311`.
 
 ## 6. Build and Install Triton-Ascend
 
@@ -224,14 +229,15 @@ Run the following in every new shell before compiling or simulating kernels:
 
 ```bash
 export WORKSPACE=/home/m00967009/Workspace
-export BRIDGE_VENV=$HOME/.venv/ascend-bridge-py310
+export BRIDGE_VENV=$HOME/.conda/envs/ascend-bridge-py311
 export CANN_ROOT=/home/a84369921/Ascend/cann-9.1.0-beta.3
 export ASCEND_NPU_IR_ROOT="$WORKSPACE/AscendNPU-IR"
 export PTOAS_ROOT="$WORKSPACE/PTOAS"
 export LLVM_BUILD_DIR="$WORKSPACE/llvm-project/build-shared"
 
 source "$CANN_ROOT/set_env.sh"
-source "$BRIDGE_VENV/bin/activate"
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate "$BRIDGE_VENV"
 
 export PYTHONNOUSERSITE=1
 export ASCEND_HOME_PATH="$CANN_ROOT"
@@ -269,11 +275,11 @@ Expected results:
 - `bishengir-compile` resolves under the standalone AscendNPU-IR installation.
 - `triton.__file__` resolves to the current Triton-Ascend checkout, not
   `~/.local` and not an upstream Triton installation.
-- `ptoas._core` has a `cpython-310` filename.
+- `ptoas._core` has a `cpython-311` filename.
 
 ## 9. Run the Bridge Flow
 
-Use the virtual environment's absolute Python path when launching through
+Use the Conda environment's absolute Python path when launching through
 `msprof`. This prevents `msprof` from resolving another `python3` executable.
 
 From the Planner repository:
