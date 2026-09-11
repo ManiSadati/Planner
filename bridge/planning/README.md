@@ -1,6 +1,6 @@
 # Planning Overview
 
-Last updated: 2026-09-09
+Last updated: 2026-09-11
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
@@ -91,6 +91,17 @@ Current Cube milestone:
   `pto.set_intra_block` / `pto.wait_intra_block` operations. Correct conversion
   must also account for AIV0/AIV1 physical semaphore IDs and participation.
   L0A/L0B scratch allocation remains a separate memory-policy question.
+- The `qk_matmul` implicit-transpose K load exposed a correctness gap in the
+  earlier direct DMA mapping: `pto.mte_gm_ub` copied rows but did not realize
+  NPU-IR's transposed view. PTODSL mode now imports a pre-generated 64x64 f16
+  helper that copies GM to UB and performs an in-place pairwise vector
+  transpose with `vgather2` and `vscatter`. This avoids allocating
+  scratch after NPU-IR memory planning and limits live vector values.
+  Broader shapes/layouts remain guarded, and a native NDDMA-like PTO operation
+  is still the likely performance-oriented endpoint. A non-symmetric qk
+  fixture confirms exact `Q @ K^T` values in all currently populated columns
+  0-15. Columns 16-63 remain zero, so that separate failure must be traced
+  through UB-to-L1 NZ packing, MMAD layout, and Fixpipe.
 
 ## Cube Paths
 
@@ -151,6 +162,9 @@ Review order:
    identical options.
 7. Run a genuine split MIX fixture and request A5 hardware validation before
    treating PTODSL as broadly supported beyond the current default test path.
+8. Generalize implicit-transpose loads only from new observed contracts. Keep
+   the fixed 64x64 f16 PTODSL helper as the correctness baseline and compare it
+   with a future native NDDMA-style PTO mapping for performance.
 
 ## Matmul Configuration Fixtures
 

@@ -1,6 +1,6 @@
 # Flash-Attention PTODSL Simulator Link Plan
 
-Last updated: 2026-09-09
+Last updated: 2026-09-10
 
 ## Status
 
@@ -60,8 +60,11 @@ The observed DMA contracts are deliberately narrow:
 
 - f32 contiguous `memref<64>` UB-to-UB becomes `pto.mte_ub_ub` with one
   burst of eight 32-byte blocks;
-- f16 GM `[1,64]` to UB `[64,1]` implicit-transpose load becomes padded
-  `pto.mte_gm_ub`, with dynamic valid-column count and 128-byte rows;
+- the observed f16 64x64 GM-to-UB implicit-transpose load imports a
+  pre-generated PTODSL helper. It performs a contiguous `pto.mte_gm_ub`, then
+  transposes the UB tile in place through pairwise
+  `pto.vgather2`/`pto.vscatter` swaps. A strided `pto.mte_gm_ub`
+  alone does not implement this transpose;
 - f16 UB `4x1024 [1040,1]` to contiguous L1 becomes `pto.mte_ub_l1` with
   four bursts of 64 blocks and a one-block source gap.
 
@@ -106,6 +109,22 @@ runs, and compares successfully after the change. Next work is:
 4. Rerun the complete fat-object, simulator, and numerical-comparison flow.
 5. Generalize each DMA mapping only when another real fixture proves a new
    shape, layout, datatype, padding, or stride contract.
+
+The first correctness specialization is complete for `qk_matmul`: its 64x64
+f16 implicit-transpose load lowers without the legacy
+`load_gm_to_ubuf_2d_half` declaration and reaches VPTO. The helper is generated
+offline from PTODSL and loaded as MLIR during compilation. Other shapes,
+datatypes, padding modes, and layouts deliberately fail with an explicit
+unsupported-contract diagnostic. Native NDDMA-like PTO support remains future
+work because the in-place vector transpose is expected to be slower.
+
+The qk simulator fixture now uses identity Q matrices and a deterministic,
+non-symmetric K matrix, with an FP32 `Q @ K^T` reference converted to FP16.
+Every produced value in output columns 0-15 matches that reference exactly.
+Columns 16-63 remain zero. This validates the implicit-transpose helper for the
+currently consumed slice and separates the remaining correctness issue from
+the load conversion. Trace that issue through UB-to-L1 NZ packing, MMAD layout,
+and Fixpipe before changing the load helper again.
 
 ## Compatibility Alternative
 

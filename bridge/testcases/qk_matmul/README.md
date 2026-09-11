@@ -1,70 +1,64 @@
 # QK Matmul
 
-This testcase isolates the `Q @ K^T` Cube computation from a current
-Qwen3.5-style full-attention layer. It intentionally omits scaling, masking,
-softmax, and `P @ V` so the bridge can focus on the matmul and GQA addressing.
+This testcase isolates the `Q @ K^T` Cube computation. It intentionally omits
+scaling, masking, softmax, and the value tensor so the bridge can focus on the
+matmul. The dimensions are
+small enough for routine cycle-simulator smoke testing.
 
 ## Model Shape
 
 The testcase uses batch size one and these dimensions:
 
 ```text
-H_Q      = 32       query heads
-H_KV     = 2        key/value heads
-SQ       = 128      query tokens
-SK       = 8192     cached key tokens
-HEAD_DIM = 256
+H_Q      = 8        query heads
+SQ       = 64       query tokens
+SK       = 64       cached key tokens
+HEAD_DIM = 64
 
-Q:      [32, 128, 256]
-K:      [2, 8192, 256]
-Scores: [32, 128, 8192]
+Q:      [8, 64, 64]
+K:      [64, 64]
+Scores: [8, 64, 64]
 ```
 
-Qwen3.5-397B-A17B uses 32 full-attention query heads, 2 KV heads, and a
-256-element head dimension. Its native context can be much longer than 8192;
-8192 is used here because it is large enough to exercise long tiled QK work
-without making this already simulator-heavy fixture unnecessarily larger.
+This is a reduced compiler/runtime fixture rather than a complete model-native
+attention shape. It retains multiple query heads and one complete `64x64x64`
+Cube tile per query head. All query heads share the same two-dimensional K
+matrix.
 
-Official model references:
+## Reference Result
 
-- <https://huggingface.co/Qwen/Qwen3.5-397B-A17B>
-- <https://huggingface.co/Qwen/Qwen3.5-397B-A17B/blob/main/config.json>
-
-## GQA Mapping
-
-This is grouped-query attention, so 16 query heads share each KV head:
+Each Q head is an identity matrix. K uses a deterministic, non-symmetric
+pattern with exactly representable FP16 values. This makes the fixture
+sensitive to whether the K transpose actually occurred. The reference is
+computed with an actual FP32 batched matrix multiplication and converted to
+FP16:
 
 ```text
-kv_head = query_head / (H_Q / H_KV) = query_head / 16
-
-query heads  0..15 -> KV head 0
-query heads 16..31 -> KV head 1
+Scores[head] = Q[head] @ transpose(K)
 ```
 
-Every Q element is one. KV head 0 contains ones and KV head 1 contains twos, so
-the expected score for query head `h` is:
+The identity Q makes each score matrix:
 
 ```text
-(kv_head + 1) * HEAD_DIM
+Scores[head] = transpose(K)
 ```
 
-Query heads 0 through 15 therefore produce 256, while heads 16 through 31
-produce 512. This checks the GQA mapping as well as the dot product. The Python
-testcase prepares these tensors on CPU and copies them to the NPU so simulator
-time is spent on the Triton kernel rather than input-generation kernels.
+The Python testcase prepares these tensors on CPU and copies them to the NPU
+so simulator time is spent on the Triton kernel rather than input-generation
+kernels.
 
 ## Triton Tiling
 
 The kernel uses `64x64x64` blocks. One logical Triton program computes:
 
 ```text
-[64, 256] @ [256, 64] -> [64, 64]
+[64, 64] @ [64, 64] -> [64, 64]
 ```
 
-as four K-reduction iterations. The flattened launch contains:
+as one K-reduction iteration. The flattened launch contains:
 
 ```text
-32 query heads * 2 query tiles * 128 key tiles = 8192 programs
+8 query heads * 1 query tile * 1 key tile = 8 programs
 ```
 
 Flattening the head and matrix tile coordinates into `tl.program_id(0)` keeps
@@ -75,48 +69,31 @@ score tensor only to make Cube conversion and numerical comparison explicit.
 
 ## Bridge Flow
 
-Current status:
-
-- `early-ir` succeeds and the checked-in `input.mlir` contains the expected
-  GQA offsets, four K-reduction iterations, and `64x64` `linalg.matmul` tiles;
-- baseline `print-all` captures the normal NPU-IR pass trace, then reaches the
-  environment's existing `hivmc-a5 --save-temps` rejection;
-- the external-call `emit-vmi` experiment currently stops in
-  `convert-hivmave-to-ptoas-vmi` because MIX-side
-  `hivm.hir.sync_block_set` is not legalized yet;
-- the host, build, comparison, simulator, and A5 fat-object runner files are
-  prepared for use after that conversion gap is closed.
-
-Generate the early IR and inspect the unchanged NPU-IR pipeline:
+After changing the source dimensions, regenerate `input.mlir` before running
+the bridge because it is compiler-generated and may still describe an older
+shape:
 
 ```bash
 cd "$HOME/Planner"
 bridge/tools/run_comparison_flow.sh early-ir qk_matmul
-bridge/tools/run_comparison_flow.sh print-all qk_matmul
 ```
 
-Capture every BiShengIR pass with the PTOAS bridge enabled, including the
-conversion attempt:
+Then run the default PTODSL bridge:
 
 ```bash
-bridge/tools/run_comparison_flow.sh \
-  --bridge-mode external-calls bridge-print-all qk_matmul
+bridge/tools/run_comparison_flow.sh emit-vmi qk_matmul
+bridge/tools/run_comparison_flow.sh emit-vpto qk_matmul
+bridge/tools/run_comparison_flow.sh --clean-build bridge-sim qk_matmul
 ```
 
-The baseline and bridge-enabled traces are written to `out/after-all.log` and
-`out/bridge-after-all.log`, respectively.
+The current bridge simulation completes in 20,011 ticks. Its output columns
+0-15 match the non-symmetric reference exactly, while columns 16-63 are zero.
+This confirms the fixed implicit-transpose load specialization for the
+currently produced slice and leaves a separate downstream Cube layout/output
+coverage issue to resolve.
 
-Exercise the CCE-template compatibility route:
-
-```bash
-bridge/tools/run_comparison_flow.sh \
-  --bridge-mode external-calls emit-vmi qk_matmul
-bridge/tools/run_comparison_flow.sh \
-  --bridge-mode external-calls emit-vpto qk_matmul
-bridge/tools/run_comparison_flow.sh \
-  --clean-build --bridge-mode external-calls bridge-sim qk_matmul
-```
-
-The full `npu-sim` and `bridge-sim` runs can be slow because the output holds
-33,554,432 FP16 scores, or 64 MiB. Generated IR, logs, build products, profiles,
-and fat objects are written under `out/` and ignored by Git.
+The score output now contains 32,768 FP16 values, or 64 KiB. Generated IR,
+logs, build products, profiles, and fat objects are written under `out/` and
+ignored by Git. The separate compiler regression test retains the `[1,256]`
+implicit-transpose source-stride case; this reduced runtime fixture naturally
+uses `[1,64]` because `HEAD_DIM=64`.

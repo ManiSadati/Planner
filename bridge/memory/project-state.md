@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-09-09
+Last updated: 2026-09-10
 
 ## Current Goal
 
@@ -100,6 +100,17 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
   and transpose contracts. `q_kt_matmul` now compiles, builds a fat
   object, and launches all 32 AIC blocks through PTODSL mode; full numerical
   completion remains for A5 hardware or a much longer cycle-simulator run.
+- The `qk_matmul` f16 implicit-transpose GM-to-UB load now has a PTODSL
+  specialization for the observed 64x64 tile. It first performs a physical
+  GM-to-UB copy, then transposes the UB tile in place with pairwise
+  `pto.vgather2`/`pto.vscatter` swaps. The compiler
+  imports a pre-generated MLIR helper and does not execute Python. Other
+  shapes, datatypes, padding modes, and layouts are rejected explicitly;
+  native NDDMA-style PTO support remains the performance/generalization path.
+  A non-symmetric qk fixture confirms that every populated value in output
+  columns 0-15 exactly matches `Q @ K^T`. The remaining columns 16-63 are zero,
+  locating the outstanding full-fixture failure after this load specialization,
+  in the UB-to-L1 NZ packing, MMAD-layout, or Fixpipe path.
 - The PTODSL source at
   `$HOME/AscendNPU-IR/bishengir/lib/Template/lib/RegBase/Cube/nd2nz_mmadl1_64_ptodsl.py`
   now accepts normalized M/K/N values up to 64, caller-owned local buffers,

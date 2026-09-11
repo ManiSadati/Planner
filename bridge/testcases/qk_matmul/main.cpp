@@ -11,13 +11,12 @@ void LaunchQkMatmulKernel(void *workspace0, void *workspace1, void *inputQ,
 
 namespace {
 
-constexpr size_t kHq = 32;
-constexpr size_t kHkv = 2;
-constexpr size_t kSq = 128;
-constexpr size_t kSk = 8192;
-constexpr size_t kHeadDim = 256;
+constexpr size_t kHq = 8;
+constexpr size_t kSq = 64;
+constexpr size_t kSk = 64;
+constexpr size_t kHeadDim = 64;
 constexpr size_t kQBytes = kHq * kSq * kHeadDim * sizeof(uint16_t);
-constexpr size_t kKBytes = kHkv * kSk * kHeadDim * sizeof(uint16_t);
+constexpr size_t kKBytes = kSk * kHeadDim * sizeof(uint16_t);
 constexpr size_t kScoreElems = kHq * kSq * kSk;
 constexpr size_t kScoreBytes = kScoreElems * sizeof(uint16_t);
 constexpr size_t kWorkspaceBytes = 1;

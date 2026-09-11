@@ -3,9 +3,9 @@ import sys
 
 import numpy as np
 
-H_Q = 32
-SQ = 128
-SK = 8192
+H_Q = 8
+SQ = 64
+SK = 64
 ELEM_COUNT = H_Q * SQ * SK
 ATOL = 0.5
 RTOL = 0.0

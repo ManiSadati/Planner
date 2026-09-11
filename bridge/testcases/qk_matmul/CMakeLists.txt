@@ -83,7 +83,6 @@ add_custom_command(
     OUTPUT ${KERNEL_FATOBJ}
     COMMAND ${PTOAS_BIN}
         --pto-arch=a5
-        --pto-backend=vpto
         ${KERNEL_MLIR}
         -o
         ${KERNEL_FATOBJ}
