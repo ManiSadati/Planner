@@ -1,7 +1,14 @@
+import os
+import sys
+from pathlib import Path
+
 import torch
 import torch_npu
 import triton
 import triton.language as tl
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "common"))
+from compile_timing import enable_compile_timing
 
 
 @triton.jit
@@ -28,6 +35,8 @@ def rmsnorm_kernel(
 
 
 def main():
+    enable_compile_timing()
+
     torch.manual_seed(0)
 
     n_rows = 16
@@ -43,6 +52,11 @@ def main():
     ref = x * torch.rsqrt(torch.mean(x * x, dim=-1, keepdim=True) + eps) * weight
     print("max error:", (out - ref).abs().max().item())
     print("allclose:", torch.allclose(out, ref, atol=1e-5, rtol=1e-5))
+
+    # CANN 9.1 beta can fault during TorchNPU teardown after simulator success.
+    if os.getenv("TRITON_SIMULATOR_CLEAN_EXIT") == "1":
+        sys.stdout.flush()
+        os._exit(0)
 
 
 if __name__ == "__main__":
