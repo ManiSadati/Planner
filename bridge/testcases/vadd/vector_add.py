@@ -1,11 +1,13 @@
 import os
 import sys
+from pathlib import Path
 
 import torch
 import torch_npu
 import triton
 import triton.language as tl
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "common"))
 from compile_timing import enable_compile_timing
 
 
