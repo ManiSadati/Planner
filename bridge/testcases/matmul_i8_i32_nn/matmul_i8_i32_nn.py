@@ -1,7 +1,14 @@
+import os
+import sys
+from pathlib import Path
+
 import torch
 import torch_npu
 import triton
 import triton.language as tl
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "common"))
+from compile_timing import enable_compile_timing
 
 
 @triton.jit
@@ -17,6 +24,8 @@ def matmul_i8_i32_nn_kernel(a_ptr, b_ptr, c_ptr):
 
 
 def main():
+    enable_compile_timing()
+
     a = torch.ones((64, 64), device="npu", dtype=torch.int8)
     b = torch.ones((64, 64), device="npu", dtype=torch.int8)
     c = torch.empty((64, 64), device="npu", dtype=torch.int32)
@@ -25,6 +34,11 @@ def main():
 
     reference = torch.full((64, 64), 64, device="npu", dtype=torch.int32)
     print("exact:", torch.equal(c, reference))
+
+    # CANN 9.1 beta can fault during TorchNPU teardown after simulator success.
+    if os.getenv("TRITON_SIMULATOR_CLEAN_EXIT") == "1":
+        sys.stdout.flush()
+        os._exit(0)
 
 
 if __name__ == "__main__":

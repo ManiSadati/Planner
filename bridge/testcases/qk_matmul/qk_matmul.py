@@ -1,7 +1,14 @@
+import os
+import sys
+from pathlib import Path
+
 import torch
 import torch_npu
 import triton
 import triton.language as tl
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "common"))
+from compile_timing import enable_compile_timing
 
 
 @triton.jit
@@ -74,6 +81,8 @@ def qk_matmul_kernel(
 
 
 def main():
+    enable_compile_timing()
+
     h_q = 8
     sq = 64
     sk = 64
@@ -111,6 +120,11 @@ def main():
     difference = (scores_host - reference).abs()
     print("max error:", difference.max().item())
     print("allclose:", torch.allclose(scores_host, reference, atol=0.5, rtol=0.0))
+
+    # CANN 9.1 beta can fault during TorchNPU teardown after simulator success.
+    if os.getenv("TRITON_SIMULATOR_CLEAN_EXIT") == "1":
+        sys.stdout.flush()
+        os._exit(0)
 
 
 if __name__ == "__main__":
