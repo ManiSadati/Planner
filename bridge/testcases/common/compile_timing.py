@@ -1,6 +1,10 @@
 import json
+import sys
 
-import triton.knobs as knobs
+try:
+    import triton.knobs as knobs
+except ModuleNotFoundError:
+    knobs = None
 
 
 def _compilation_listener(*, src, metadata, metadata_group, times, cache_hit):
@@ -16,4 +20,21 @@ def _compilation_listener(*, src, metadata, metadata_group, times, cache_hit):
 
 
 def enable_compile_timing():
+    if knobs is None:
+        print(
+            "TRITON_COMPILE_TIME_UNAVAILABLE=triton.knobs module not found",
+            file=sys.stderr,
+            flush=True,
+        )
+        return False
+
+    if not hasattr(knobs, "compilation") or not hasattr(knobs.compilation, "listener"):
+        print(
+            "TRITON_COMPILE_TIME_UNAVAILABLE=triton.knobs.compilation.listener not found",
+            file=sys.stderr,
+            flush=True,
+        )
+        return False
+
     knobs.compilation.listener = _compilation_listener
+    return True
