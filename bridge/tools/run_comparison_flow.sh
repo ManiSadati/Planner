@@ -8,6 +8,10 @@ testcase_root="${planner_root}/bridge/testcases"
 npuir_root="${ASCEND_NPU_IR_ROOT:-${NPU_IR_ROOT:-}}"
 cann_root="${CANN_ROOT:-${ASCEND_HOME_PATH:-}}"
 ptoas_root="${PTOAS_ROOT:-}"
+if [[ -z "$ptoas_root" && -n "$npuir_root" &&
+      -d "$npuir_root/third-party/ptoas" ]]; then
+  ptoas_root="$npuir_root/third-party/ptoas"
+fi
 
 npu_target="Ascend910_9589"
 npu_sim_soc="Ascend950PR_9589"
@@ -45,7 +49,7 @@ Bridge modes:
 Required environment:
   ASCEND_NPU_IR_ROOT=/path/to/AscendNPU-IR
   CANN_ROOT=/path/to/CANN
-  PTOAS_ROOT=/path/to/PTOAS
+  PTOAS_ROOT=/path/to/PTOAS  (optional with initialized NPU-IR submodules)
 
 Testcase layout:
   Planner/bridge/testcases/<testcase>/
@@ -106,6 +110,10 @@ prepend_ld_library_path() {
   fi
 }
 
+raise_simulator_open_file_limit() {
+  ulimit -Sn "${SIMULATOR_NOFILE_LIMIT:-65536}" 2>/dev/null || true
+}
+
 require_npuir_root() {
   [[ -n "$npuir_root" ]] || die "set ASCEND_NPU_IR_ROOT to the AscendNPU-IR checkout"
   [[ -e "$npuir_root" ]] || die "ASCEND_NPU_IR_ROOT does not exist: $npuir_root"
@@ -117,7 +125,7 @@ require_cann_root() {
 }
 
 require_ptoas_root() {
-  [[ -n "$ptoas_root" ]] || die "set PTOAS_ROOT to the PTOAS checkout or ptoas binary"
+  [[ -n "$ptoas_root" ]] || die "set PTOAS_ROOT or initialize the NPU-IR PTOAS submodule"
   [[ -e "$ptoas_root" ]] || die "PTOAS_ROOT does not exist: $ptoas_root"
 }
 
@@ -157,6 +165,8 @@ find_npuir_aicore_bitcode() {
 find_ptoas() {
   require_ptoas_root
   local candidates=(
+    "$npuir_root/build-ptoas/tools/ptoas/ptoas"
+    "$npuir_root/build-ptoas/install/bin/ptoas"
     "$ptoas_root"
     "$ptoas_root/build/tools/ptoas/ptoas"
     "$ptoas_root/PTOAS_Markham/build/tools/ptoas/ptoas"
@@ -274,9 +284,46 @@ configure_ptoas_env() {
   prepend_ld_library_path "$ptoas_root/PTOAS_Markham/build/python/ptoas/mlir/_mlir_libs"
   prepend_ld_library_path "$ptoas_root/../llvm-project/build-llvm19-shared/lib"
   prepend_ld_library_path "$ptoas_root/llvm-project/build-llvm19-shared/lib"
+  prepend_ld_library_path "$npuir_root/build-ptoas/lib"
+  prepend_ld_library_path "$npuir_root/build-ptoas/python/ptoas/mlir/_mlir_libs"
+  prepend_ld_library_path "$npuir_root/build-ptoas-llvm/lib"
   prepend_ld_library_path "$cann_root/tools/simulator/$ptoas_sim_soc/lib"
   prepend_ld_library_path "$cann_root/runtime/lib64/stub"
   prepend_ld_library_path "$cann_root/lib64"
+}
+
+git_revision() {
+  local path="$1"
+  if [[ -d "$path" ]]; then
+    git -C "$path" rev-parse HEAD 2>/dev/null || printf '%s\n' "unknown"
+  else
+    printf '%s\n' "missing"
+  fi
+}
+
+write_dependency_versions() {
+  local build_dir="$1"
+  local manifest="$build_dir/dependency-versions.txt"
+  local npuir_rev npu_llvm_rev ptoas_rev pto_llvm_rev
+
+  npuir_rev="$(git_revision "$npuir_root")"
+  npu_llvm_rev="$(git_revision "$npuir_root/third-party/llvm-project")"
+  ptoas_rev="$(git_revision "$ptoas_root")"
+  if [[ -n "${PTOAS_LLVM_ROOT:-}" ]]; then
+    pto_llvm_rev="$(git_revision "$PTOAS_LLVM_ROOT")"
+  elif [[ "$ptoas_root" == "$npuir_root/third-party/ptoas" ]]; then
+    pto_llvm_rev="$(git_revision "$npuir_root/third-party/ptoas-llvm-project")"
+  else
+    pto_llvm_rev="external-unknown"
+  fi
+
+  {
+    printf 'npuir=%s\n' "$npuir_rev"
+    printf 'npu_llvm=%s\n' "$npu_llvm_rev"
+    printf 'ptoas=%s\n' "$ptoas_rev"
+    printf 'pto_llvm=%s\n' "$pto_llvm_rev"
+  } >"$manifest"
+  log "dependencies: npuir=${npuir_rev:0:12} ptoas=${ptoas_rev:0:12}"
 }
 
 case_dir_for() {
@@ -437,6 +484,7 @@ latest_ttadapter_dump() {
 
 run_python_simulator() {
   local case_dir="$1"
+  raise_simulator_open_file_limit
   local build_dir="$2"
   local stop_after_dump="$3"
   local python_file kernel_name sim_out sim_log dump_file
@@ -816,6 +864,7 @@ ensure_bridge_sim_fixture() {
 }
 
 run_bridge_sim() {
+  raise_simulator_open_file_limit
   local case_dir="$1"
   local case_name="$2"
   local out_dir="$case_dir/out"
@@ -983,6 +1032,7 @@ if [[ "$clean_build" == "1" ]]; then
   clean_build_dirs "$case_dir" "$out_dir"
 fi
 mkdir -p "$build_dir"
+write_dependency_versions "$build_dir"
 
 case "$option" in
   early-ir|input-mlir|generate-mlir)

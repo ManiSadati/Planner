@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-09-10
+Last updated: 2026-09-16
 
 ## Current Goal
 
@@ -58,6 +58,11 @@ Create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing t
 ## Development Target
 
 - Main local repo: `$HOME/AscendNPU-IR`
+- NPU-IR now pins `third-party/ptoas` and
+  `third-party/ptoas-llvm-project`. The embedded PTO dialect compiles directly
+  from the PTOAS submodule against Ascend LLVM; standalone PTOAS/PTODSL builds
+  against the separate PTO LLVM submodule. Textual MLIR is the boundary, and
+  binaries from the two LLVM forks must not be linked together.
 - Main bridge implementation fork: `https://gitcode.com/wilsoncxfeng/AscendNPU-IR`
 - Human personal fork: `https://gitcode.com/manisadati/AscendNPU-IR`
 - Upstream source of truth: `https://gitcode.com/Ascend/AscendNPU-IR`

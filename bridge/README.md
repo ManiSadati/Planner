@@ -70,12 +70,19 @@ cd "$HOME/Planner"
 
 export ASCEND_NPU_IR_ROOT=/path/to/AscendNPU-IR
 export CANN_ROOT=/path/to/CANN
-export PTOAS_ROOT=/path/to/PTOAS
 
 bridge/tools/run_comparison_flow.sh early-ir vadd
 bridge/tools/run_comparison_flow.sh emit-vpto vadd
 bridge/tools/run_comparison_flow.sh --clean-build bridge-sim vadd
 ```
+
+The preferred checkout layout keeps PTOAS and its LLVM fork under NPU-IR as
+git submodules. With that layout, the runner finds PTOAS from
+`$ASCEND_NPU_IR_ROOT/third-party/ptoas` and its binary from
+`$ASCEND_NPU_IR_ROOT/build-ptoas`; `PTOAS_ROOT` is only needed to override this
+with another checkout. Every run records the NPU-IR, NPU LLVM, PTOAS, and PTO
+LLVM commits in `out/build/dependency-versions.txt`. Set `PTOAS_LLVM_ROOT` too
+when overriding PTOAS if its LLVM revision should be recorded.
 
 The bridge defaults to `ptodsl`. This keeps the supported non-Cube DMA
 rewrites and also imports the pre-generated PTO-visible Cube helpers. The
@@ -123,6 +130,8 @@ small wrapper around the same implementation.
 `--clean-build` can be passed before or after the option. It removes
 `bridge/testcases/<name>/out/build/` and the legacy
 `bridge/testcases/<name>/build/` directory, then rebuilds the selected flow.
+Simulator options raise the process open-file soft limit to `65536` when the
+account permits it; set `SIMULATOR_NOFILE_LIMIT` to override that value.
 `--bridge-mode ptodsl` is the default. It rewrites supported non-Cube HIVM DMA
 templates, imports installed pre-generated `MmadL1` and ND2NZ PTO helpers, and
 converts the separate Fixpipe caller operation. Normal bridge compilation does

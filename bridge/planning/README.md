@@ -14,6 +14,11 @@ practical.
 
 Current implementation bias:
 
+- pin PTOAS and PTOAS's LLVM fork as NPU-IR submodules; compile NPU-IR's
+  embedded PTO dialect directly from the pinned PTOAS source against Ascend
+  LLVM, while standalone PTOAS/PTODSL uses its separate PTO LLVM build;
+- exchange textual MLIR between the two toolchains and never link both LLVM
+  forks into one executable;
 - implement bridge work on the AscendNPU-IR side first;
 - avoid changing PTOAS unless explicitly needed;
 - treat `https://gitcode.com/wilsoncxfeng/AscendNPU-IR` as the main bridge

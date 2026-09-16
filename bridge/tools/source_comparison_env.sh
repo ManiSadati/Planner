@@ -11,7 +11,7 @@ Set the three root paths directly, then run one option and one testcase:
 
   export ASCEND_NPU_IR_ROOT=/path/to/AscendNPU-IR
   export CANN_ROOT=/path/to/CANN
-  export PTOAS_ROOT=/path/to/PTOAS
+  # PTOAS_ROOT is optional when NPU-IR's PTOAS submodules are initialized.
   bridge/tools/run_comparison_flow.sh emit-vpto vadd
 EOF
   exit 1

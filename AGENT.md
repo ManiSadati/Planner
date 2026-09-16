@@ -37,6 +37,13 @@ Docs and scripts should live at the narrowest useful ownership boundary:
 - Cross-repo bridge logic, comparison structure, shared testcases, and end-to-end
   NPU-IR-to-PTOAS workflows belong under `bridge/`.
 
+The bridge checkout pins PTOAS and PTOAS's LLVM fork as submodules of
+AscendNPU-IR. NPU-IR compiles the embedded PTO dialect directly from the pinned
+PTOAS source using Ascend LLVM. Standalone PTOAS and PTODSL use the separate
+PTO LLVM submodule. Keep textual MLIR as the toolchain boundary; never link
+libraries from both LLVM forks into one executable. Bridge runs should record
+all four revisions: NPU-IR, Ascend LLVM, PTOAS, and PTO LLVM.
+
 ## Project Goal
 
 The main technical goal is to create an open backend path from AscendNPU-IR through PTOAS/PTO-ISA, replacing the low-level CCEC-style backend segment where feasible.
