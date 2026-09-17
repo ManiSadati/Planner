@@ -3,16 +3,15 @@ module {
   func.func @flash_atten_kernel(%arg0: memref<?xi8>, %arg1: memref<?xi8>, %arg2: memref<?xf16> {tt.divisibility = 16 : i32, tt.tensor_kind = 0 : i32}, %arg3: memref<?xf16> {tt.divisibility = 16 : i32, tt.tensor_kind = 0 : i32}, %arg4: memref<?xf16> {tt.divisibility = 16 : i32, tt.tensor_kind = 0 : i32}, %arg5: memref<?xf16> {tt.divisibility = 16 : i32, tt.tensor_kind = 1 : i32}, %arg6: i32, %arg7: i32, %arg8: i32, %arg9: i32, %arg10: i32, %arg11: i32) attributes {SyncBlockLockArgIdx = 0 : i64, WorkspaceArgIdx = 1 : i64, global_kernel = "local", mix_mode = "mix", parallel_mode = "simd"} {
     %cst = arith.constant 0xFF800000 : f32
     %cst_0 = arith.constant 0.000000e+00 : f16
-    %c256 = arith.constant 128 : index
+    %c128 = arith.constant 128 : index
     %c64 = arith.constant 64 : index
-    %c4_i32 = arith.constant 4 : i32
     %c2_i32 = arith.constant 2 : i32
     %c64_i32 = arith.constant 64 : i32
     %cst_1 = arith.constant 1.250000e-01 : f32
     %cst_2 = arith.constant -1.000000e+09 : f32
-    %c16384_i32 = arith.constant 8192 : i32
+    %c8192_i32 = arith.constant 8192 : i32
     %c0_i32 = arith.constant 0 : i32
-    %c256_i32 = arith.constant 128 : i32
+    %c128_i32 = arith.constant 128 : i32
     %cst_3 = arith.constant 0.000000e+00 : f32
     %0 = tensor.empty() : tensor<64xf32>
     %1 = linalg.fill ins(%cst_3 : f32) outs(%0 : tensor<64xf32>) -> tensor<64xf32>
@@ -20,13 +19,13 @@ module {
     %3 = linalg.fill ins(%cst_2 : f32) outs(%2 : tensor<64x64xf32>) -> tensor<64x64xf32>
     %4 = linalg.fill ins(%cst_1 : f32) outs(%2 : tensor<64x64xf32>) -> tensor<64x64xf32>
     %5 = tensor.empty() : tensor<1x64xi32>
-    %6 = linalg.fill ins(%c256_i32 : i32) outs(%5 : tensor<1x64xi32>) -> tensor<1x64xi32>
+    %6 = linalg.fill ins(%c128_i32 : i32) outs(%5 : tensor<1x64xi32>) -> tensor<1x64xi32>
     %7 = linalg.fill ins(%cst_2 : f32) outs(%0 : tensor<64xf32>) -> tensor<64xf32>
     %8 = linalg.fill ins(%cst_3 : f32) outs(%2 : tensor<64x64xf32>) -> tensor<64x64xf32>
     %9 = tensor.empty() : tensor<64x1xi32>
-    %10 = linalg.fill ins(%c256_i32 : i32) outs(%9 : tensor<64x1xi32>) -> tensor<64x1xi32>
-    %11 = arith.divsi %arg9, %c4_i32 : i32
-    %12 = arith.remsi %arg9, %c4_i32 : i32
+    %10 = linalg.fill ins(%c128_i32 : i32) outs(%9 : tensor<64x1xi32>) -> tensor<64x1xi32>
+    %11 = arith.divsi %arg9, %c2_i32 : i32
+    %12 = arith.remsi %arg9, %c2_i32 : i32
     %13 = arith.divsi %11, %c2_i32 : i32
     %14 = arith.muli %12, %c64_i32 : i32
     %15 = tensor.empty() : tensor<64xi32>
@@ -40,7 +39,7 @@ module {
     %18 = arith.addi %17, %16 : tensor<64xi32>
     %expanded = tensor.expand_shape %18 [[0, 1]] output_shape [64, 1] : tensor<64xi32> into tensor<64x1xi32>
     %19 = arith.cmpi slt, %expanded, %10 : tensor<64x1xi32>
-    %20 = arith.muli %11, %c16384_i32 : i32
+    %20 = arith.muli %11, %c8192_i32 : i32
     %21 = arith.index_cast %20 : i32 to index
     %22 = arith.index_cast %14 : i32 to index
     %23 = arith.muli %22, %c64 : index
@@ -51,7 +50,7 @@ module {
     %broadcasted = linalg.broadcast ins(%collapsed : tensor<64xi1>) outs(%25 : tensor<64x64xi1>) dimensions = [1] 
     %alloc = memref.alloc() : memref<64x64xf16>
     %26 = arith.addi %22, %c64 : index
-    %27 = arith.maxsi %22, %c256 : index
+    %27 = arith.maxsi %22, %c128 : index
     %28 = arith.minsi %26, %27 : index
     %29 = arith.subi %28, %22 : index
     %30 = arith.cmpi slt, %29, %c64 : index
@@ -62,11 +61,11 @@ module {
     %subview_4 = memref.subview %alloc[0, 0] [%29, 64] [1, 1] : memref<64x64xf16> to memref<?x64xf16, strided<[64, 1]>>
     memref.copy %subview, %subview_4 : memref<?x64xf16, strided<[64, 1], offset: ?>> to memref<?x64xf16, strided<[64, 1]>>
     %31 = bufferization.to_tensor %alloc restrict writable : memref<64x64xf16>
-    %32 = arith.muli %13, %c16384_i32 : i32
+    %32 = arith.muli %13, %c8192_i32 : i32
     %33 = arith.index_cast %32 : i32 to index
     %34 = tensor.empty() : tensor<64x64xi32>
     %broadcasted_5 = linalg.broadcast ins(%18 : tensor<64xi32>) outs(%34 : tensor<64x64xi32>) dimensions = [1] 
-    %35:3 = scf.for %arg12 = %c0_i32 to %c256_i32 step %c64_i32 iter_args(%arg13 = %8, %arg14 = %1, %arg15 = %7) -> (tensor<64x64xf32>, tensor<64xf32>, tensor<64xf32>)  : i32 {
+    %35:3 = scf.for %arg12 = %c0_i32 to %c128_i32 step %c64_i32 iter_args(%arg13 = %8, %arg14 = %1, %arg15 = %7) -> (tensor<64x64xf32>, tensor<64xf32>, tensor<64xf32>)  : i32 {
       %38 = linalg.fill ins(%arg12 : i32) outs(%15 : tensor<64xi32>) -> tensor<64xi32>
       %39 = arith.addi %38, %16 : tensor<64xi32>
       %expanded_9 = tensor.expand_shape %39 [[0, 1]] output_shape [1, 64] : tensor<64xi32> into tensor<1x64xi32>
@@ -79,7 +78,7 @@ module {
       %broadcasted_12 = linalg.broadcast ins(%collapsed_11 : tensor<64xi1>) outs(%25 : tensor<64x64xi1>) dimensions = [0] 
       %alloc_13 = memref.alloc() : memref<64x64xf16>
       %44 = arith.addi %40, %c64 : index
-      %45 = arith.maxsi %40, %c256 : index
+      %45 = arith.maxsi %40, %c128 : index
       %46 = arith.minsi %44, %45 : index
       %47 = arith.subi %46, %40 : index
       %48 = arith.cmpi slt, %47, %c64 : index
@@ -143,3 +142,4 @@ module {
     return
   }
 }
+

@@ -20,7 +20,7 @@ extern "C" __global__ AICORE void flash_atten_kernel(
 
 void LaunchFlashAttenKernel(void *workspace0, void *workspace1, void *q,
                             void *k, void *v, void *out, void *stream) {
-    constexpr int32_t kLogicalBlockCount = 4 * 2;
+    constexpr int32_t kLogicalBlockCount = 1;
     constexpr int32_t kPhysicalBlockCount = kLogicalBlockCount;
     flash_atten_kernel<<<kPhysicalBlockCount, nullptr, stream>>>(
         (__gm__ uint8_t *)workspace0,

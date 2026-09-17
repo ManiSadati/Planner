@@ -17,7 +17,7 @@ npu_target="Ascend910_9589"
 npu_sim_soc="Ascend950PR_9589"
 ptoas_sim_soc="Ascend950PR_9599"
 core_id="0"
-target_pass="convert-hivmave-to-ptoas-vmi"
+target_pass="finalize-ptoas-vmi-bridge"
 bridge_mode="ptodsl"
 
 usage() {
