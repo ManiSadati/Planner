@@ -1,0 +1,149 @@
+import torch
+import torch_npu
+import triton
+import triton.language as tl
+
+
+@triton.jit
+def flash_attention_128q_4096kv_d128_kernel(
+    q_ptr,
+    k_t_ptr,
+    v_ptr,
+    out_ptr,
+    scale: tl.constexpr,
+    SQ: tl.constexpr,
+    SK: tl.constexpr,
+    HEAD_DIM: tl.constexpr,
+    BLOCK_M: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_D: tl.constexpr,
+):
+    """Compute mask-free attention using only 64-by-64 matmuls."""
+    query_tile = tl.program_id(0)
+
+    offs_m = query_tile * BLOCK_M + tl.arange(0, BLOCK_M)
+    offs_n = tl.arange(0, BLOCK_N)
+    offs_d = tl.arange(0, BLOCK_D)
+
+    q_low = tl.load(
+        q_ptr + offs_m[:, None] * HEAD_DIM + offs_d[None, :]
+    )
+    q_high = tl.load(
+        q_ptr
+        + offs_m[:, None] * HEAD_DIM
+        + BLOCK_D
+        + offs_d[None, :]
+    )
+
+    row_max = tl.full((BLOCK_M,), -1.0e9, tl.float32)
+    row_sum = tl.zeros((BLOCK_M,), tl.float32)
+    output_low = tl.zeros((BLOCK_M, BLOCK_D), tl.float32)
+    output_high = tl.zeros((BLOCK_M, BLOCK_D), tl.float32)
+
+    # SK=4096 gives 64 iterations. QK accumulates the two 64-element head
+    # chunks, while PV produces the two 64-column output chunks.
+    for start_n in range(0, SK, BLOCK_N):
+        key_offsets = start_n + offs_n
+
+        k_t_low = tl.load(
+            k_t_ptr + offs_d[:, None] * SK + key_offsets[None, :]
+        )
+        k_t_high = tl.load(
+            k_t_ptr
+            + (BLOCK_D + offs_d[:, None]) * SK
+            + key_offsets[None, :]
+        )
+
+        scores = tl.dot(q_low, k_t_low).to(tl.float32)
+        scores += tl.dot(q_high, k_t_high).to(tl.float32)
+        scores *= scale
+
+        tile_max = tl.max(scores, axis=1)
+        new_max = tl.maximum(row_max, tile_max)
+        alpha = tl.exp(row_max - new_max)
+        probabilities = tl.exp(scores - new_max[:, None])
+        tile_sum = tl.sum(probabilities, axis=1)
+
+        v_low = tl.load(
+            v_ptr + key_offsets[:, None] * HEAD_DIM + offs_d[None, :]
+        )
+        v_high = tl.load(
+            v_ptr
+            + key_offsets[:, None] * HEAD_DIM
+            + BLOCK_D
+            + offs_d[None, :]
+        )
+        probabilities_f16 = probabilities.to(tl.float16)
+        output_low = (
+            output_low * alpha[:, None]
+            + tl.dot(probabilities_f16, v_low)
+        )
+        output_high = (
+            output_high * alpha[:, None]
+            + tl.dot(probabilities_f16, v_high)
+        )
+        row_sum = row_sum * alpha + tile_sum
+        row_max = new_max
+
+    output_low /= row_sum[:, None]
+    output_high /= row_sum[:, None]
+
+    tl.store(
+        out_ptr + offs_m[:, None] * HEAD_DIM + offs_d[None, :],
+        output_low,
+    )
+    tl.store(
+        out_ptr
+        + offs_m[:, None] * HEAD_DIM
+        + BLOCK_D
+        + offs_d[None, :],
+        output_high,
+    )
+
+
+def main():
+    torch.manual_seed(0)
+
+    query_len = 128
+    kv_len = 4096
+    head_dim = 128
+    block_size = 64
+    scale = head_dim**-0.5
+
+    q_host = torch.randn((query_len, head_dim), dtype=torch.float16)
+    k_host = torch.randn((kv_len, head_dim), dtype=torch.float16)
+    v_host = torch.randn((kv_len, head_dim), dtype=torch.float16)
+
+    q = q_host.to("npu")
+    k_t = k_host.t().contiguous().to("npu")
+    v = v_host.to("npu")
+    out = torch.empty_like(q)
+
+    flash_attention_128q_4096kv_d128_kernel[(query_len // block_size,)](
+        q,
+        k_t,
+        v,
+        out,
+        scale,
+        SQ=query_len,
+        SK=kv_len,
+        HEAD_DIM=head_dim,
+        BLOCK_M=block_size,
+        BLOCK_N=block_size,
+        BLOCK_D=block_size,
+    )
+
+    out_host = out.cpu()
+    reference = torch.softmax(
+        (q_host @ k_host.t()) * scale, dim=-1
+    ) @ v_host
+    difference = (out_host - reference).abs()
+    print("max error:", difference.max().item())
+    print(
+        "allclose:",
+        torch.allclose(out_host, reference, atol=5e-2, rtol=5e-2),
+    )
+
+
+if __name__ == "__main__":
+    main()
