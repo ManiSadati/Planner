@@ -95,6 +95,7 @@ def main():
         BLOCK_M=block_size,
         BLOCK_N=block_size,
         BLOCK_D=block_size,
+        num_stages=1,
     )
 
     out_host = out.cpu()
