@@ -35,6 +35,8 @@ DMA bridge rows, and the first working PTO-native Cube template path.
 - Triton source fixtures: `bridge/triton-example/`.
 - Generic baseline-vs-bridge comparison runbook:
   `bridge/comparison-flows.md`.
+- Q2/Q3 single-NPU A5 hardware runner:
+  `bridge/hardware-benchmark-runner.md`.
 - Simple bridge runner: `bridge/tools/run_comparison_flow.sh`.
 - Vector-add end-to-end workflow:
   `bridge/testcases/vadd/README.md`.
