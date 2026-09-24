@@ -1,0 +1,54 @@
+import os
+import sys
+from pathlib import Path
+
+import torch
+import torch_npu
+import triton
+import triton.language as tl
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "common"))
+from compile_timing import enable_compile_timing
+
+
+@triton.jit
+def row_softmax_kernel(x_ptr, out_ptr, n_cols: tl.constexpr, BLOCK: tl.constexpr):
+    row = tl.program_id(0)
+    offsets = tl.arange(0, BLOCK)
+    mask = offsets < n_cols
+    base = row * n_cols
+
+    x = tl.load(x_ptr + base + offsets, mask=mask, other=-1e9)
+    x = x - tl.max(x, axis=0)
+    numerator = tl.exp(x)
+    denominator = tl.sum(numerator, axis=0)
+    y = numerator / denominator
+
+    tl.store(out_ptr + base + offsets, y, mask=mask)
+
+
+def main():
+    enable_compile_timing()
+
+    torch.manual_seed(0)
+
+    n_rows = 1600
+    n_cols = 256
+    x = torch.randn((n_rows, n_cols), device="npu", dtype=torch.float32)
+    out = torch.empty_like(x)
+
+    block = triton.next_power_of_2(n_cols)
+    row_softmax_kernel[(n_rows,)](x, out, n_cols, BLOCK=block)
+
+    ref = torch.softmax(x, dim=-1)
+    print("max error:", (out - ref).abs().max().item())
+    print("allclose:", torch.allclose(out, ref, atol=1e-5, rtol=1e-5))
+
+    # CANN 9.1 beta can fault during TorchNPU teardown after simulator success.
+    if os.getenv("TRITON_SIMULATOR_CLEAN_EXIT") == "1":
+        sys.stdout.flush()
+        os._exit(0)
+
+
+if __name__ == "__main__":
+    main()
