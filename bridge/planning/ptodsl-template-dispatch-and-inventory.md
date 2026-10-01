@@ -1,9 +1,10 @@
-# NPU-IR and PTODSL Template Matching
+# PTODSL Template Dispatch and NPU-IR Inventory
 
-This document answers the questions raised in `template.md`: how PTODSL
-templates are matched today, how native NPU-IR dispatches CCE/AscendC
-templates, and what design should be used as the number of PTODSL templates
-grows.
+Last reviewed: 2026-10-01
+
+This document records how PTODSL templates are matched today, how native
+NPU-IR dispatches CCE/AscendC templates, the current A5 template inventory,
+and the design to use as PTODSL coverage grows.
 
 ## Current PTODSL Template Flow
 
@@ -380,27 +381,30 @@ a C++ registry resembling:
 constexpr TemplateDescriptor templates[] = {
   {
     key: {MmadL1, A5, F16, F32, NoTranspose},
+    nativeSymbol: "mma_tile_half_to_float",
     symbol: "__pto_mmadl1_f16_f32_nn",
-    file: "mmadl1_f16_f32_nn.mlir",
+    file: "Cube/MmadL1/classic-float.mlir",
     adapter: MmadL1Adapter,
   },
   {
     key: {MmadL1, A5, F16, F32, TransposeB},
+    nativeSymbol: "mma_tile_half_to_float_tb",
     symbol: "__pto_mmadl1_f16_f32_tb",
-    file: "mmadl1_f16_f32_tb.mlir",
+    file: "Cube/MmadL1/classic-float.mlir",
     adapter: MmadL1Adapter,
   },
 };
 ```
 
-A hash map is unnecessary. The specialization space is small and discrete, so
-a generated sorted array or typed lookup table is simpler to inspect and test.
+The registry should support lookup by both structured `TemplateKey` and native
+template symbol. A generated sorted table or `StringMap` is sufficient; the
+important property is deterministic exact lookup, not the particular container.
 
 ### One source of truth
 
 One declarative specialization list should generate:
 
-1. Pre-rendered MLIR helper files
+1. Pre-rendered MLIR helper functions grouped into semantic resource packs
 2. Deterministic helper symbols
 3. A generated C++ registry, such as `PTODSLTemplateRegistry.inc`
 4. The CMake resource/install list
@@ -410,28 +414,174 @@ Generated outputs can remain checked in. CI should regenerate them and fail if
 the checked-in products are stale. Normal NPU-IR kernel compilation still does
 not run Python.
 
-## Recommended Compilation Flow
+## Module-Wide Discovery and Rewrite
 
-The PTODSL bridge should eventually use this sequence:
+The expected compilation workload is usually a model block or module containing
+many template calls, rather than one isolated template operation. Template
+selection should therefore be performed once across the complete MLIR module.
+The pass should not parse a resource independently every time a rewrite pattern
+matches an operation.
+
+The PTODSL bridge should use this sequence:
 
 ```text
-1. Scan candidate HIVM template operations.
-2. Normalize each operation into a TemplateKey.
-3. Look up an exact TemplateDescriptor.
-4. Validate the selected TemplateContract.
-5. Collect only the selected MLIR resources.
-6. Import each required helper once.
-7. Rewrite the HIVM operations into calls.
-8. Continue through PTOAS lowering.
+1. Scan every candidate HIVM template operation in the module.
+2. Derive its native template name and normalized TemplateKey.
+3. Look up and validate every exact TemplateDescriptor.
+4. Build a deduplicated RequiredTemplateSet.
+5. Group the required descriptors by semantic MLIR resource pack.
+6. Parse each required pack once.
+7. Import only the selected helper functions and dependency closure.
+8. Rewrite all matched HIVM operations into calls to those helpers.
+9. Verify that no required template operation remains unresolved.
+10. Continue through PTOAS lowering.
 ```
 
-Selection should be side-effect-free. It should not import functions or mutate
-the module until a specialization has matched and passed validation. This
-prevents partial imports when a later compatibility check fails.
+For example, hundreds of calls in one module may reduce to only a few dozen
+unique native symbols and a small set of resource packs. A pack may contain many
+generated functions, but only the exact selected functions should be cloned
+into the kernel module. Pack size therefore affects resource parsing cost, not
+the amount of helper IR passed to PTOAS.
+
+Discovery and contract validation must be side-effect-free. The pass should not
+import functions or mutate the module until all required specializations have
+matched and passed validation. Unsupported templates can then be reported
+together with their native names and contracts, without leaving partial imports
+behind.
 
 `applyPatternsGreedily` can remain as the rewrite driver, but it should consume
-the selected descriptors rather than contain a growing collection of unrelated
-manual specialization branches.
+the already selected descriptors and imported symbol table. It must not perform
+resource discovery or importing as an incidental rewrite side effect.
+
+The sweep is scoped to one `bishengir-compile` MLIR module. If Triton invokes a
+separate compiler process for every kernel, each process performs its own
+sweep. Cross-process caching can be considered later, but it is not required
+for the initial design.
+
+## Proposed Semantic Resource Tree
+
+Resources should be organized first by the three meaningful execution domains:
+`Cube`, `Vector`, and `SIMT`. Each major native template family then owns a
+small number of semantic MLIR packs, normally three to five, rather than one
+file per explicit instantiation.
+
+```text
+PTODSL/
+|- README.md
+|- registry/
+|  |- templates.yaml
+|  |- packs.yaml
+|  `- generated/
+|     |- TemplateRegistry.inc
+|     `- TemplateDependencies.inc
+|- generators/
+|  |- generate_all.py
+|  |- generate_cube.py
+|  |- generate_vector.py
+|  |- generate_simt.py
+|  `- validate_registry.py
+`- instantiations/a5/
+   |- manifest.json
+   |- common/
+   |  |- addressing.mlir
+   |  |- synchronization.mlir
+   |  |- masking.mlir
+   |  `- type-conversion.mlir
+   |- Cube/
+   |  |- MmadL1/
+   |  |  |- classic-float.mlir
+   |  |  |- fp32-ieee-hf32.mlir
+   |  |  |- integer.mlir
+   |  |  |- fp8-mx.mlir
+   |  |  `- bias.mlir
+   |  |- GlobalMmad/
+   |  |  |- classic-float.mlir
+   |  |  |- integer.mlir
+   |  |  `- fp8-mx.mlir
+   |  |- Nd2Nz/
+   |  |  |- standard-float.mlir
+   |  |  |- integer.mlir
+   |  |  |- fp8-mx.mlir
+   |  |  `- bias.mlir
+   |  |- Fixpipe/
+   |  |  |- normal.mlir
+   |  |  |- nz2nd.mlir
+   |  |  |- nz2dn.mlir
+   |  |  `- dual-output.mlir
+   |  |- Copy/
+   |  |  |- copy1d.mlir
+   |  |  |- l1-to-ub.mlir
+   |  |  `- ub-to-l1.mlir
+   |  `- Setup/
+   |     |- mx-scale.mlir
+   |     `- set2d-initialize.mlir
+   |- Vector/
+   |  |- DMA/
+   |  |  |- gm-to-ub.mlir
+   |  |  |- ub-to-gm.mlir
+   |  |  |- ub-to-ub.mlir
+   |  |  |- ub-to-l1.mlir
+   |  |  `- unaligned-layout.mlir
+   |  |- Math/
+   |  |  |- trigonometric.mlir
+   |  |  |- nonlinear.mlir
+   |  |  |- logarithm-power.mlir
+   |  |  |- reciprocal-rounding.mlir
+   |  |  `- integer-special.mlir
+   |  |- Collective/
+   |  |  |- prefix-sum-product.mlir
+   |  |  |- prefix-minmax.mlir
+   |  |  |- reduction-with-index.mlir
+   |  |  |- sorting.mlir
+   |  |  `- rearrangement.mlir
+   |  `- Integer64/
+   |     |- arithmetic.mlir
+   |     |- compare-select.mlir
+   |     |- conversion.mlir
+   |     |- reduction.mlir
+   |     `- dma-addressing.mlir
+   |- SIMT/
+   |  |- Direct/
+   |  |  |- load-store.mlir
+   |  |  |- strided-rank1.mlir
+   |  |  |- strided-rank2.mlir
+   |  |  `- strided-rank3.mlir
+   |  |- IndirectLoad/
+   |  |  |- rank1-rank2.mlir
+   |  |  |- rank3.mlir
+   |  |  `- rank4-rank5.mlir
+   |  |- IndirectStore/
+   |  |  |- masked-low-rank.mlir
+   |  |  |- masked-high-rank.mlir
+   |  |  |- unmasked-low-rank.mlir
+   |  |  `- unmasked-high-rank.mlir
+   |  |- Indexing/
+   |  |  |- select-low-rank.mlir
+   |  |  |- select-high-rank.mlir
+   |  |  |- index-put.mlir
+   |  |  |- gather.mlir
+   |  |  `- scatter.mlir
+   |  |- Atomic/
+   |  |  |- arithmetic.mlir
+   |  |  |- minmax.mlir
+   |  |  |- compare-swap.mlir
+   |  |  |- block.mlir
+   |  |  `- software.mlir
+   |  `- Collective/
+   |     |- histogram.mlir
+   |     `- scan.mlir
+   `- Support/
+      |- cube-debug.mlir
+      |- vector-debug.mlir
+      |- assertions.mlir
+      `- print-lifecycle.mlir
+```
+
+The tree is a proposed semantic ownership model, not a claim that every listed
+pack is already implemented. Exact boundaries should be checked against actual
+generated MLIR size and template co-occurrence from representative model or
+block compilations. Exceptionally large families such as indirect SIMT stores
+may need another split, while consistently tiny packs may be combined.
 
 ## Fallback Policy
 
@@ -449,17 +599,20 @@ because that would hide unsupported coverage and bypass PTOAS optimization.
 ## Minimal Implementation Steps
 
 1. Introduce `TemplateKey` and `TemplateDescriptor` types.
-2. Convert the existing five MMAD variants into a generated registry without
+2. Add a module-wide discovery phase that records native names, keys, contracts,
+   source operations, and all unsupported requirements without changing IR.
+3. Convert the existing MMAD variants into a generated registry without
    changing their generated MLIR bodies.
-3. Split MMAD handling into key extraction, registry lookup, contract
-   validation, and call adaptation.
-4. Change the importer to accept selected descriptors and import only the
-   required files.
-5. Generate symbol declarations and CMake resource lists from the explicit
+4. Group the existing MMAD helpers into the first semantic resource packs.
+5. Change the importer to parse each selected pack once and clone only selected
+   helper symbols plus their transitive dependencies.
+6. Rewrite all operations only after module-wide discovery and importing have
+   completed successfully.
+7. Generate symbol declarations and CMake resource lists from the explicit
    instantiation specification.
-6. Add checks for duplicate keys, duplicate symbols, missing resources, wrong
-   instantiation attributes, and helper ABI mismatches.
-7. Apply the same mechanism to ND2NZ, Fixpipe, and vector templates after the
+8. Add checks for duplicate keys, duplicate symbols, missing resources, wrong
+   instantiation attributes, helper ABI mismatches, and unresolved operations.
+9. Apply the mechanism to ND2NZ, Fixpipe, Vector, and SIMT families after the
    MMAD migration proves the design.
 
 ## Conclusion
@@ -469,6 +622,9 @@ MLIR avoids Python execution during compilation, and imported PTO bodies remain
 visible to PTOAS optimizations.
 
 For long-term support, the manual specialization knowledge should be replaced
-with a generated typed registry. This preserves NPU-IR's proven deterministic
-symbol and ahead-of-time-instantiation model while avoiding duplicated tables,
-large `if/else` dispatch code, and unnecessary importing of every helper.
+with a generated typed registry and a module-wide requirement sweep. A small
+number of semantic resource packs per major template family avoids thousands
+of tiny files, while exact function-level importing keeps unrelated helper IR
+out of PTOAS. This preserves NPU-IR's deterministic symbol and ahead-of-time
+instantiation model without retaining duplicated tables, large `if/else`
+dispatch code, or import-all behavior.
