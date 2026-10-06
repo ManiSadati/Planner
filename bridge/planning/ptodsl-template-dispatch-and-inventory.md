@@ -181,6 +181,26 @@ finds the selected function.
 
 ## A5 Template Inventory
 
+The complete proposed pack catalog is generated under:
+
+```text
+bridge/inventory/npuir-template-pack-classification.md
+bridge/inventory/npuir-template-pack-assignments.tsv
+```
+
+The Markdown file groups every canonical exported symbol beneath its proposed
+semantic MLIR resource, for example `Cube/Fixpipe/normal.mlir`. The TSV retains
+the source bitcode, installed bundle, execution domain, and physical duplicate
+count for tooling. Regenerate both from an installed NPU-IR build with:
+
+```bash
+NPUIR/tools/find_npuir_template_names.sh
+bridge/tools/classify_npuir_template_names.sh
+```
+
+The classification is a proposed packaging plan, not a claim that those PTODSL
+implementations already exist.
+
 The installed A5 (`c310`) bitcode bundles contain the following wrapper-symbol
 inventory. These are instantiated function definitions, not counts of C++
 source files or high-level operation classes.
@@ -523,6 +543,7 @@ PTODSL/
    |  |  |- ub-to-l1.mlir
    |  |  `- unaligned-layout.mlir
    |  |- Math/
+   |  |  |- basic-arithmetic.mlir
    |  |  |- trigonometric.mlir
    |  |  |- nonlinear.mlir
    |  |  |- logarithm-power.mlir
@@ -574,7 +595,8 @@ PTODSL/
       |- cube-debug.mlir
       |- vector-debug.mlir
       |- assertions.mlir
-      `- print-lifecycle.mlir
+      |- print-lifecycle.mlir
+      `- runtime-sync.mlir
 ```
 
 The tree is a proposed semantic ownership model, not a claim that every listed

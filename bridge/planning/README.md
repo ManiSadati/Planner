@@ -126,6 +126,7 @@ and unchanged NPU-IR as references.
 | `bridge/planning/README.md` | high-level plan index and short/long-term roadmap | active entry point |
 | `bridge/planning/cube-conversion-exploration.md` | staged Cube/template/DMA mapping plan using `cube_dotproduct.py` | active short-term plan |
 | `bridge/planning/ptodsl-template-dispatch-and-inventory.md` | native CCE/AscendC dispatch, A5 template inventory, and scalable PTODSL specialization design | active design plan |
+| `bridge/inventory/npuir-template-pack-classification.md` | generated symbol-by-symbol assignment of A5 NPU-IR templates to proposed PTODSL resource packs | active inventory |
 | `bridge/memory/cube-conversion-status.md` | compact current Cube decisions, conversion point, and review gate | active memory |
 | `bridge/planning/ave-to-ptoas-vmi-implementation-plan.md` | completed vector-add, row-softmax, and RMSNorm-era vector contract | maintenance/reference |
 | `bridge/designs/ave-to-ptoas-vmi-conversion-design.md` | durable AVE/HIVM-to-PTOAS VMI implementation decisions and non-direct mapping index | active design log |

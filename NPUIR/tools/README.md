@@ -13,6 +13,7 @@ because they do not invoke PTOAS.
 | `run_vector_add_simulator.sh` | One-shot baseline NPU-IR simulator run for `vector_add.py`. |
 | `run_vector_add_large_simulator.sh` | One-shot baseline NPU-IR simulator run for `vector_add_large.py`. |
 | `replay_npuir_from_device_spec.sh` | Replay checked-in `*_kernel.mlir` dumps from `AppendTargetDeviceSpec` through local `bishengir-compile` pass dumps. |
+| `find_npuir_template_names.sh` | Extract every exported A5 template symbol from the installed C310 bitcode bundles and retain per-source provenance for bridge inventory generation. |
 
 Cross-repo comparison stays in:
 
