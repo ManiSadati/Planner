@@ -1,6 +1,6 @@
 # PTODSL Template Dispatch and NPU-IR Inventory
 
-Last reviewed: 2026-10-01
+Last reviewed: 2026-10-06
 
 This document records how PTODSL templates are matched today, how native
 NPU-IR dispatches CCE/AscendC templates, the current A5 template inventory,
@@ -181,24 +181,32 @@ finds the selected function.
 
 ## A5 Template Inventory
 
-The complete proposed pack catalog is generated under:
+The complete proposed per-instance catalog is generated under:
 
 ```text
-bridge/inventory/npuir-template-pack-classification.md
-bridge/inventory/npuir-template-pack-assignments.tsv
+bridge/inventory/npuir-template-instance-classification.md
+bridge/inventory/npuir-template-instance-assignments.tsv
 ```
 
-The Markdown file groups every canonical exported symbol beneath its proposed
-semantic MLIR resource, for example `Cube/Fixpipe/normal.mlir`. The TSV retains
-the source bitcode, installed bundle, execution domain, and physical duplicate
-count for tooling. Regenerate both from an installed NPU-IR build with:
+The Markdown file groups every canonical exported symbol beneath a semantic
+category directory. Each instance then owns an exact-name resource, for
+example:
+
+```text
+Cube/Fixpipe/normal/fixpipe_normal_float_to_half_2d_to_2d.mlir
+```
+
+The TSV retains that exact proposed path, source bitcode, installed bundle,
+execution domain, and physical duplicate count for tooling. Test planning is
+tracked separately in `bridge/inventory/ptodsl-template-test-triage.md`.
+Regenerate the classification from an installed NPU-IR build with:
 
 ```bash
 NPUIR/tools/find_npuir_template_names.sh
 bridge/tools/classify_npuir_template_names.sh
 ```
 
-The classification is a proposed packaging plan, not a claim that those PTODSL
+The classification is a proposed resource plan, not a claim that those PTODSL
 implementations already exist.
 
 The installed A5 (`c310`) bitcode bundles contain the following wrapper-symbol
@@ -403,14 +411,14 @@ constexpr TemplateDescriptor templates[] = {
     key: {MmadL1, A5, F16, F32, NoTranspose},
     nativeSymbol: "mma_tile_half_to_float",
     symbol: "__pto_mmadl1_f16_f32_nn",
-    file: "Cube/MmadL1/classic-float.mlir",
+    file: "Cube/MmadL1/classic-float/mma_tile_half_to_float.mlir",
     adapter: MmadL1Adapter,
   },
   {
     key: {MmadL1, A5, F16, F32, TransposeB},
     nativeSymbol: "mma_tile_half_to_float_tb",
     symbol: "__pto_mmadl1_f16_f32_tb",
-    file: "Cube/MmadL1/classic-float.mlir",
+    file: "Cube/MmadL1/classic-float/mma_tile_half_to_float_tb.mlir",
     adapter: MmadL1Adapter,
   },
 };
@@ -424,7 +432,7 @@ important property is deterministic exact lookup, not the particular container.
 
 One declarative specialization list should generate:
 
-1. Pre-rendered MLIR helper functions grouped into semantic resource packs
+1. One pre-rendered MLIR resource per canonical native template instance
 2. Deterministic helper symbols
 3. A generated C++ registry, such as `PTODSLTemplateRegistry.inc`
 4. The CMake resource/install list
@@ -449,19 +457,18 @@ The PTODSL bridge should use this sequence:
 2. Derive its native template name and normalized TemplateKey.
 3. Look up and validate every exact TemplateDescriptor.
 4. Build a deduplicated RequiredTemplateSet.
-5. Group the required descriptors by semantic MLIR resource pack.
-6. Parse each required pack once.
-7. Import only the selected helper functions and dependency closure.
+5. Resolve each descriptor to its exact per-instance MLIR resource.
+6. Parse each deduplicated required resource once.
+7. Import its helper function and dependency closure.
 8. Rewrite all matched HIVM operations into calls to those helpers.
 9. Verify that no required template operation remains unresolved.
 10. Continue through PTOAS lowering.
 ```
 
 For example, hundreds of calls in one module may reduce to only a few dozen
-unique native symbols and a small set of resource packs. A pack may contain many
-generated functions, but only the exact selected functions should be cloned
-into the kernel module. Pack size therefore affects resource parsing cost, not
-the amount of helper IR passed to PTOAS.
+unique native symbols. The pass then parses only those few dozen exact resource
+files. Category directories are organizational and do not cause neighboring
+instances to be parsed or imported.
 
 Discovery and contract validation must be side-effect-free. The pass should not
 import functions or mutate the module until all required specializations have
@@ -481,16 +488,28 @@ for the initial design.
 ## Proposed Semantic Resource Tree
 
 Resources should be organized first by the three meaningful execution domains:
-`Cube`, `Vector`, and `SIMT`. Each major native template family then owns a
-small number of semantic MLIR packs, normally three to five, rather than one
-file per explicit instantiation.
+`Cube`, `Vector`, and `SIMT`. Each major native template family owns several
+semantic category directories. Inside the final category, every canonical
+native template instance has one exact-name `.mlir` resource.
+
+Per-instance naming rules:
+
+- Strip only the `_mlir_ciface_` export prefix from the native symbol.
+- Name the resource `<canonical-native-symbol>.mlir` without inventing a second
+  normalized identity.
+- Keep exactly one canonical resource for symbols physically duplicated across
+  normal and MIX bundles.
+- Let an instance resource reference shared files under `common/`, but do not
+  define unrelated template instances in the same resource.
+- Treat the 2,941 unique canonical symbols as the resource inventory, not the
+  3,047 physical definitions that include bundle duplicates.
 
 ```text
 PTODSL/
 |- README.md
 |- registry/
 |  |- templates.yaml
-|  |- packs.yaml
+|  |- categories.yaml
 |  `- generated/
 |     |- TemplateRegistry.inc
 |     `- TemplateDependencies.inc
@@ -509,101 +528,103 @@ PTODSL/
    |  `- type-conversion.mlir
    |- Cube/
    |  |- MmadL1/
-   |  |  |- classic-float.mlir
-   |  |  |- fp32-ieee-hf32.mlir
-   |  |  |- integer.mlir
-   |  |  |- fp8-mx.mlir
-   |  |  `- bias.mlir
+   |  |  |- classic-float/
+   |  |  |  |- mma_tile_half_to_float.mlir
+   |  |  |  |- mma_tile_half_to_float_tb.mlir
+   |  |  |  `- ...
+   |  |  |- fp32-ieee-hf32/
+   |  |  |- integer/
+   |  |  |- fp8-mx/
+   |  |  `- bias/
    |  |- GlobalMmad/
-   |  |  |- classic-float.mlir
-   |  |  |- integer.mlir
-   |  |  `- fp8-mx.mlir
+   |  |  |- classic-float/
+   |  |  |- integer/
+   |  |  `- fp8-mx/
    |  |- Nd2Nz/
-   |  |  |- standard-float.mlir
-   |  |  |- integer.mlir
-   |  |  |- fp8-mx.mlir
-   |  |  `- bias.mlir
+   |  |  |- standard-float/
+   |  |  |- integer/
+   |  |  |- fp8-mx/
+   |  |  `- bias/
    |  |- Fixpipe/
-   |  |  |- normal.mlir
-   |  |  |- nz2nd.mlir
-   |  |  |- nz2dn.mlir
-   |  |  `- dual-output.mlir
+   |  |  |- normal/
+   |  |  |- nz2nd/
+   |  |  |- nz2dn/
+   |  |  `- dual-output/
    |  |- Copy/
-   |  |  |- copy1d.mlir
-   |  |  |- l1-to-ub.mlir
-   |  |  `- ub-to-l1.mlir
+   |  |  |- copy1d/
+   |  |  |- l1-to-ub/
+   |  |  `- ub-to-l1/
    |  `- Setup/
-   |     |- mx-scale.mlir
-   |     `- set2d-initialize.mlir
+   |     |- mx-scale/
+   |     `- set2d-initialize/
    |- Vector/
    |  |- DMA/
-   |  |  |- gm-to-ub.mlir
-   |  |  |- ub-to-gm.mlir
-   |  |  |- ub-to-ub.mlir
-   |  |  |- ub-to-l1.mlir
-   |  |  `- unaligned-layout.mlir
+   |  |  |- gm-to-ub/
+   |  |  |- ub-to-gm/
+   |  |  |- ub-to-ub/
+   |  |  |- ub-to-l1/
+   |  |  `- unaligned-layout/
    |  |- Math/
-   |  |  |- basic-arithmetic.mlir
-   |  |  |- trigonometric.mlir
-   |  |  |- nonlinear.mlir
-   |  |  |- logarithm-power.mlir
-   |  |  |- reciprocal-rounding.mlir
-   |  |  `- integer-special.mlir
+   |  |  |- basic-arithmetic/
+   |  |  |- trigonometric/
+   |  |  |- nonlinear/
+   |  |  |- logarithm-power/
+   |  |  |- reciprocal-rounding/
+   |  |  `- integer-special/
    |  |- Collective/
-   |  |  |- prefix-sum-product.mlir
-   |  |  |- prefix-minmax.mlir
-   |  |  |- reduction-with-index.mlir
-   |  |  |- sorting.mlir
-   |  |  `- rearrangement.mlir
+   |  |  |- prefix-sum-product/
+   |  |  |- prefix-minmax/
+   |  |  |- reduction-with-index/
+   |  |  |- sorting/
+   |  |  `- rearrangement/
    |  `- Integer64/
-   |     |- arithmetic.mlir
-   |     |- compare-select.mlir
-   |     |- conversion.mlir
-   |     |- reduction.mlir
-   |     `- dma-addressing.mlir
+   |     |- arithmetic/
+   |     |- compare-select/
+   |     |- conversion/
+   |     |- reduction/
+   |     `- dma-addressing/
    |- SIMT/
    |  |- Direct/
-   |  |  |- load-store.mlir
-   |  |  |- strided-rank1.mlir
-   |  |  |- strided-rank2.mlir
-   |  |  `- strided-rank3.mlir
+   |  |  |- load-store/
+   |  |  |- strided-rank1/
+   |  |  |- strided-rank2/
+   |  |  `- strided-rank3/
    |  |- IndirectLoad/
-   |  |  |- rank1-rank2.mlir
-   |  |  |- rank3.mlir
-   |  |  `- rank4-rank5.mlir
+   |  |  |- rank1-rank2/
+   |  |  |- rank3/
+   |  |  `- rank4-rank5/
    |  |- IndirectStore/
-   |  |  |- masked-low-rank.mlir
-   |  |  |- masked-high-rank.mlir
-   |  |  |- unmasked-low-rank.mlir
-   |  |  `- unmasked-high-rank.mlir
+   |  |  |- masked-low-rank/
+   |  |  |- masked-high-rank/
+   |  |  |- unmasked-low-rank/
+   |  |  `- unmasked-high-rank/
    |  |- Indexing/
-   |  |  |- select-low-rank.mlir
-   |  |  |- select-high-rank.mlir
-   |  |  |- index-put.mlir
-   |  |  |- gather.mlir
-   |  |  `- scatter.mlir
+   |  |  |- select-low-rank/
+   |  |  |- select-high-rank/
+   |  |  |- index-put/
+   |  |  |- gather/
+   |  |  `- scatter/
    |  |- Atomic/
-   |  |  |- arithmetic.mlir
-   |  |  |- minmax.mlir
-   |  |  |- compare-swap.mlir
-   |  |  |- block.mlir
-   |  |  `- software.mlir
+   |  |  |- arithmetic/
+   |  |  |- minmax/
+   |  |  |- compare-swap/
+   |  |  |- block/
+   |  |  `- software/
    |  `- Collective/
-   |     |- histogram.mlir
-   |     `- scan.mlir
+   |     |- histogram/
+   |     `- scan/
    `- Support/
-      |- cube-debug.mlir
-      |- vector-debug.mlir
-      |- assertions.mlir
-      |- print-lifecycle.mlir
-      `- runtime-sync.mlir
+      |- cube-debug/
+      |- vector-debug/
+      |- assertions/
+      |- print-lifecycle/
+      `- runtime-sync/
 ```
 
 The tree is a proposed semantic ownership model, not a claim that every listed
-pack is already implemented. Exact boundaries should be checked against actual
-generated MLIR size and template co-occurrence from representative model or
-block compilations. Exceptionally large families such as indirect SIMT stores
-may need another split, while consistently tiny packs may be combined.
+instance is already implemented. The category level remains useful for
+ownership, review, and navigation, but it is not an import unit. One exact
+instance file is the import unit.
 
 ## Fallback Policy
 
@@ -625,9 +646,10 @@ because that would hide unsupported coverage and bypass PTOAS optimization.
    source operations, and all unsupported requirements without changing IR.
 3. Convert the existing MMAD variants into a generated registry without
    changing their generated MLIR bodies.
-4. Group the existing MMAD helpers into the first semantic resource packs.
-5. Change the importer to parse each selected pack once and clone only selected
-   helper symbols plus their transitive dependencies.
+4. Move each existing MMAD helper into its exact-name file under the appropriate
+   semantic category directory.
+5. Change the importer to parse each selected instance resource once and clone
+   its helper symbol plus transitive dependencies.
 6. Rewrite all operations only after module-wide discovery and importing have
    completed successfully.
 7. Generate symbol declarations and CMake resource lists from the explicit
@@ -644,9 +666,9 @@ MLIR avoids Python execution during compilation, and imported PTO bodies remain
 visible to PTOAS optimizations.
 
 For long-term support, the manual specialization knowledge should be replaced
-with a generated typed registry and a module-wide requirement sweep. A small
-number of semantic resource packs per major template family avoids thousands
-of tiny files, while exact function-level importing keeps unrelated helper IR
-out of PTOAS. This preserves NPU-IR's deterministic symbol and ahead-of-time
+with a generated typed registry and a module-wide requirement sweep. Semantic
+directories keep the roughly 3,000 exact-name resources navigable, while one
+resource per canonical instance makes selection, import, testing, and coverage
+unambiguous. This preserves NPU-IR's deterministic symbol and ahead-of-time
 instantiation model without retaining duplicated tables, large `if/else`
 dispatch code, or import-all behavior.
