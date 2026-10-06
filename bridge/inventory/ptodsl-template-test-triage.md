@@ -5,6 +5,10 @@ instance in `npuir-template-instance-assignments.tsv`. Semantic categories
 remain useful for navigation, but each row corresponds to one exact-name
 PTODSL MLIR resource.
 
+The same checklist is available as
+`bridge/inventory/ptodsl-template-test-triage.csv` for filtering, sorting, and
+bulk status updates.
+
 Initial state: test addresses and statuses are `NA`, and explanations are
 blank. Update a row only after the instance contract and relevant test have
 been inspected. `NA` means not yet triaged; it does not mean unsupported.
