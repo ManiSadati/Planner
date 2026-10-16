@@ -4,10 +4,16 @@ Last updated: 2026-10-16
 
 ## Current Selection and Fallback
 
-The branch `mani/generic-template-fallback` reuses native template identities
-and selects exact installed `__pto_<native-symbol>` implementations. Existing
-structured adapters remain for their supported entries; the generic resolver
-requires a matching native entry ABI and does not implement new adapters.
+The active follow-up `mani/uniform-template-abi` reuses native call construction
+for every template family, then selects exact installed
+`__pto_<native-symbol>` implementations. It replaces the earlier structured
+adapters with one expansion: allocated pointer, aligned pointer, offset, all
+sizes, all strides for each memref, in native operand order. Scalar types stay
+unchanged. The PTODSL body applies offsets and owns scratch planning.
+Seven MmadL1 and three DMA resources are migrated. Validation: 93 conversion
+tests, the allocated-pointer LLVM probe, Python f16 NN 64x64x64/grid-1 with the
+expected PTODSL symbol, and Python vadd with maximum error zero pass. Logs are
+under `$HOME/tmp/uniform-abi-runtime.DPyc8E/`. No full matrix or A5 rerun.
 Missing resources keep native CCE calls, requiring `FALLBACK=1` at PTOAS object
 emission. Present but incompatible resources fail explicitly.
 
@@ -15,7 +21,8 @@ Native calls retain runtime memref metadata through VMI; PTO consumers extract
 addresses separately. The former static-descriptor reconstruction restriction
 is removed. The launch ABI still uses raw pointers.
 
-Validated on this branch: 91 compile tests, the Python f16 NN 64x64x64/grid-1
+Validated on the previous `mani/generic-template-fallback` branch: 91 compile
+tests, the Python f16 NN 64x64x64/grid-1
 MmadL1 case, and Python vadd (maximum error zero). In that matmul, MmadL1 uses
 PTODSL and ND2NZ/Fixpipe use native fallback because their legacy helper names
 are not exact matches. In vadd, loads/stores use native fallback and arithmetic

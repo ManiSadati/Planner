@@ -8,6 +8,17 @@ lower-level planning documents matter.
 
 ## Current Template Work
 
+Active follow-up: `mani/uniform-template-abi` replaces early per-operation
+adapters with native call construction followed by exact-symbol selection and
+one shared expansion: allocated pointer, aligned pointer, offset, sizes, strides
+for each memref, preserving native operand order and scalar types. Seven
+MmadL1 and three DMA entries are migrated. Missing resources still retain
+native calls; present but incompatible implementations fail. Validation for
+this follow-up: 93 conversion tests, a PTOAS allocated-pointer LLVM check, and
+Python simulator f16 NN 64x64x64/grid-1 plus vadd (zero error) pass. Both compilers
+were built/installed with `-j96`. No full shape matrix or A5 hardware rerun.
+Logs: `$HOME/tmp/uniform-abi-runtime.DPyc8E/{matmul64,vadd}/run.log`.
+
 The `mani/generic-template-fallback` branch is ready for MR review within the
 small validated scope: 91 compile tests, Python vadd, and one f16 NN 64x64x64
 MmadL1 runtime case. Publish the PTOAS dependency and update NPU-IR's submodule

@@ -1,8 +1,9 @@
 # PTODSL Template Development and Fallback
 
-Updated: 2026-10-16. Implementation branch: `mani/generic-template-fallback`
-in AscendNPU-IR and its PTOAS submodule. This records the branch under review,
-not a claim that the changes are already merged or published.
+Updated: 2026-10-16. Shared-ABI follow-up: `mani/uniform-template-abi`
+in AscendNPU-IR and its PTOAS submodule, based on the published
+`mani/generic-template-fallback` work. These are review branches, not merged
+master/main changes.
 
 ## Current Flow
 
@@ -12,9 +13,8 @@ The normal entry point is a Triton Python file. With the patched Triton backend:
 python kernel.py
   -> Triton / TTAdapter MLIR
   -> NPU-IR structured HIVM operations
-  -> PTODSL selection and existing argument adapters
-  -> native HIVM/HIVMAVE-to-standard lowering for remaining operations
-  -> exact-symbol PTODSL call resolution
+  -> native HIVM/HIVMAVE-to-standard lowering for all template operations
+  -> exact-symbol PTODSL selection and shared argument expansion
   -> PTOAS VMI, then PTOAS object emission
   -> launch and compare results
 ```
@@ -31,16 +31,30 @@ hivm.hir.mmadL1
   PTODSL identity: __pto_mma_tile_half_to_float
 ```
 
-There are two integration points today, not one universal adapter:
+There is one integration point: after native HIVM/HIVMAVE-to-standard
+lowering, the resolver checks native library declarations marked
+`llvm.emit_c_interface`. It uses `__pto_<native-symbol>`, imports the
+selected implementation, and calls the shared adapter. The former early
+MmadL1/Vector argument mappings are removed from this follow-up.
 
-1. Existing structured MmadL1 and Vector adapters run before
-   `convert-hivm-to-std` when an exact-name resource is available. They adapt
-   arguments and call the imported PTO implementation.
-2. After native HIVM/HIVMAVE-to-standard lowering, the generic resolver checks
-   remaining native library declarations marked `llvm.emit_c_interface`.
-   It looks up `__pto_<native-symbol>`, imports the selected definition and
-   dependencies, and retargets the call. Its entry signature must match the
-   native declaration exactly; this resolver does not invent memref adapters.
+For every call, retain native operand order and expand each ranked memref to:
+
+```text
+allocated pointer, aligned pointer, offset,
+size[0..rank-1], stride[0..rank-1]
+```
+
+Pointers are typed PTO pointers; descriptor numbers are `i64`. Non-memref
+scalars retain their native types, including `index`. Dynamic descriptor
+fields are forwarded. Apply the offset in the PTODSL body with
+`pto.addptr(aligned, offset)`, not twice or in the adapter. Allocated and
+aligned pointers are separate values even if a particular allocation makes
+them equal.
+
+The adapter is mechanical and shared; the PTODSL author decides which fields
+the body consumes. Forwarding every field is not proof that a body implements
+all native layouts or modes. Optional resource-owned integer-argument
+requirements reject unsupported controls after exact-symbol selection.
 
 A missing registry entry or installed resource preserves the native call.
 A present resource that cannot parse, lacks its entry definition, or has an
@@ -57,10 +71,10 @@ incompatible ABI is an error. It must not silently fall back.
 3. Generate the standalone helper MLIR offline. Its exported identity should
    be `__pto_` followed by the exact native instance name. The filename can
    retain a descriptive specialization name: function identity drives lookup.
-4. Supply the instance's argument adapter if necessary. Existing MmadL1 helpers
-   receive pointers plus descriptor fields through a structured C++ adapter.
-   A new helper discovered only by the generic resolver needs a native-ABI
-   entry wrapper, or an explicitly implemented structured adapter.
+4. Give the entry point the shared expanded ABI above. Do not write another
+   per-instance C++ memref adapter. Keep scratch planning and control behavior
+   in the PTODSL implementation. The compiler checks the generated function
+   type against the mechanically expanded native declaration.
 5. Add the MLIR resource to the appropriate install list in
    `bishengir/lib/Conversion/HIVMTemplatesToPTO/CMakeLists.txt`. CMake copies the
    resources and generates the symbol registry from their `__pto_` definitions.
@@ -103,6 +117,29 @@ run a PTODSL Python subprocess. It parses installed MLIR and clones definitions
 into the current module. Native fallback is different: PTOAS uses the existing
 `llvm-link --only-needed` mechanism on the native CCE bitcode bundle.
 
+## Migration Scope
+
+Seven existing exact-name MmadL1 entries and three rank-two Vector DMA entries
+are migrated to the shared ABI. MmadL1 receives all 45 arguments in native order.
+Its Python body now starts scratch bank zero per call and alternates banks
+inside split-K, waiting before reuse; the compiler no longer infers a scratch
+bank from the accumulator's SSA definition. Treat performance parity and
+multi-call runtime coverage as separate validation work.
+
+Legacy ND2NZ/Fixpipe/cumsum helpers still need exact-native-name implementations;
+this task does not claim new coverage for them. Unmatched calls retain native
+memrefs and use the existing opt-in fallback linker.
+
+Validation on this follow-up: 93 conversion tests pass, the PTOAS allocated-
+pointer bridge lowers to LLVM, and the patched Python simulator path passes
+f16 NN shape/block 64x64x64 with grid 1 and selected
+`__pto_mma_tile_half_to_float`, plus vadd with maximum error zero. Both compilers
+are built and installed. Logs:
+`$HOME/tmp/uniform-abi-runtime.DPyc8E/{matmul64,vadd}/run.log`.
+This is not full shape-matrix, all-instance runtime, or A5 hardware validation.
+Object emission with `FALLBACK=0` also rejects the remaining native ND2NZ and
+Fixpipe calls explicitly, as intended.
+
 ## Memrefs and Modes
 
 In `ptodsl` and `external-calls` modes, native calls retain their memrefs,
@@ -119,7 +156,7 @@ metadata. This does not add arbitrary missing dimensions to a raw pointer.
 | --- | --- |
 | `BISHENGIR_PTOAS_BRIDGE_MODE=ptodsl` | Preferred bridge mode: exact-name PTODSL implementations plus native calls where resources are missing. Set this explicitly for Python runs. |
 | `BISHENGIR_PTOAS_BRIDGE_MODE=direct` | Legacy guarded C++ rewrites, such as a simple `hivm.hir.load` directly becoming `pto.mte_gm_ub`. Not the uniform template-development path. |
-| `BISHENGIR_PTOAS_BRIDGE_MODE=external-calls` | Compatibility/reference mode: skip early PTODSL/template substitution and preserve native CCE template calls through VMI. |
+| `BISHENGIR_PTOAS_BRIDGE_MODE=external-calls` | Compatibility/reference mode: skip PTODSL template substitution and preserve native CCE template calls through VMI. |
 | `FALLBACK=1` | Allow PTOAS to selectively link unresolved native calls from the matching AIC/AIV bitcode bundle. |
 | `FALLBACK=0` or unset | Default: reject remaining native calls during object emission. VMI generation alone can still succeed. |
 

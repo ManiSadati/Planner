@@ -12,6 +12,16 @@ simulator exports, and MR scope, use
 
 ## Generic Selection And Fallback Update (2026-10-16)
 
+Follow-up on `mani/uniform-template-abi`: native call materialization now comes
+first for every template family. Exact matches use one shared expanded
+descriptor ABI (allocated/aligned pointers, offset, all sizes and strides), in
+native operand order; non-memref scalars are unchanged. The early structured
+MmadL1/Vector adapters are removed. Seven MmadL1 and three DMA resources are
+migrated. This follow-up passes 93 conversion tests, the allocated-pointer LLVM
+probe, and Python simulator f16 NN 64x64x64/grid-1 plus vadd (zero error).
+The older validation numbers below describe the previous generic-fallback
+implementation. See the developer guide for the current contract and logs.
+
 Implementation is on `mani/generic-template-fallback` in both
 AscendNPU-IR and its PTOAS submodule. The scope is exact-symbol selection and
 native fallback; new PTODSL memref adapters and template bodies are separate
@@ -89,10 +99,10 @@ the developer guide linked above.
 
 ## Current PTODSL Template Flow
 
-The PTODSL path uses pre-generated MLIR helpers. Existing MmadL1 and Vector
-adapters run before native call lowering when an exact resource is available.
-The generic resolver then checks the native library calls for all remaining
-families. A missing exact entry preserves the native call for explicit fallback.
+The shared-ABI follow-up uses pre-generated MLIR helpers after native call
+lowering for every family. Exact symbol lookup chooses an implementation;
+one mechanical adapter expands each memref. Missing entries preserve native
+calls and descriptors for explicit fallback.
 
 ### 1. Define explicit instantiations in Python
 
@@ -134,58 +144,31 @@ under:
 lib/bishengir/ptodsl/cube/
 ```
 
-### 3. Import the helper definitions
+### 3. Resolve exact native calls and import definitions
 
-`PTODSLTemplateImporter.cpp` contains another manually maintained table with:
+Native HIVM/HIVMAVE-to-standard passes first choose the instance and construct
+their usual library declaration and call. `PTODSLTemplateRegistry.cpp`
+looks up `__pto_<native-symbol>` using CMake's generated resource index.
+The selected file is parsed, its required definitions are cloned, and repeated
+calls reuse the imported entry. The old family-specific importer tables and
+early adapters are removed in the shared-ABI follow-up.
 
-- MLIR filename
-- helper symbol
-- instantiation identity
+This is MLIR-level import, not external LLVM bitcode linking. Native bitcode
+linking is only for remaining fallback calls.
 
-For MmadL1, `select-hivm-ptodsl-templates` first records the exact native and
-PTODSL symbols. The converter builds a deduplicated required-symbol set and
-imports only the selected MmadL1 resources. The importer parses each required
-file once, validates its symbol and instantiation attribute, clones its
-function into the kernel module, and marks it as an AIC function. The generic
-resolver performs exact resource lookup for remaining native calls, without
-importing all ND2NZ or Fixpipe helpers by family.
+### 4. Adapt arguments uniformly
 
-This is MLIR-level importing or linking: the helper definition and its call are
-placed in the same MLIR module. It is not external LLVM bitcode linking.
+`PTODSLCallAdapter.cpp` preserves native operand order. Each memref contributes
+allocated pointer, aligned pointer, offset, all sizes, then all strides.
+Non-memref operands retain their native scalar types. Dynamic descriptor fields
+are preserved. The generated helper's type must match this expansion exactly.
+A selected implementation can declare required integer control values, checked
+on each call; incompatible implementations fail rather than fall back.
 
-### 4. Match an HIVM operation
-
-For `hivm.hir.mmadL1`, the selection pass calls native NPU-IR's
-`getOpLibraryCallName()` and performs exact registry lookup. The later
-`matchMmadL1Contract()` validates:
-
-- input datatype
-- accumulator datatype
-- physical memref shapes
-- memory spaces
-- synchronization operands
-- supported runtime M/K/N range
-
-Native symbol selection determines the exact helper entry. For example:
-
-```text
-f16 input + f32 accumulator + transpose B
-    -> __pto_mma_tile_half_to_float_tb
-```
-
-The rewrite then replaces the original operation with a call:
-
-```mlir
-func.call @__pto_mma_tile_half_to_float_tb(...)
-```
-
-Runtime values such as actual M/K/N, pointers, event IDs, and initialization
-state remain function operands. They do not create separate explicit
-instantiations.
-
-`applyPatternsGreedily` drives the existing structured adapters. It does not
-search or rank templates. Exact native names and the generated resource index
-own instance selection.
+For MmadL1, A/B/C each contribute 11 arguments, with init/M/K/N, seven sync
+values, and unit flag still in native order: 45 arguments total. The Python
+template applies descriptor offsets and owns scratch scheduling. Shape values
+do not introduce a second compiler-side instance selector.
 
 ## Native NPU-IR CCE/AscendC Dispatch
 
