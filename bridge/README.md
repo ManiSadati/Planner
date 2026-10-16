@@ -20,6 +20,10 @@ DMA bridge rows, and the first working PTO-native Cube template path.
 
 ## Current Status
 
+- Current template workflow, selection/fallback policy, and Python simulator
+  exports: [PTODSL template development and fallback](designs/ptodsl-template-development-and-fallback.md).
+  The runtime-test entry point is the Python file under `msprof op simulator`,
+  not the legacy comparison fixture runner.
 - Explorer bot is installed as a user systemd timer and runs daily at 7:00am Eastern.
 - Latest configured-scope PTOAS report: `explorer/reports/README.md`.
 - Latest big-change report: `explorer/reports/daily/2026-09-02.md`.
@@ -86,9 +90,12 @@ with another checkout. Every run records the NPU-IR, NPU LLVM, PTOAS, and PTO
 LLVM commits in `out/build/dependency-versions.txt`. Set `PTOAS_LLVM_ROOT` too
 when overriding PTOAS if its LLVM revision should be recorded.
 
-The bridge defaults to `ptodsl`. This keeps the supported non-Cube DMA
-rewrites and also imports the pre-generated PTO-visible Cube helpers. The
-preferred Cube path therefore needs no mode flag:
+The legacy runner defaults to `ptodsl`. On `mani/generic-template-fallback`,
+that mode selects exact-name PTODSL resources; missing implementations retain
+native CCE calls and require `FALLBACK=1` for object emission. It does not
+unconditionally apply the old simple DMA rewrites or import legacy-name ND2NZ
+helpers. The preferred runtime tests use the Python workflow linked above.
+For legacy fixture inspection, the runner needs no mode flag:
 
 ```bash
 bridge/tools/run_comparison_flow.sh emit-vpto cube_dotproduct
@@ -134,11 +141,11 @@ small wrapper around the same implementation.
 `bridge/testcases/<name>/build/` directory, then rebuilds the selected flow.
 Simulator options raise the process open-file soft limit to `65536` when the
 account permits it; set `SIMULATOR_NOFILE_LIMIT` to override that value.
-`--bridge-mode ptodsl` is the default. It rewrites supported non-Cube HIVM DMA
-templates, imports installed pre-generated `MmadL1` and ND2NZ PTO helpers, and
-converts the separate Fixpipe caller operation. Normal bridge compilation does
-not execute Python. Use `--bridge-mode direct` to run only the non-Cube DMA
-rewrites. `--bridge-mode external-calls` skips the early Cube conversion and runs
+`--bridge-mode ptodsl` is the runner default. Exact-name resources use their
+existing adapters or the native-ABI resolver; missing resources keep native
+calls. Normal NPU-IR bridge compilation does not execute the PTODSL Python
+generator. Use `--bridge-mode direct` for legacy guarded rewrites.
+`--bridge-mode external-calls` skips the early template conversion and runs
 `convert-hivmave-to-ptoas-vmi` after `convert-hivm-to-std` has emitted the CCE
 calls.
 

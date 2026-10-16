@@ -1,10 +1,31 @@
 # Planning Overview
 
-Last updated: 2026-09-11
+Last updated: 2026-10-16
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
 lower-level planning documents matter.
+
+## Current Template Work
+
+The `mani/generic-template-fallback` branch is ready for MR review within the
+small validated scope: 91 compile tests, Python vadd, and one f16 NN 64x64x64
+MmadL1 runtime case. Publish the PTOAS dependency and update NPU-IR's submodule
+pin before publishing the NPU-IR branch. This is not a new full-model or A5
+hardware validation claim.
+
+The preferred workflow is patched Triton `python kernel.py`, under
+`msprof op simulator` on this server. Exact native symbols select available
+`__pto_` resources; missing resources retain native calls and descriptors for
+explicit `FALLBACK=1`. Existing structured adapters remain, and new adapter
+work belongs to each template implementation. The old `direct` rewrites are
+not unconditional shortcuts in default PTODSL mode.
+
+Read [template development and fallback](../designs/ptodsl-template-development-and-fallback.md)
+for the current source locations, generation/install workflow, exports,
+commands, and non-blocking shared-helper importer follow-up. This current
+policy supersedes unconditional ND2NZ/Fixpipe import descriptions in older
+fixture notes below.
 
 ## Current Direction
 

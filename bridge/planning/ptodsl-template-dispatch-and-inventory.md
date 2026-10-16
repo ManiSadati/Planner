@@ -1,22 +1,105 @@
 # PTODSL Template Dispatch and NPU-IR Inventory
 
-Last reviewed: 2026-10-06
+Last reviewed: 2026-10-16
 
 This document records how PTODSL templates are matched today, how native
 NPU-IR dispatches CCE/AscendC templates, the current A5 template inventory,
 and the design to use as PTODSL coverage grows.
 
+For the current developer workflow, exact selection/adapter contract, Python
+simulator exports, and MR scope, use
+[PTODSL template development and fallback](../designs/ptodsl-template-development-and-fallback.md).
+
+## Generic Selection And Fallback Update (2026-10-16)
+
+Implementation is on `mani/generic-template-fallback` in both
+AscendNPU-IR and its PTOAS submodule. The scope is exact-symbol selection and
+native fallback; new PTODSL memref adapters and template bodies are separate
+instance-development work.
+
+- Generate the resource registry from the installed MLIR function names.
+- Reuse native NPU-IR call materialization and look up
+  `__pto_<native-symbol>` for any remaining native library call.
+- Import and retarget exact matches; a registered implementation with a wrong
+  ABI must fail explicitly rather than fall back.
+- Keep unmatched calls with their native arguments and descriptor ABI.
+- Apply `FALLBACK=0/1` to both AIC and AIV object emission, using the existing
+  selective native-bitcode linker and the corresponding core bundle.
+- Keep existing working structured adapters without adding new argument
+  transformations in the generic resolver.
+
+Legacy ND2NZ, Fixpipe, and cumsum helpers whose names differ from the exact
+native symbol now use native fallback. Instance authors must supply matching
+entry points before those implementations are selected by the new policy.
+No native CCE bitcode changes or large runtime tests are part of this task.
+
+Compile validation: 91 conversion tests pass. The small `matmul_64` and `vadd`
+fixtures both reach VMI and VPTO and produce fat objects with `FALLBACK=1`.
+Both reject their remaining native calls with `FALLBACK=0`. A mixed AIC/AIV
+compile also produces a fat object and links only the names used by each
+device module. These are compile/link checks, not numerical or performance
+results.
+
+Small Python simulator follow-up (not the comparison runner):
+
+- `vector_add.py` passes through the patched Triton backend with maximum error
+  `0.0` and `allclose: True`. Its two loads and store use native
+  `load_gm_to_ubuf_1d_float` / `store_ubuf_to_gm_1d_float` fallback; addition
+  lowers to `pto.vmi.vadd`.
+- The initial single `f16-nn` / `native-b64` MmadL1 attempt exposed the hybrid
+  fallback's static-descriptor reconstruction restriction. The VMI pass now
+  preserves interior memrefs and their runtime sizes, strides, offsets, casts,
+  and subviews. Native calls no longer reconstruct descriptors from PTO
+  pointers. Only memory-space attributes change from HIVM to PTO.
+- PTO consumers extract addresses separately; non-identity views include their
+  runtime offset. Kernel entry points retain the raw-pointer launch ABI. An
+  opaque rank-one launch carrier supplies only its base buffer to reinterpret
+  views, which retain their explicit NPU-IR-computed metadata.
+- After this fix, the `f16-nn` / `native-b64` Python test passes numerical
+  comparison for shape/block `64x64x64`, grid `1`, with selected symbol
+  `__pto_mma_tile_half_to_float`. ND2NZ and Fixpipe use native CCE fallback.
+- The post-fix `vector_add.py` Python simulator run also passes with maximum
+  error `0.0`. Both checks use the existing patched `npuir-sim-3.2.2` venv and
+  invoke the Python files under `msprof op simulator`, not the comparison runner.
+- The external-calls mode also compiles to a fat object. `FALLBACK=0` still
+  rejects unresolved native calls explicitly. No native bitcode or PTODSL
+  template body changes were needed for memref preservation.
+
+Logs: `$HOME/tmp/generic-template-fallback-runtime.vgQ5JH/` under
+`python-host-vadd/run.log` and `python-mmadl1-f16-nn/run.log`.
+Successful post-fix Python logs are under
+`$HOME/tmp/preserved-memref-python-final.zd2T0Z/`, in
+`matmul64/run.log` and `vadd/run.log`.
+
+Source references in AscendNPU-IR:
+`bishengir/lib/Conversion/HIVMTemplatesToPTO/PTODSLTemplateRegistry.cpp`,
+`bishengir/lib/Tools/bishengir-compile/regbase/PassPipeline.cpp`, and
+`third-party/ptoas/tools/ptoas/ObjectEmission.cpp`.
+
+### Review Follow-up: Shared Helpers
+
+The current resources are self-contained. A future pair of entries sharing a
+helper would hit the generic importer's collision check on the second import.
+This was identified by code inspection, not by an existing runtime failure,
+and is not a blocker for this MR. Track imports by resource and symbol, reuse
+compatible dependencies already imported from that resource, and retain
+errors for unrelated collisions. Add shared-dependency and real-collision
+tests when implementing that follow-up. The full example and proposal are in
+the developer guide linked above.
+
 ## Current PTODSL Template Flow
 
-The PTODSL path currently uses pre-generated MLIR helpers and manual C++
-selection.
+The PTODSL path uses pre-generated MLIR helpers. Existing MmadL1 and Vector
+adapters run before native call lowering when an exact resource is available.
+The generic resolver then checks the native library calls for all remaining
+families. A missing exact entry preserves the native call for explicit fallback.
 
 ### 1. Define explicit instantiations in Python
 
 The PTODSL source defines `SPECIALIZATIONS` and `EXPLICIT_INSTANTIATIONS` in:
 
 ```text
-$ASCEND_NPU_IR_ROOT/bishengir/lib/Template/lib/RegBase/Cube/nd2nz_mmadl1_64_ptodsl.py
+$ASCEND_NPU_IR_ROOT/bishengir/lib/Template/lib/RegBase/Cube/mmadl1_ptodsl.py
 ```
 
 Current MMAD variants include:
@@ -32,7 +115,7 @@ instantiation. It is not run during normal NPU-IR compilation.
 
 Each generated helper receives:
 
-- a deterministic symbol such as `__pto_mmadl1_f16_f32_tb`
+- a deterministic symbol such as `__pto_mma_tile_half_to_float_tb`
 - a `pto.ptodsl.instantiation` attribute
 - a private function body containing PTO dialect operations
 
@@ -59,47 +142,50 @@ lib/bishengir/ptodsl/cube/
 - helper symbol
 - instantiation identity
 
-When the pass sees any Cube template operation, it currently imports all Cube
-PTODSL resources, even if the kernel only needs one helper. The importer parses
-each MLIR file, validates its symbol and instantiation attribute, clones its
-function into the kernel module, and marks it as an AIC function.
+For MmadL1, `select-hivm-ptodsl-templates` first records the exact native and
+PTODSL symbols. The converter builds a deduplicated required-symbol set and
+imports only the selected MmadL1 resources. The importer parses each required
+file once, validates its symbol and instantiation attribute, clones its
+function into the kernel module, and marks it as an AIC function. The generic
+resolver performs exact resource lookup for remaining native calls, without
+importing all ND2NZ or Fixpipe helpers by family.
 
 This is MLIR-level importing or linking: the helper definition and its call are
 placed in the same MLIR module. It is not external LLVM bitcode linking.
 
 ### 4. Match an HIVM operation
 
-For `hivm.hir.mmadL1`, `matchMmadL1Contract()` manually examines:
+For `hivm.hir.mmadL1`, the selection pass calls native NPU-IR's
+`getOpLibraryCallName()` and performs exact registry lookup. The later
+`matchMmadL1Contract()` validates:
 
 - input datatype
 - accumulator datatype
-- transpose flags
-- HF32 mode
 - physical memref shapes
 - memory spaces
 - synchronization operands
 - supported runtime M/K/N range
 
-An `if/else` chain selects the helper symbol. For example:
+Native symbol selection determines the exact helper entry. For example:
 
 ```text
 f16 input + f32 accumulator + transpose B
-    -> __pto_mmadl1_f16_f32_tb
+    -> __pto_mma_tile_half_to_float_tb
 ```
 
 The rewrite then replaces the original operation with a call:
 
 ```mlir
-func.call @__pto_mmadl1_f16_f32_tb(...)
+func.call @__pto_mma_tile_half_to_float_tb(...)
 ```
 
 Runtime values such as actual M/K/N, pointers, event IDs, and initialization
 state remain function operands. They do not create separate explicit
 instantiations.
 
-`applyPatternsGreedily` is only the rewrite driver. It does not automatically
-search or rank the generated templates. The individual C++ rewrite patterns
-perform template selection explicitly.
+`applyPatternsGreedily` drives the existing structured adapters. It does not
+search or rank templates. Exact native names and the generated resource index
+own instance selection.
 
 ## Native NPU-IR CCE/AscendC Dispatch
 
@@ -302,15 +388,16 @@ matching hierarchy.
 
 ## Structured Load Example
 
-`hivm.hir.load` demonstrates why not every native template call needs the same
-replacement strategy. The bridge handles it before `convert-hivm-to-std`, while
-the structured memory contract is still available:
+`hivm.hir.load` demonstrates the distinction between existing structured
+adapters and exact template availability. In PTODSL mode, the early adapter
+is eligible only when the native symbol has an exact installed counterpart:
 
 | Load form | PTODSL bridge result |
 |---|---|
-| Contiguous rank-one GM to UB | Direct `pto.mte_gm_ub` operation |
+| Contiguous rank-one GM to UB without an exact PTODSL resource | Preserve the native load call; explicit native fallback is required for object compilation. The separate `direct` mode retains its existing `pto.mte_gm_ub` conversion. |
 | Compatible rank-two f16 implicit-transpose GM to UB | Call to imported `__pto_load_gm_to_ubuf_2d_half` MLIR helper |
-| Unsupported layout, padding, initialization, or descriptor contract | Explicit conversion failure; no silent fallback in default PTODSL mode |
+| Exact PTODSL entry exists but its adapter cannot handle the contract | Explicit conversion failure; no silent native fallback |
+| No exact PTODSL entry exists | Preserve the native call and its descriptor ABI for `FALLBACK=1` |
 
 The rank-two helper receives sizes and strides as runtime operands. Its `2d`
 identity indicates a structurally different NDDMA algorithm; it does not mean
@@ -319,7 +406,8 @@ shape.
 
 ## Current PTODSL Scalability Problem
 
-The same specialization information is currently repeated in several places:
+The first native-name selection slice is implemented for MmadL1, but
+specialization metadata is still repeated in several places:
 
 1. Python `SPECIALIZATIONS` and `EXPLICIT_INSTANTIATIONS`
 2. Generated MLIR filenames and attributes
@@ -332,8 +420,9 @@ Adding a new specialization requires coordinated edits across these locations.
 That is manageable for a proof of concept, but it is fragile when supporting
 many operations, datatypes, layouts, architectures, and flags.
 
-Importing all helpers before knowing which ones are needed will also become
-wasteful as the resource set grows.
+MmadL1 no longer imports every neighboring specialization. Remaining native
+calls now use the exact-symbol resolver; ND2NZ and Fixpipe no longer trigger
+family-wide imports in the default PTODSL path.
 
 ## Recommended Long-Term Design
 
@@ -442,6 +531,54 @@ Generated outputs can remain checked in. CI should regenerate them and fail if
 the checked-in products are stale. Normal NPU-IR kernel compilation still does
 not run Python.
 
+### Preferred native-call resolver
+
+The preferred implementation should not reproduce NPU-IR's template-selection
+logic in a second family-specific matcher. Native NPU-IR already computes the
+canonical specialization symbol through `getOpLibraryCallName()` and already
+owns the operation-specific construction of the external-call operands.
+
+The bridge should reuse that result directly:
+
+```text
+hivm template operation
+    -> native NPU-IR call materialization
+    -> func.call @<native-symbol>(native ABI operands)
+    -> look up @__pto_<native-symbol> in the installed PTODSL registry
+       |- found: import that exact resource and retarget the call
+       `- absent: retain the native call for explicit CCE fallback
+```
+
+For example:
+
+```text
+@mma_tile_half_to_float
+    -> registry lookup for @__pto_mma_tile_half_to_float
+```
+
+`TemplateKey` remains useful as generated metadata for validation, inventory,
+and diagnostics, but the canonical native symbol should be the primary
+selection key. This removes the MmadL1-only `StringSwitch` and avoids writing a
+second selection hierarchy for ND2NZ, Fixpipe, Vector, and SIMT families.
+
+Each imported `@__pto_<native-symbol>` must expose an adapter entry point with
+the same external ABI as the native call. The adapter keeps the native memref
+descriptor at the boundary, extracts the effective PTO pointer plus any sizes,
+strides, offsets, dimensions, synchronization values, and mode operands needed
+by the PTO implementation, and then calls the internal PTODSL helper. The
+internal helper does not need to accept memrefs.
+
+This ABI rule is what makes call retargeting generic. Without an ABI-compatible
+adapter, changing only the symbol name is insufficient because the existing
+PTODSL helper may accept PTO pointers and explicit descriptor fields instead
+of the native memref arguments.
+
+Implementation should share or extract native call materialization rather than
+copying the complete `HIVMToStandard` implementation. Both the native and
+bridge pipelines must continue to use the same symbol-generation and operand
+construction code so future NPU-IR template changes cannot silently make the
+two paths disagree.
+
 ## Module-Wide Discovery and Rewrite
 
 The expected compilation workload is usually a model block or module containing
@@ -450,18 +587,22 @@ selection should therefore be performed once across the complete MLIR module.
 The pass should not parse a resource independently every time a rewrite pattern
 matches an operation.
 
-The PTODSL bridge should use this sequence:
+The PTODSL bridge should use this sequence. MmadL1 now has the first
+implementation of native-name discovery and exact-resource import, but its
+manual lookup should be replaced by the generic native-call resolver above.
+Generated registries, dependency closure, and aggregated side-effect-free
+preflight diagnostics remain future work:
 
 ```text
-1. Scan every candidate HIVM template operation in the module.
-2. Derive its native template name and normalized TemplateKey.
-3. Look up and validate every exact TemplateDescriptor.
-4. Build a deduplicated RequiredTemplateSet.
-5. Resolve each descriptor to its exact per-instance MLIR resource.
-6. Parse each deduplicated required resource once.
-7. Import its helper function and dependency closure.
-8. Rewrite all matched HIVM operations into calls to those helpers.
-9. Verify that no required template operation remains unresolved.
+1. Materialize each template operation using NPU-IR's native symbol and ABI.
+2. Scan the resulting native template calls once across the module.
+3. Form the exact candidate symbol `__pto_<native-symbol>` for each call.
+4. Look up the candidate in the generated installed-resource registry.
+5. Build a deduplicated RequiredTemplateSet for candidates that exist.
+6. Parse each required resource once and import its adapter plus dependencies.
+7. Retarget matched calls to their imported `__pto_` adapter symbols.
+8. Leave unmatched native calls unchanged for the explicit fallback policy.
+9. Diagnose ABI mismatches and unresolved calls according to fallback mode.
 10. Continue through PTOAS lowering.
 ```
 
@@ -628,36 +769,56 @@ instance file is the import unit.
 
 ## Fallback Policy
 
-A clear fallback order should be used:
+Use exact PTODSL symbol lookup first, then explicit native fallback when that
+entry is unavailable. A generic PTODSL body may be reused behind exact entry
+points, but selection must not perform an additional shape-based search.
 
-1. Exact PTODSL specialization
-2. Generic PTODSL specialization, when one helper can safely accept dynamic
-   operands
-3. External CCE/AscendC template only when compatibility mode is explicitly
-   requested
+Fallback applies uniformly to every native template family:
 
-The default PTODSL bridge should not silently fall back to opaque CCE bitcode,
-because that would hide unsupported coverage and bypass PTOAS optimization.
+- If an exact `__pto_<native-symbol>` resource is registered, the bridge must
+  use it. A contract, import, or lowering failure is an error and must not
+  silently fall back.
+- If no PTODSL resource is registered, retain the native call unchanged.
+- With `FALLBACK=0` (the default), an unresolved native call is a compile-time
+  error.
+- With `FALLBACK=1`, link only the required native CCE symbols and their
+  transitive dependencies.
+
+This distinguishes missing PTODSL coverage from a broken PTODSL
+implementation. It also gives ND2NZ, Fixpipe, Vector, and SIMT the same
+fallback behavior instead of hard-failing in family-specific conversion code.
+
+The default PTODSL bridge therefore does not silently fall back to opaque CCE
+bitcode. Compatibility fallback remains explicit and auditable.
 
 ## Minimal Implementation Steps
 
-1. Introduce `TemplateKey` and `TemplateDescriptor` types.
-2. Add a module-wide discovery phase that records native names, keys, contracts,
-   source operations, and all unsupported requirements without changing IR.
-3. Convert the existing MMAD variants into a generated registry without
-   changing their generated MLIR bodies.
-4. Move each existing MMAD helper into its exact-name file under the appropriate
-   semantic category directory.
-5. Change the importer to parse each selected instance resource once and clone
-   its helper symbol plus transitive dependencies.
-6. Rewrite all operations only after module-wide discovery and importing have
-   completed successfully.
-7. Generate symbol declarations and CMake resource lists from the explicit
+1. Extract or share native template-call materialization so the default and
+   bridge paths use the same symbol and operand construction.
+2. Add a generated registry keyed by exact `__pto_<native-symbol>` names.
+3. Add a module-wide resolver that discovers native calls, imports only exact
+   required resources, and retargets matching calls.
+4. Give each existing PTODSL instance a native-ABI adapter entry point.
+5. Remove the MmadL1-only manual `StringSwitch` after equivalent tests pass.
+6. Route unmatched calls through the uniform `FALLBACK=0/1` policy.
+7. Migrate ND2NZ, Fixpipe, and existing Vector helpers to the same mechanism.
+8. Add tests for exact selection, mandatory failure of a registered-but-broken
+   helper, fallback disabled, fallback enabled, mixed AIC/AIV modules, and
+   import deduplication.
+9. Generate CMake resource lists and registry entries from the explicit
    instantiation specification.
-8. Add checks for duplicate keys, duplicate symbols, missing resources, wrong
-   instantiation attributes, helper ABI mismatches, and unresolved operations.
-9. Apply the mechanism to ND2NZ, Fixpipe, Vector, and SIMT families after the
-   MMAD migration proves the design.
+
+## Implementation Scope
+
+Generic selection and fallback are a focused compiler change: reuse native
+symbol/operand construction, resolve exact PTODSL resources, and preserve
+unmatched native calls for the existing selective linker. The earlier 2-4 day
+estimate included developing adapters and broad runtime validation, which are
+not required for this fallback task.
+
+Implementing additional PTO bodies and their argument adapters remains
+separate work owned by each template instance's developer. Improving fallback
+does not require implementing all roughly 2,415 native operation instances.
 
 ## Conclusion
 

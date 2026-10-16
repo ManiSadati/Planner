@@ -1,15 +1,40 @@
 # Cube Conversion Status
 
-Last updated: 2026-09-03
+Last updated: 2026-10-16
+
+## Current Selection and Fallback
+
+The branch `mani/generic-template-fallback` reuses native template identities
+and selects exact installed `__pto_<native-symbol>` implementations. Existing
+structured adapters remain for their supported entries; the generic resolver
+requires a matching native entry ABI and does not implement new adapters.
+Missing resources keep native CCE calls, requiring `FALLBACK=1` at PTOAS object
+emission. Present but incompatible resources fail explicitly.
+
+Native calls retain runtime memref metadata through VMI; PTO consumers extract
+addresses separately. The former static-descriptor reconstruction restriction
+is removed. The launch ABI still uses raw pointers.
+
+Validated on this branch: 91 compile tests, the Python f16 NN 64x64x64/grid-1
+MmadL1 case, and Python vadd (maximum error zero). In that matmul, MmadL1 uses
+PTODSL and ND2NZ/Fixpipe use native fallback because their legacy helper names
+are not exact matches. In vadd, loads/stores use native fallback and arithmetic
+uses VMI. The legacy direct DMA mapping still exists in `direct` mode.
+
+The shared-helper importer collision is a future, unexercised case, not an
+existing template failure or MR blocker. No large runtime sweep was rerun.
+See [the current developer guide](../designs/ptodsl-template-development-and-fallback.md)
+for exports, commands, limitations, and publication dependencies. The fixture
+results below record earlier stages and must not override this selection policy.
 
 ## Current Milestone
 
 The active bridge milestone is Cube compute plus the DMA/staging required by
 Cube. The first fixture is `bridge/triton-example/cube_dotproduct.py`.
 
-The first fixture has been traced and validated through the two active routes:
+The first fixture was traced and validated through the two routes:
 preserved external CCE calls and the preferred PTODSL-template route. In the
-PTODSL route, `bishengir-compile` imports pre-generated `MmadL1` and ND2NZ PTO
+earlier PTODSL route, `bishengir-compile` imported pre-generated `MmadL1` and ND2NZ PTO
 bodies, calls them from the converted kernel, and PTOAS lowers them successfully.
 The 64x64 simulator comparison passes, and the `matmul_513` PTODSL fat object
 passes numerical comparison on A5 hardware. Four additional 64x64 contracts
@@ -105,8 +130,9 @@ bishengir/lib/Template/lib/RegBase/Cube/ptodsl_64x64_blockers.md
 ```
 
 The source has been generalized from one fixed whole-kernel 64x64 case into a
-normalized f16 microtemplate contract. It now accepts actual M/K/N values up to
-64, caller-owned L1/L0 buffers, init versus accumulate, and NPU-IR event IDs.
+native-instance f16 template contract. It accepts the native call's positive
+runtime M/K/N values, caller-owned L1/L0 buffers, init versus accumulate, and
+NPU-IR event IDs.
 It emits ND2NZ, L1-to-L0A/B, `pto.mad`/`pto.mad_acc`, and a probe-only f32-to-f16
 writeback. A hidden non-square ND2NZ layout error was fixed by using the padded
 K/N extent rather than the row count for the destination physical extent.
@@ -114,7 +140,7 @@ K/N extent rather than the row count for the destination physical extent.
 The source-contract checks pass for 64x64x64 initialization and 16x32x48
 accumulation. In `--bridge-mode ptodsl`, NPU-IR parses the installed
 `mmadl1_f16_f32_nn.mlir` and `nd2nz_f16_gm_l1.mlir` resources, imports
-`@__pto_mmadl1_f16_f32_nn` and `@__pto_nd2nz_f16_gm_l1`, and replaces both
+`@__pto_mma_tile_half_to_float` and `@__pto_nd2nz_f16_gm_l1`, and replaces both
 structured operations with normal internal calls. The VMI therefore contains
 the calls and their visible PTO implementations. PTOAS inlines and lowers them to
 `pto.load_cbuf_to_ca`, `pto.load_cbuf_to_cb`, and `pto.mad_raw`.
@@ -122,6 +148,22 @@ the calls and their visible PTO implementations. PTOAS inlines and lowers them t
 The latest PTODSL 64x64 simulator run passes all 4096 f16 outputs with maximum
 absolute error `0.001953125` and reports 3265 total ticks. This proves only the
 observed f16 64x64x64 initialization path.
+
+The compiler now runs `select-hivm-ptodsl-templates` before conversion. For
+MmadL1 it reuses NPU-IR's native `getOpLibraryCallName()` result, records the
+native and PTODSL identities, and imports only the selected MmadL1 resource.
+A separate adapter keeps memrefs outside the PTODSL body and passes PTO pointer
+views, runtime dimensions, init state, and events into the helper. The
+external-call mode bypasses both passes and remains unchanged.
+
+All 12 curated f16/f32 NN global-shape and block-shape configurations compile
+from the Triton kernel through VMI and PTOAS device-object emission. This
+includes runtime M/K/N values above 64 and asymmetric 128/256 blocks; all use
+the same native-derived `@__pto_mma_tile_half_to_float` identity. Focused lit
+coverage also checks 1x1 and 8x8 outer fractal buffers. Numerical execution of
+the new matrix remains pending because the local Triton 3.2.2 simulator fails
+at `aclInit` before compilation; the existing 64x64 and matmul_513 numerical
+results remain valid.
 
 The `matmul_513` PTODSL fat object also passes on A5. Its 81 logical output
 programs and nine K steps validate odd whole-shape boundaries and the
@@ -230,15 +272,15 @@ precision modes, buffering, and synchronization.
 
 ## Next Validation
 
-- Construct one focused fixture that reaches `MmadL1` with a runtime M/K/N
-  value below 64 instead of relying only on padded global boundaries.
+- Run the 12-case f16/f32 NN matrix numerically on a working A5 simulator or
+  physical A5 machine; compile and device-object generation already pass.
 - Keep the BF16, INT8, F32/HF32, and F16 B-transpose simulator regressions
   green. Resolve the upstream HF32 attribute spelling mismatch at the
   early-IR generation boundary.
 - The multi-tile `q_kt_matmul` compile/build/launch path is complete, but its
   full numerical result still needs A5 hardware or a long simulator run.
-- Generalize address/layout and sync ownership beyond the observed A5
-  64x64x64 microtile before enabling PTOAS automatic allocation/scheduling.
+- Extend native-name selection and exact resource import to ND2NZ, Fixpipe,
+  vector templates, and the remaining MmadL1 specializations.
 - Compare the imported Python template against the selected CCE implementation
   for tails, K segmentation, transpose, bias, precision modes, and fallbacks.
 - Compare PTODSL, external-call, and unchanged NPU-IR traces and ticks under
