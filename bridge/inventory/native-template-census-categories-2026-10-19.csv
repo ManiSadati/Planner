@@ -1,0 +1,16 @@
+category,campaign_A_unique,campaign_B_unique,combined_unique,tentative_extrapolation_display,bias_corrected_incidence_estimate,symbols_in_one_compilation,symbols_in_two_compilations,combined_unique_compilation_call_sites,distinct_test_files,distinct_test_functions,estimate_limit
+Cube/MmadL1,15,14,16,≈16,16.0,1,0,3847,352,532,Sampled native paths only; sparse groups and unobserved families not identifiable
+Cube/Fixpipe,8,7,8,≈8,8.0,1,0,3974,352,532,Sampled native paths only; sparse groups and unobserved families not identifiable
+Cube/Nd2Nz,4,4,4,≈4,4.0,0,0,6505,351,530,Sampled native paths only; sparse groups and unobserved families not identifiable
+Cube/Setup,4,4,4,≈4,4.0,0,0,911,56,57,Sampled native paths only; sparse groups and unobserved families not identifiable
+Cube/Copy,1,0,1,Insufficient data,1.0,0,1,6,1,1,Sampled native paths only; sparse groups and unobserved families not identifiable
+Vector/DMA,45,51,52,≈56,55.75,6,3,19511,651,973,Sampled native paths only; sparse groups and unobserved families not identifiable
+Vector/Integer64,37,38,46,≈64,64.331,11,2,1436,155,184,Sampled native paths only; sparse groups and unobserved families not identifiable
+Vector/Collective,6,7,9,≈9–10,9.25,2,3,57,11,15,Sampled native paths only; sparse groups and unobserved families not identifiable
+Vector/Math,3,3,3,≈3,3.0,0,0,25,2,3,Sampled native paths only; sparse groups and unobserved families not identifiable
+SIMT/Indexing,0,1,1,Insufficient data,1.0,1,0,1,1,1,Sampled native paths only; sparse groups and unobserved families not identifiable
+Support/print-lifecycle,17,22,25,≈29,28.5,7,5,220,12,17,Sampled native paths only; sparse groups and unobserved families not identifiable
+Support/cube-debug,4,4,4,≈4,4.0,0,0,226,11,15,Sampled native paths only; sparse groups and unobserved families not identifiable
+Support/vector-debug,2,2,2,≈2,2.0,0,0,66,4,6,Sampled native paths only; sparse groups and unobserved families not identifiable
+Support/runtime-sync,2,2,2,≈2,2.0,0,0,446,39,70,Sampled native paths only; sparse groups and unobserved families not identifiable
+unmatched,13,14,14,≈14,14.0,0,0,1628,87,112,Sampled native paths only; sparse groups and unobserved families not identifiable

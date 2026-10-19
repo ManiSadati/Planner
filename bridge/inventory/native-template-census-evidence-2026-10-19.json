@@ -1,0 +1,210 @@
+{
+  "date": "2026-10-19",
+  "scope": "Native A5 compile-only template dependencies; no PTODSL compilation, execution, linking or numerical validation.",
+  "target": "Ascend950PR_9589",
+  "bridge_enabled": false,
+  "batches": {
+    "first": {
+      "artifact_directory": "$HOME/template-census/runs/batch-20261018-214107-z6zodh95",
+      "summary": {
+        "state": "finished",
+        "planned_entries": 10000,
+        "finished_entries": 10000,
+        "remaining_entries": 0,
+        "statuses": {
+          "missing_result": 1893,
+          "complete": 3674,
+          "preparation_blocked": 2845,
+          "compile_failed": 803,
+          "partial": 420,
+          "timeout": 358,
+          "not_launched": 7
+        },
+        "unique_usable_compilations": 3975,
+        "observed_template_symbols": 161,
+        "unmatched_template_symbols": [
+          "transpose_3d_without_last_axis_float",
+          "broadcast_scalar_float_to_1d",
+          "vadd_1d_float",
+          "transpose_3d_without_last_axis_bfloat16_t",
+          "vadd_2d_float",
+          "broadcast_scalar_float_to_2d",
+          "broadcast_scalar_bfloat16_t_to_1d",
+          "transpose_3d_without_last_axis_half",
+          "broadcast_scalar_int32_t_to_1d",
+          "broadcast_scalar_half_to_1d",
+          "transpose_3d_without_last_axis_int8_t",
+          "vadd_3d_float",
+          "broadcast_scalar_int8_t_to_1d",
+          "fixpipe_nz2nd_half_to_half_4d_to_2d_gm",
+          "mma_tile_half_to_half"
+        ],
+        "elapsed_seconds_this_invocation": 16208.884285335895,
+        "max_worker_tree_rss_bytes": 1070370816,
+        "kernel_execution_performed": false,
+        "numerical_validation_performed": false,
+        "scope": "Native compiler checkpoint inventory; partial captures are included only when complete, parsed, and usable.",
+        "count_definitions": {
+          "unique_compilation_call_sites": "Each native input+flags+toolchain compile ID counted once globally.",
+          "entry_weighted_call_sites": "Sum of static sites per selected entry, deduplicating repeated identical captures within each entry.",
+          "entries": "Selected parameter/config tuples containing the symbol in at least one usable capture.",
+          "test_functions": "Distinct repository/file/function paths containing the symbol.",
+          "q2_entries/npuir_test_entries": "Per-suite entry occurrence counts; these do not double count stages."
+        },
+        "toolchain_or_harness_stat_unchanged": true
+      },
+      "manifest_sha256": "7cd5b7cdacfb00f1fd66624b6ced527c42e2553bd7e8ccb06ddda5f6e5108ecf",
+      "toolchain_fingerprint": "d5f3e6e809459048db8720e72a60fcd474c26fd6bcbe337b5232fdb8bcfeaddb",
+      "entries_with_usable_checkpoint": 4233,
+      "usable_entries_by_status": {
+        "complete": 3674,
+        "missing_result": 139,
+        "partial": 420
+      },
+      "workers": 16,
+      "hours_limit": 10.0,
+      "summary_sha256": "ef5afba73de50e9d12c9e1e55e9a93752f2687d6b5d5d04bd1f25a7f782dacee",
+      "outcomes_sha256": "0fd67fc4e37ac28238ef3f7ce8e4f8e74d617dd595d7b0cde5c8834a7de70038",
+      "observed_symbols_csv_sha256": "213dc1bb7e58aa4f43cfbdb59d5f0fbab7f83a778a285149fea17ad92811bf64"
+    },
+    "second": {
+      "artifact_directory": "$HOME/template-census/runs/batch-20261018-215337-k4gdxzuj",
+      "summary": {
+        "state": "finished",
+        "planned_entries": 10000,
+        "finished_entries": 10000,
+        "remaining_entries": 0,
+        "statuses": {
+          "compile_failed": 1031,
+          "preparation_blocked": 2983,
+          "complete": 3663,
+          "missing_result": 1705,
+          "partial": 201,
+          "timeout": 411,
+          "not_launched": 6
+        },
+        "unique_usable_compilations": 3884,
+        "observed_template_symbols": 173,
+        "unmatched_template_symbols": [
+          "transpose_3d_without_last_axis_float",
+          "broadcast_scalar_float_to_1d",
+          "vadd_1d_float",
+          "vadd_2d_float",
+          "broadcast_scalar_float_to_2d",
+          "transpose_3d_without_last_axis_bfloat16_t",
+          "transpose_3d_without_last_axis_half",
+          "vadd_1d_int32_t",
+          "broadcast_scalar_int32_t_to_1d",
+          "vadd_3d_float",
+          "transpose_3d_without_last_axis_int8_t",
+          "broadcast_scalar_bfloat16_t_to_1d",
+          "broadcast_scalar_half_to_1d",
+          "broadcast_scalar_int8_t_to_1d"
+        ],
+        "elapsed_seconds_this_invocation": 29661.228806678904,
+        "max_worker_tree_rss_bytes": 1029406720,
+        "kernel_execution_performed": false,
+        "numerical_validation_performed": false,
+        "scope": "Native compiler checkpoint inventory; partial captures are included only when complete, parsed, and usable.",
+        "count_definitions": {
+          "unique_compilation_call_sites": "Each native input+flags+toolchain compile ID counted once globally.",
+          "entry_weighted_call_sites": "Sum of static sites per selected entry, deduplicating repeated identical captures within each entry.",
+          "entries": "Selected parameter/config tuples containing the symbol in at least one usable capture.",
+          "test_functions": "Distinct repository/file/function paths containing the symbol.",
+          "q2_entries/npuir_test_entries": "Per-suite entry occurrence counts; these do not double count stages."
+        },
+        "toolchain_or_harness_stat_unchanged": true
+      },
+      "manifest_sha256": "2bd2a352bf1d3d08b5bd741224b873bd271b62d3d92633094ee8a800f3cb2667",
+      "toolchain_fingerprint": "d5f3e6e809459048db8720e72a60fcd474c26fd6bcbe337b5232fdb8bcfeaddb",
+      "entries_with_usable_checkpoint": 3973,
+      "usable_entries_by_status": {
+        "complete": 3663,
+        "partial": 201,
+        "missing_result": 109
+      },
+      "workers": 8,
+      "hours_limit": 10.0,
+      "summary_sha256": "b750f9d35c331c52440a7532762457ee7ff6062e601c8825ab591ba21a9c7185",
+      "outcomes_sha256": "b73ca1925329c1ebfecbf7bb5ee6c3601bcabd4c7816e0f77e3621a8db2b6e42",
+      "observed_symbols_csv_sha256": "44a6c4dcdcfd6864a09a28e659da7298fd8120160e8c33bb505c5e67bc343089"
+    }
+  },
+  "unique_symbols_A": 161,
+  "unique_symbols_B": 173,
+  "shared_symbols": 143,
+  "second_only_symbols": 30,
+  "combined_unique_symbols": 191,
+  "shared_native_compilations": 89,
+  "combined_unique_native_compilations": 7770,
+  "usable_checkpoint_entries": 8206,
+  "Q2_only_unique_symbols": 30,
+  "source_revisions": {
+    "npuir": "e9a8145b74223ced608ffbae9d411627562f85ec",
+    "ascend_llvm": "8ce9217f83f3376970d10428de4e2d1c15039e08",
+    "ptoas": "d36100d03255e5e8a858c497a4277708d8b889c9",
+    "pto_llvm": "fa2fd1f75d742fec91ecf40d98c9c7961647ec42"
+  },
+  "source_dirty_files_at_snapshot": [
+    "M bishengir/lib/Conversion/HIVMTemplatesToPTO/CMakeLists.txt",
+    " M bishengir/lib/Conversion/HIVMTemplatesToPTO/Cube/MatmulRegionToPTO.cpp",
+    " M bishengir/lib/Conversion/HIVMTemplatesToPTO/Cube/PTODSLTemplateImporter.cpp",
+    " M bishengir/lib/Conversion/HIVMTemplatesToPTO/Cube/PTODSLTemplateImporter.h",
+    " M bishengir/lib/Conversion/HIVMTemplatesToPTO/HIVMTemplatesToPTO.cpp",
+    " M bishengir/lib/Template/lib/RegBase/Cube/PTODSL/instantiations/README.md",
+    " M bishengir/lib/Template/lib/RegBase/Cube/cube_ptodsl_utils.py",
+    " M bishengir/lib/Template/lib/RegBase/Cube/mmadl1_ptodsl.py",
+    " M bishengir/lib/Template/lib/RegBase/Cube/nd2nz_fixpipe_ptodsl.py",
+    " M bishengir/test/Conversion/HIVMTemplatesToPTO/mmadl1-native-fallback-ptodsl.mlir",
+    " M bishengir/test/Conversion/HIVMToStandard/fixpipe-nz2nd-single-f32.mlir",
+    " M bishengir/test/Integration/PTOASBridge/template_runtime/a5/Cube/MmadL1/native-instances/test_mmadl1_native_instances.py",
+    "?? bishengir/lib/Template/lib/RegBase/Cube/PTODSL/instantiations/fixpipe_nz2nd_float_to_float_4d_to_2d_ubuf.mlir",
+    "?? bishengir/lib/Template/lib/RegBase/Cube/PTODSL/instantiations/mmadl1_bf16_f32_ta.mlir",
+    "?? bishengir/lib/Template/lib/RegBase/Cube/PTODSL/instantiations/mmadl1_bf16_f32_ta_tb.mlir",
+    "?? bishengir/lib/Template/lib/RegBase/Cube/PTODSL/instantiations/mmadl1_f16_f32_ta.mlir",
+    "?? bishengir/lib/Template/lib/RegBase/Cube/PTODSL/instantiations/mmadl1_f16_f32_ta_tb.mlir",
+    "?? bishengir/test/Conversion/HIVMTemplatesToPTO/fixpipe-single-f32-controls-ptodsl.mlir",
+    "?? bishengir/test/Conversion/HIVMTemplatesToPTO/fixpipe-single-f32-dynamic-ptodsl.mlir",
+    "?? bishengir/test/Conversion/HIVMTemplatesToPTO/fixpipe-single-f32-native-abi-error.mlir",
+    "?? bishengir/test/Conversion/HIVMTemplatesToPTO/mmadl1-transpose-a-invalid-sync-ptodsl.mlir",
+    "?? bishengir/test/Conversion/HIVMTemplatesToPTO/mmadl1-transpose-a-native-abi-error.mlir",
+    "?? bishengir/test/Conversion/HIVMTemplatesToPTO/mmadl1-transpose-a-ptodsl.mlir",
+    "?? bishengir/test/Conversion/HIVMToStandard/mmadl1-transpose-a-instances.mlir"
+  ],
+  "compiler_version": "bishengir-compile 1.2.0 (git@gitcode.com:manisadati/AscendNPU-IR.git e9a8145b7422 2026-10-18) \nllvm 19.1.7 8ce9217f83f3\nRelease build",
+  "installed_tool_sha256": {
+    "bishengir-compile": "015a2c0398eb68484fedbae900f1657322dadd5e5ffe8366d930e960a4e39299",
+    "bishengir-opt": "baa43e5244ee8573b135c485cf9d23cd01c8cbe487485bd7af43bbce835e6dce"
+  },
+  "toolchain_snapshot": "$HOME/template-census/snapshots/20261018-213712-6tefq2ri",
+  "provenance_warning": "Compiler reports e9a8145b but source was dirty; do not equate the installed binary with that clean commit.",
+  "source_test_revisions": {
+    "Q2TritonKernel": "ebf78b205a87ecc5cd935a214bd2ef0fc176dcd9",
+    "AscendNPU-IR-Test": "17bae1e6e00eacffa7e7594f966069c0b21869d9"
+  },
+  "category_overrides": {
+    "mma_tile_half_to_half": "Cube/MmadL1",
+    "fixpipe_nz2nd_half_to_half_4d_to_2d_gm": "Cube/Fixpipe"
+  },
+  "estimator": {
+    "formula": "S_observed + ((N-1)/N) * Q1*(Q1-1)/(2*(Q2+1))",
+    "compilation_sites": 7770,
+    "singletons": 29,
+    "doubletons": 14,
+    "pooled_estimate": 218.06318318318318,
+    "category_estimate_sum": 216.83100000000002,
+    "rounded_working_estimate": 220,
+    "reference": "https://vegandevs.github.io/vegan/reference/specpool.html",
+    "limitations": "Exploratory lower-end extrapolation of recoverable sampled paths. Configurations are correlated, selection deliberately nonrandom, failures systematic. No confidence interval and no defensible numeric estimate for categories absent from both campaigns. Does not estimate all targets, repaired test paths, MLIR lit tests or all installed catalog symbols."
+  },
+  "control_adapter_comparison_baseline": "1ae23721592de8708f72d25bc859ec13070dcb68",
+  "external_artifacts": {
+    "runner_and_readme": "$HOME/template-census/README.txt",
+    "selection_A": "$HOME/template-census/snapshots/20261018-213712-6tefq2ri/manifest.jsonl",
+    "selection_B": "$HOME/template-census/selections/batch-b-wnjuaouw/manifest.jsonl",
+    "selection_B_summary": "$HOME/template-census/selections/batch-b-wnjuaouw/summary.json",
+    "comparison": "$HOME/template-census/comparison-a-b/comparison.json",
+    "final_control_audit": "$HOME/tmp/final-native-control-audit.6mNWcB",
+    "initial_adapter_audit": "$HOME/tmp/native-contract-audit.xd77kz13/report.json"
+  }
+}
