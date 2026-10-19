@@ -6,6 +6,7 @@ Each role has one maintained `AGENT.md` entry point. Shared workflows remain in
 | Role | Entry point | Codex agent name |
 | --- | --- | --- |
 | Investigator / Coordinator | [AGENT.md](investigator-coordinator/AGENT.md) | `investigator_coordinator` |
+| AVE-to-VMI Developer | [AGENT.md](ave-vmi-developer/AGENT.md) | `ave_vmi_developer` |
 | Template Developer | [AGENT.md](template-developer/AGENT.md) | `template_developer` |
 | Test Author | [AGENT.md](test-author/AGENT.md) | `test_author` |
 | Validator | [AGENT.md](validator/AGENT.md) | `bridge_validator` |
@@ -20,6 +21,20 @@ Read agents/investigator-coordinator/AGENT.md in Planner.
 Investigate F16 transpose-A MmadL1 support. Do not modify compiler code or
 run simulations. Report the native contract, missing implementation, and plan.
 ```
+
+For conversion support from logs or MLIR, use the AVE-to-VMI Developer:
+
+```text
+Read agents/ave-vmi-developer/AGENT.md in Planner.
+Diagnose missing AVE-to-VMI support from <logs-or-MLIR-path> using
+ASCEND_NPU_IR_ROOT=<checkout>. Identify the exact cases and rejected contracts,
+then present the smallest fix, files, and compilation-only checks for approval.
+After approval, implement and validate in the agreed branch. Preserve existing
+changes, keep deferred workarounds deferred, and do not stage or commit.
+```
+
+The same role can complete an already approved implementation assignment; pass
+the agreed scope, base branch, owned files, and verification budget explicitly.
 
 The small [Codex definitions](../.codex/agents/) explicitly tell custom agents
 to read these files. Role instructions live here; those TOML files are loaders.
