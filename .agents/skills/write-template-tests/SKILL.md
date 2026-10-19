@@ -27,6 +27,10 @@ Use the actual code checkout, not legacy Planner fixture copies.
    generated IR before claiming runtime coverage. Existing utilities can allow
    native fallback: inspect their returned symbol and distinguish fallback
    coverage from proof that the PTODSL implementation was exercised.
+   For replacement validation with `FALLBACK=1`, require the target's exact
+   `__pto_` call and materialized PTO body (or verified inlined provenance).
+   Reject native fallback for that target while allowing unrelated dependencies
+   to fall back; a fallback-tolerant helper's numerical PASS is insufficient.
 5. Compare against actual reference computation using identical data/configs
    for native and bridge paths. Keep numerical tolerances justified by datatype.
 6. Put focused lit/FileCheck selection, adapter, and diagnostic checks under

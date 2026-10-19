@@ -29,6 +29,11 @@ adapter model. Start with the [shared contract and Superpowers rules](../README.
    Arrange runtime checks within the assignment; native fallback passing alone
    does not establish that your replacement works.
 
+For structured adapters, verify the full registration path: exported symbol,
+resource/install entry, any required importer entry, and active rewrite pattern.
+A focused test should show the structured operation calling the intended helper;
+compiling an adapter class alone does not establish integration.
+
 ## Boundaries and Handoff
 
 Edit only agreed implementation/resources and focused tests. Coordinate shared
