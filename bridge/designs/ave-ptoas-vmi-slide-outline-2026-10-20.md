@@ -116,31 +116,66 @@ Physical lowering introduces a mask for this constant, and the saved diagnostic 
 
 The arithmetic correction is upstream commit `2503c259`; it is an integration request, not a new missing upstream feature. The saved D1200 diagnostic concerns an escaping `!pto.mask<b32>` introduced during constant lowering. VMI emission success stops before this failure stage. Do not equate it with the separate opt-in bridge barrier-finalizer issue in the appendix. [G02](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:70) · [E02](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:80); [G10](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:183) · [E10](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:193); [G13](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:221) · [E13](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:231).
 
-## Slide 5 — Validate continuous one-point store semantics
+## Slide 5 — Preserve continuous-store intent in VMI
+
+**Category:** Stateful memory streams — lowering and fusion coverage (G04 / F05).
 
 **On slide**
 
-- **Example:** Dqkwg marks `masked_store <ONEPT_B32>` continuous; the bridge emits independent singleton stores without alignment/base-state results. [G04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103) · [E04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:113).
-- **PTOAS request:** Test exact singleton eligibility for upstream stream fusion; add logical stateful stores and completion if existing fusion cannot preserve the native sequence. [G04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103) · [E04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:113).
-- **Boundary:** The sequence difference is confirmed; numerical impact and current-upstream closure are unverified. [G04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103) · [E04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:113).
+- **AVE / NPU-IR:** Two continuous `ave.hir.masked_store <ONEPT_B32>` operations write one F32 each per row. In the focused native test, NPU-IR initializes two stream states before the loop, carries them across rows, and completes both streams after the loop. [G04 / E04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103) · [Q2 stores](/home/m00967009/Workspace/Logs/q2_ave_requirements_oct19/captures/reused_dqkwg_H2_B4/before-bridge.mlir:1370), [native output](/tmp/ptoas-onept-check-20261020/native-after-hoist.mlir:10).
+- **VMI / PTOAS today:** `pto.vmi.vstore` is a unified store interface, not a request for streaming. Its fixed singleton-selection rule chooses a group store, which lowers to independent `1PT_B32` writes; the tested pipeline does not recover the native two-stream pattern. [G04 follow-up: upstream output](/tmp/ptoas-onept-check-20261020/singleton-semantic-pipeline.mlir:24) · [Selection rule](https://github.com/hw-native-sys/PTOAS/blob/739480c309c265feee7703cdde42fe89da60b1d9/lib/PTO/Transforms/VMI/VMILowerUnifiedToLegacy.cpp#L476), [point-store preference](https://github.com/hw-native-sys/PTOAS/blob/739480c309c265feee7703cdde42fe89da60b1d9/lib/PTO/Transforms/VMIToVPTO/VMIToVPTOPatternInternals3.cpp#L259).
+- **PTOAS request — interface and lowering:** Add a documented way to express continuous-stream intent on unified `pto.vmi.vstore`, such as an attribute. Preserve that intent through singleton/group-store lowering and select `vstus`/`vstas` streaming when eligible. Define eligibility and safe fallback behavior. [G04 / E04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103) · [Observed singleton selection](https://github.com/hw-native-sys/PTOAS/blob/739480c309c265feee7703cdde42fe89da60b1d9/lib/PTO/Transforms/VMI/VMILowerUnifiedToLegacy.cpp#L476).
+- **PTOAS request — loop fusion:** Extend fusion to multiple independent output streams in one loop when aliasing, ordering and intervening memory effects permit. The current guard rejects a loop containing another stateful stream. [G04 / E04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103) · [Fusion guard](https://github.com/hw-native-sys/PTOAS/blob/739480c309c265feee7703cdde42fe89da60b1d9/lib/PTO/Transforms/VPTO/VPTOStatefulStreamFusion.cpp#L582).
 
-**Code example — continuous AVE store and current bridge mapping**
+**Acceptance:** For an eligible marked two-output, 32-row loop, initialize both streams before the loop, carry their state across iterations, and complete both after the loop. Preserve the original addresses and values, and add regressions for unsafe fusion cases. [Native reference result](/tmp/ptoas-onept-check-20261020/native-after-hoist.mlir:10), [current upstream comparison](/tmp/ptoas-onept-check-20261020/singleton-semantic-pipeline.mlir:24).
+
+**AVE example — one value per output per row**
 
 ```mlir
-// Captured AVE: one result per row, marked continuous.
-ave.hir.masked_store <ONEPT_B32> %row_dst[], %first, %value
+// Inside the row loop; each value and mask has one lane.
+ave.hir.masked_store <ONEPT_B32> %out0[%row], %first, %value0
     {hivm.is_continuous}
-    : memref<f32, strided<[], offset: ?>, #ub>, vector<1xi1>, vector<1xf32>
-// Bridge VMI: independent singleton store, without state results.
-pto.vmi.vstore %value, %row_dst[%c0]
-    : !pto.vmi.vreg<1xf32>, !pto.ptr<f32, ub>
+    : memref<32xf32, #ub>, vector<1xi1>, vector<1xf32>
+ave.hir.masked_store <ONEPT_B32> %out1[%row], %first, %value1
+    {hivm.is_continuous}
+    : memref<32xf32, #ub>, vector<1xi1>, vector<1xf32>
 ```
 
-The VMI store has no returned alignment/base state or stream-completion operation to express the native continuous sequence. [G04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103) · [E04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:113) [Captured store](/home/m00967009/Workspace/Logs/q2_ave_requirements_oct19/captures/reused_dqkwg_H2_B4/before-bridge.mlir:1376), [bridge builder](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:4481).
+Each output array receives consecutive four-byte values; `hivm.is_continuous` identifies the stream across rows. The probe simplifies the captured rank-zero destination views to indexed arrays. [Q2 stores](/home/m00967009/Workspace/Logs/q2_ave_requirements_oct19/captures/reused_dqkwg_H2_B4/before-bridge.mlir:1373), [native probe](/tmp/ptoas-onept-check-20261020/native-two-onept.mlir:11).
+
+**NPU-IR native lowering — simplified view of the tested result**
+
+```text
+state0 = init_align()
+state1 = init_align()
+for row = 0..31:
+    state0, end0 = vstus.post(value0[row], &out0[row], 4 bytes, state0)
+    state1, end1 = vstus.post(value1[row], &out1[row], 4 bytes, state1)
+vstas(state0, end0)
+vstas(state1, end1)
+```
+
+Each output keeps its own alignment state between iterations; both final `vstas` completions are outside the loop. This is schematic notation for the emitted intrinsics, not executable syntax. [Native output](/tmp/ptoas-onept-check-20261020/native-after-hoist.mlir:10), [completion operations](/tmp/ptoas-onept-check-20261020/native-after-hoist.mlir:29).
+
+**PTOAS VMI lowering — simplified excerpt of the tested result**
+
+```mlir
+// Reductions and construction of the first-lane predicate are omitted.
+scf.for %row = %c0 to %c32 step %c1 {
+  pto.vsts %sum0, %out0[%row], %first {dist = "1PT_B32"}
+      : !pto.vreg<64xf32>, !pto.ptr<f32, ub>, !pto.mask<b32>
+  pto.vsts %sum1, %out1[%row], %first {dist = "1PT_B32"}
+      : !pto.vreg<64xf32>, !pto.ptr<f32, ub>, !pto.mask<b32>
+}
+```
+
+Each `1PT_B32` writes one F32 value independently; this result has no alignment state carried between iterations and no final stream-completion operations. [VMI probe input](/tmp/ptoas-onept-check-20261020/singleton-loops.pto:28), [upstream physical output](/tmp/ptoas-onept-check-20261020/singleton-semantic-pipeline.mlir:24).
 
 **Speaker notes**
 
-Native lowering uses updated alignment/base values and stream completion. Upstream's positive stream example writes 64-F32 chunks; it does not establish that the singleton case is covered. Compare exact addresses, state and completion before removing the workaround. A memory barrier does not encode stream completion, and no performance saving is measured. [G04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103) · [E04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:113).
+This October 20 follow-up refines the report's earlier conditional G04 finding. The native check ran the local NPU-IR compiler with `--convert-hivmave-to-ave-intrin --hoist-vstas` for Ascend950. The VMI check used a fresh build of unmodified upstream `739480c309c2`, including its semantic pipeline through stateful stream fusion; three existing upstream regression controls passed. These are focused two-output examples, not complete Q2-kernel executions. [Native commands and results](/tmp/ptoas-onept-check-20261020/native-two-onept-results.json:1), [upstream compiler provenance and checks](/tmp/ptoas-onept-check-20261020/results.json:1).
+
+The current selection is deterministic: the requested change is explicit control over store strategy and documented eligibility, not a fix for random lowering. Ordinary singleton writes and physical stateful operations already exist in PTOAS. Standalone `1PT_B32` writes do not require a final `vstas`; they do not create an alignment-buffer stream. The gap is preserving continuous-store intent and covering safe multi-stream loops. A new physical instruction or a new state-carrying VMI operation is not demonstrated necessary. Device correctness and any performance saving remain to validate.
 
 ## Slide 6 — Handle full-width AVE reduction results
 
