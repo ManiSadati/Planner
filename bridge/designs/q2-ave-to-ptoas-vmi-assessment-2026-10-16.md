@@ -1,6 +1,6 @@
 # Q2 AVE-to-PTOAS VMI assessment
 
-Assessment date: 2026-10-16. Expanded with before/after examples and reassessed against upstream master on 2026-10-16. Analysis only; no compiler, kernel, template, or pipeline implementation was changed.
+Assessment date: 2026-10-16. Expanded with before/after examples and reassessed against upstream master on 2026-10-16. Tracker coverage expanded on 2026-10-19; the additional source baselines are recorded below. Analysis only; no compiler, kernel, template, or pipeline implementation was changed.
 
 ## Summary
 
@@ -18,7 +18,9 @@ Assessment date: 2026-10-16. Expanded with before/after examples and reassessed 
 
 **Observed historical performance:** Two forward layernorm cases were measured slower through PTOAS: 442.245 → 489.96 μs (+10.79%) for [2-4096-1200-silu], and 4.3 → 4.9 μs (+13.95%) for [2-2-64-silu]. These are whole-kernel observations from [OLD:23](/home/m00967009/Workspace/Planner/bridge/planning/ptoas_failure_categorization.md:23), not measurements attributing cost to any finding below or to the latest source.
 
-**Scope discipline:** Predicate-memory PB8/PB16/PB32 is a real bridge-wide gap, but the available Q2 evidence does not establish the packed-predicate spill/reload path for an exact Q2 specialization. It is therefore an open question, not a confirmed Q2 inventory item. Similarly, signed vector-scalar min/max and the specific F32-to-F16 row-split fixpipe tracker example are not imported into the AVE findings merely because they appear in the tracker.
+**Expanded scope (2026-10-19):** The report now covers every row of the compatibility tracker. Findings F01–F17/S01–S02 retain their original Q2 evidence and qualifications. Additional findings **T01–T06** cover signed scalar min/max, predicate-valued UB memory, PTOAS dependency drift, external CCE-call ABI, target/kernel metadata, and row-split fixpipe. These are tracker-wide contracts; an exact Q2 occurrence has not been established for each. They must not be counted as six newly reproduced Q2 failures.
+
+**Additional priority:** Predicate-memory correctness (T02) needs attention wherever that path occurs: the byte carrier requires an explicit physical repair pass, and the inspected default flows do not invoke it. Signed min/max (T01) already has a constant-scalar workaround, including supported direct partial masks; dynamic scalars remain rejected. T03 and T06 also correct stale tracker descriptions: the compiler now uses the PTOAS submodule directly, and the checked row-split conversion retains a native helper rather than selecting the tracker’s proposed single transfer.
 
 **Fusion follow-up (2026-10-19):** [How the bridge can enable later PTOAS fusion](bridge-ptoas-fusion-opportunities-2026-10-19.md) audits actual pass matchers and pipeline gates, including interface migration, broadcast-load combining, layouts, masks/reductions, streams, fused arithmetic, and the separate tile-fusion lifecycle. It distinguishes existing support from proposed bridge changes and unmeasured performance effects.
 
@@ -85,6 +87,8 @@ The assessment uses local source and saved artifacts. The tracker was a starting
 A revision alone does not identify existing dirty files or the provenance of every prebuilt binary. Fresh bridge probes used the already available /tmp/layernorm-tools/bishengir-opt, and FileCheck from AscendNPU-IR/build/bin. Fresh downstream probes used PTOAS/build/tools/ptoas/ptoas. These are explicitly distinguished from source inspection and earlier recorded experiments.
 
 **Baseline distinction (O):** The old local checkout and the actual submodule have byte-identical VMI operation definitions, unified-to-legacy lowering, VMI-to-VPTO lowering, mask-granularity assignment, VMI verifiers, and vector-scope inference files examined here. This supports source-level comparison for those paths; it does not establish the provenance of an existing binary. Original local links and original probe results below describe that older baseline. New upstream links pin the exact master revision above. Commit dates alone do not establish whether a fix exists in the submodule: this fork lacks some upstream changes whose dates precede its own HEAD.
+
+**Tracker-coverage follow-up baseline (2026-10-19, source inspection):** T01–T06 inspect Planner `795a407e4d5578a6305be4026044755a4e24a2ae`, AscendNPU-IR `8b8f40f88e993ac9fde1d13c1084ed53e1d1694c`, and upstream PTOAS [`ec8d1810b6c107b391a88305a14bde4c334cb21c`](https://github.com/hw-native-sys/PTOAS/commit/ec8d1810b6c107b391a88305a14bde4c334cb21c) under `/tmp/ptoas-research-20261019`. The NPU-IR gitlink records PTOAS `e4469bc4533ee4d1075ee561991ba24c7860fabe`, while the actual inspected submodule checkout is still `3c1c98fcc8ec0c49b8bededc9a0c7599c6a71a02`. This difference is pre-existing. The follow-up does not replace the older findings’ validation baseline or claim that new upstream tests were executed.
 
 Citation labels identify file families; every linked citation opens its concrete absolute path and starting line. B = HIVMAVEToPTOASVMI.cpp; T = HIVMTemplatesToPTO.cpp; A = HIVMAVEOps.td; N = native HIVMAVEToAVEIntrin.cpp; U = VMILowerUnifiedToLegacy.cpp; P = VMIToVPTO.cpp; S = PTOInferVPTOVecScope.cpp; V/I = VMI operation definitions/verifiers; C = VPTOCANN900LLVMEmitter.cpp; R = saved raw dqkwg AVE log. LN/DQ/CS/CV/SD refer to the cited Q2 Python sources. Line intervals following a link are inclusive reading ranges; the link points to their first line.
 
@@ -213,7 +217,7 @@ for i in 0..4:                         state = init_align()
 
 ## Findings table
 
-Read each row from left to right: the AVE pattern, what native AscendNPU-IR does, and what the bridge emits for PTOAS. The new native-lowering column distinguishes observed code (O) from native details that remain unresolved (Q). Each row is a distinct contract or failure mode. Detailed evidence follows under the matching ID. “No additional issue established” does not assert that every specialization works. The final column states the upstream reassessment separately from the current bridge/submodule behavior; it is based on source and upstream regression contracts, not a fresh full-Q2 run.
+Read each row from left to right: the AVE pattern, what native AscendNPU-IR does, and what the bridge emits for PTOAS. The new native-lowering column distinguishes observed code (O) from native details that remain unresolved (Q). Each row is a distinct contract or failure mode. Detailed evidence follows under the matching ID. “No additional issue established” does not assert that every specialization works. The final column states the upstream reassessment separately from the current bridge/submodule behavior; it is based on source and upstream regression contracts, not a fresh full-Q2 run. T01–T06 are the tracker-wide additions, with their own 2026-10-19 baseline; their first column explicitly distinguishes them from confirmed Q2 occurrences.
 
 | Q2 kernel/pattern | AVE operation or abstraction | Native AscendNPU-IR behavior / lowering | Current bridge mapping | Current workaround | PTOAS lowering issue | Semantic match | Performance impact | Recommended approach | Evidence | Upstream master reassessment |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -236,6 +240,12 @@ Read each row from left to right: the AVE pattern, what native AscendNPU-IR does
 | F17: recovered dqkwg store/load dependencies | Live loaded/computed vectors across inserted VST_VLD barrier | O: AVE allows a loaded vector to have later users. Q: the exact native register lifetime and barrier schedule of the recovered function were not compared. The failure shown here comes from opt-in bridge finalization. | Insert barrier; rematerialize safe values after it | No safe workaround for non-pure crossing value found | Bridge lifetime repair rejects before PTOAS; separate from F09 | Fails safely; moving/reloading arbitrary values could change meaning | I: barriers/duplication could cost; current blocked path has no latency | Coordinate hazard placement and legal register lifetimes, preserving memory order | [F17](#f17) | O: rejection is in bridge finalization; upstream alone cannot resolve it. |
 | S01: chunk_local_cumsum vector path | Stage 1 CCE 2-D F32 dim-0 scan | O: Native ordinary floating dim-0 CCE scan copies input and runs a Sklansky tree using vector loads, adds and stores. This is a template composition, not one AVE scan instruction. [native scan](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Template/lib/RegBase/Vector/Cumsum.cpp:215). | PTODSL Sklansky scan helper now exists | Masked gather/scatter rows, reverse indexing, explicit stage barriers | Not a missing VMI scan instruction; exact Q2 rerun still needed | I: matching scan tree intent; runtime/bitwise comparison not established | I: copy + repeated UB accesses + stage barriers; native has similar scan stages | Retain template route; compare logical tails, reverse, aliasing, emitted memory cost | [S01](#s01) | O: template support remains present; no fresh upstream full-kernel result. |
 | S02: layernorm D50 UB copy | Stage 1 2-D F32 UB copy | O: Native uses a CCE Copy2D helper that inspects both descriptors and dispatches by strides/shape. Q: the exact aligned/scalar-tail branch selected for Q2 D50 was not isolated. [native copy](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Template/lib/RegBase/Vector/Copy2D.cpp:560). | VMI row/chunk gather + masked store loops | Protect 50-column tail without touching padding | Tail memory safety constrains full-register loads | I: logical values/offsets preserved for static guarded shapes | I: vector/address work can exceed aligned DMA; native unaligned path must be compared | Add aligned DMA fast path only where legal; keep safe tails | [S02](#s02) | O: stream fusion can improve eligible unaligned copies (U03); exact D50 path unmeasured. |
+| T01: tracker-wide signed scalar min/max; exact Q2 occurrence unconfirmed | Signed ave.hir.vsmins / vsmaxs on signless i32 | O: Signed operation identity selects signed vmins/vmaxs intrinsics, despite signless MLIR types | Explicit si32 vector/scalar → vmins/vmaxs → bitcast back | Constant scalar; supported direct ALL/VL/H masks. Dynamic scalar rejected | Naive signless vector normalizes to unsigned while scalar stays i32; signedness/type mismatch | Signed ordering retained for accepted carriers; partial-mask end-to-end validation unresolved | I: type casts need not issue instructions; direct scalar operation avoids a required broadcast | Establish signed scalar normalization/materialization for dynamic operands; preserve masks | [T01](#t01) | O: ec8d1810 still has naive signless normalization hazard; direct signed scalar lowering exists |
+| T02: tracker-wide predicate spill/reload; masked Planner FlashAttention; exact Q2 occurrence unconfirmed | Store/load the predicate itself in UB, PB8/PB16/PB32 | O: psts or init_align+pstu+vstas stores; ordinary reload plds plus PB-layout repair; unaligned load has another path | Mask → zero/one byte vreg → memory; reload bytes → comparison | Pointer-cast PB marker plus opt-in post-PTOAS predicate-memory finalizer | Logical memory data/result remains numeric vreg, not mask; physical predicate instructions already exist | Raw carrier is not a complete packed-memory implementation; exact repair depends on recognizer and address contract | I: repaired path can eliminate carrier conversion/compare work; no measured cost | First-class predicate-memory VMI with PB width and explicit addressing; validate default integration meanwhile | [T02](#t02) | O: ec8d1810 still lacks logical predicate-valued memory |
+| T03: tracker-wide producer/consumer version contract | Tracker’s “vendored PTO dialect snapshot” | O: Current NPU-IR builds dialect from PTOAS submodule, not copied headers | Emit the dialect of the selected submodule checkout | Pin dependency; compare emitted text against consuming tool | New upstream removed old memory attributes and renamed scalar loads; local verification cannot establish downstream compatibility | Version-dependent; not an AVE arithmetic mismatch | No intrinsic runtime cost from packaging; incompatibility can block compilation | Pair dialect/resource/binary revisions and test emitted bridge IR | [T03](#t03) | O: ec8d1810 interface differs; old copied-snapshot description superseded |
+| T04: tracker-wide external CCE template calls | Descriptor-bearing native call inside pointer-launch kernel | O: Native helper signatures consume ranked memrefs | Preserve internal memrefs; kernel ptr → controlled memref cast | pto.preserve_external_call_memrefs plus explicit native fallback symbols | Upstream has no matching private-marker consumer; final VPTO validation rejects remaining memrefs/scaffolding | Bridge-local compatibility route; full external ABI/linking not established | Q: descriptor materialization and linking costs unmeasured | Explicit supported descriptor ABI or exact PTO-native template resource | [T04](#t04) | O: no general external-memref ABI closure established at ec8d1810 |
+| T05: tracker-wide target/core packaging | Source device specification and AIC/AIV/MIX classification | O: NPU-IR retains device/core metadata before bridge conversion | Hard-coded A5; pure kind or mixed cube/vector sections | Require classified split functions; mixed wrappers restricted to one block and no results | PTO kind has cube/vector; structural mixed splitting supported | Supported classified A5 subset; target derivation/general CFG unresolved | No inherent packaging penalty established; wrong target is a correctness/compatibility risk | Validate/derive target; retain core classification and explicit restrictions | [T05](#t05) | O: ec8d1810 has canonical mixed child-module splitting; no third mixed kind required |
+| T06: tracker-wide Stage 1 row-split accumulator transfer; exact Q2 occurrence unconfirmed | fixpipe F322F16 + ROW_SPLIT, L0C → UB | O: Native helper retains conversion and dual-destination semantics | Checked public conversion retains native descriptor helper | Exact PTO resource gate; alternative converted PTODSL resource uses two single-destination transfers | Dual-destination transfer rejects explicit quantization; typed intrinsic selection alone is insufficient proof | Native fallback selected; alternative equivalence/coverage requires validation | I: two transfers may cost more than one dual transfer; selected-path timing unknown | Resolve exact resource and validate split addressing/rounding; improve combined transfer lowering if legal | [T06](#t06) | O: ec8d1810 retains dual-destination quantization restriction; tracker’s asserted single-transfer mapping is not current checked path |
 
 ## Detailed evidence and semantic limits
 
@@ -1258,30 +1268,220 @@ copy-ubuf-to-ubuf-2d-f32.mlir:3–16 explicitly tests a tight 50-column source a
 
 **I:** this is a supported fallback with potential efficiency cost, not a missing PTOAS copy instruction. The aligned rank-one branch already uses mte_ub_ub ([T:686](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMTemplatesToPTO/HIVMTemplatesToPTO.cpp:686)–707). A rank-two DMA fast path should be selected only when row alignment, stride units, exact tails, and synchronization are proven equivalent.
 
+## Additional tracker-wide findings
+
+These six entries close coverage gaps between the tracker and this report. **O** means observed source/test contract, **I** an inference, and **Q** unresolved. Regression expectations below were read, not freshly executed. Snippets are adapted excerpts or explicitly labeled pseudocode.
+
+### T01
+
+**Signed scalar min/max: keep negative integers signed.**
+
+**Applicability (Q):** No exact generated Q2 occurrence was established. This is the tracker’s `ave.hir.vsmins` / `ave.hir.vsmaxs` case, separate from F16’s signed comparison selecting floating values. The signed AVE names differ from the target names `pto.vmi.vmins` / `vmaxs`.
+
+**What AVE asks for:** signed scalar min/max on each active lane. For example, signed `max(-1, 0)` is `0`; unsigned interpretation would select the bit pattern `0xffffffff`. MLIR `i32` alone does not express which ordering to use; the AVE operation supplies that meaning.
+
+Adapted from `signed_vector_scalar_min_pge_h`:
+
+~~~mlir
+// AVE: compare the first 32 lanes of a 64-lane vector with signed integer 1.
+%c = arith.constant 1 : i32
+%m = ave.hir.pge <H> {functionType = #ave.func_dist_type<pb32>}
+    : vector<64xi1>
+%r = ave.hir.vsmins %x, %c, %m
+    : vector<64xi32>, i32, vector<64xi1>
+
+// Bridge: make the required signed interpretation explicit.
+%m = pto.vmi.pge "PAT_VL32" : !pto.vmi.mask<64xpred>
+%sx = pto.vmi.bitcast %x
+    : !pto.vmi.vreg<64xi32> -> !pto.vmi.vreg<64xsi32>
+%sc = builtin.unrealized_conversion_cast %c : i32 to si32
+%sr = pto.vmi.vmins %sx, %sc, %m
+    : !pto.vmi.vreg<64xsi32>, si32, !pto.vmi.mask<64xpred>
+      -> !pto.vmi.vreg<64xsi32>
+%r = pto.vmi.bitcast %sr
+    : !pto.vmi.vreg<64xsi32> -> !pto.vmi.vreg<64xi32>
+~~~
+
+**Native lowering (O):** AVE signed scalar operation definitions select `vmins`/`vmaxs`; intrinsic naming uses `cast_signed` unless the operation is explicitly unsigned. The native intrinsic definitions distinguish signed `.s` from unsigned `.u` forms: [AVE definitions](/home/m00967009/Workspace/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVMAVE/IR/HIVMAVEOps.td:885), [signedness selection](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Dialect/HIVMAVE/IR/HIVMAVEOps.cpp:55), [intrinsic forms](/home/m00967009/Workspace/AscendNPU-IR/bishengir/include/bishengir/Dialect/HIVMRegbaseIntrins/IR/HIVMRegbaseIntrins.td:3069).
+
+**Current support and limitation (O):** [Bridge pattern](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:4276) accepts matching rank-one i32 vectors, a directly defined integer `arith.constant` scalar, and a supported direct `pge` mask. [Mask mapping](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:595) covers ALL, VL1/2/3/4/8/16/32/64/128, and H mapped to half the lane count. It does not cover arbitrary computed masks. The tracker/design note’s ALL-only description is stale. [preflight-integer-vector-scalar.mlir](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/preflight-integer-vector-scalar.mlir:3) checks ALL min/max and, at line 36, H min. [unsupported-signed-vector-scalar-dynamic.mlir](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/unsupported-signed-vector-scalar-dynamic.mlir:1) checks dynamic-scalar rejection.
+
+**Upstream limitation (O):** At ec8d1810, [normalization](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/lib/PTO/Transforms/VMI/VMINormalizeSignlessIntToUnsigned.cpp#L43) rewrites signless vector carriers to unsigned but leaves scalar operands unchanged; [scalar verifier](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/lib/PTO/IR/VMI/VMIArith.cpp#L527) requires exact scalar/element type agreement. The explicit signed workaround therefore remains relevant. [Direct scalar lowering](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/lib/PTO/Transforms/VMIToVPTO/VMIToVPTOPatternInternals4.cpp#L448) preserves mask parts; [upstream regression](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/test/lit/vmi_new/vmi_lower_vmaxs_vmins_integer.pto#L38) expects physical scalar min/max without `vdup` or vector-vector replacement. This does not validate the entire bridge wrapper sequence or every partial mask numerically.
+
+**Recommendation and performance (I/Q):** Give signed scalar operands a supported normalization/materialization contract, then generalize dynamic scalars with tests. Retain masks and rejected-case diagnostics. The bitcasts express interpretation and need not execute as instructions; the workaround does not inherently require a broadcast or UB traffic. Quantify any overhead by comparing native and bridge physical min/max, materialization, register use and latency with negative values and partial masks. No performance measurement is available.
+
+### T02
+
+**Predicate UB memory: store the true/false values themselves.**
+
+**Applicability (O/Q):** The tracker documents this in masked Planner `flash_atten_64x64`; its bring-up history is in [predicate-memory-store-compatibility.md](predicate-memory-store-compatibility.md). Exact Q2 packed-predicate spills/reloads remain unconfirmed. A masked numeric store is a different operation: its predicate chooses which numbers to write; here the true/false values are the data being written.
+
+Adapted from [preflight-predicate-memory.mlir](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/preflight-predicate-memory.mlir:3):
+
+~~~mlir
+// AVE: %predicate is data; %all controls which lanes are stored.
+ave.hir.masked_store <NORM_B8> %dst[%bit_offset], %all, %predicate
+    {functionType = #ave.func_dist_type<pb32>}
+    : memref<64xi1, strided<[1]>, #hivm.address_space<ub>>,
+      vector<64xi1>, vector<64xi1>
+~~~
+
+Current bridge and repair, **schematic pseudocode**:
+
+~~~text
+Temporary VMI:
+  marked_ptr = castptr(castptr(dst + bit_offset, ui32), ui8)
+  bytes = trunci(select(predicate, ones_i32, zeros_i32), ui8)
+  store bytes -> marked_ptr
+
+After explicitly running --finalize-ptoas-vpto-predicate-memory:
+  byte_ptr = base + sum(marked_bit_offsets) / 8
+  alignment = init_align
+  alignment, base = pstu(alignment, predicate_b32, byte_ptr_as_ui32)
+  vstas(alignment, base, 0)
+
+Temporary reload: load byte carrier -> compare_ne(bytes, 0)
+Finalized PB32 reload: plds -> pintlv_b8 -> pintlv_b8 -> predicate bitcast
+~~~
+
+**Native lowering (O):** [Native ordinary stores](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:1197) use PB8 `psts`, or on A5 PB16/PB32 the [init_align/pstu/vstas helper](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:777). [Ordinary loads](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:1020) use `plds`, then predicate-layout interleaving for PB16/PB32. [Unaligned loads](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:901) have a separate `vldas/vldus.post/movvp` path; the ordinary recipe is not universal.
+
+**Current workaround (O):** [Carrier construction](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:444) makes numeric zero/one bytes. [Pointer markers](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:486) record PB8/PB16/PB32 with cast pairs. [Load conversion](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:3644) and [store conversion](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:4352) restrict UB i1 types, attributes, layout and masks. [Address repair](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:5655) sums marked bit offsets before division by eight. [Store/load repair](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:5795) recognizes particular physical carrier chains and restores predicate instructions.
+
+**Important integration limit (O):** This repair is opt-in. [Compiler pipeline](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Tools/bishengir-compile/regbase/PassPipeline.cpp:315) explicitly leaves finalizers opt-in; [comparison runner](/home/m00967009/Workspace/Planner/bridge/tools/run_comparison_flow.sh:723) writes PTOAS VPTO without invoking the predicate finalizer. The older design note’s automatic-finalization description is stale. Raw byte carriers are not a complete native packed-memory implementation and must not be presented as semantically equivalent by themselves.
+
+**Latest upstream (O):** [VMI memory definitions](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/include/PTO/IR/VMIOps.td#L440) require numeric vreg data/results, including masked stores at line 559. A controlling mask does not make the stored value mask-valued. Physical support already exists: [plds](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/include/PTO/IR/VPTOOps.td#L2044), [psts](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/include/PTO/IR/VPTOOps.td#L3085), and [pstu](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/include/PTO/IR/VPTOOps.td#L4031). Thus the remaining gap is logical representation/integration, not absence of hardware-level predicate instructions.
+
+**Semantic limits (O/Q):** [finalize-vpto-predicate-memory.mlir](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/finalize-vpto-predicate-memory.mlir:5) covers PB32/PB8 stores and PB16/PB32 loads, not the entire PB-width × load/store matrix. Marker loss, other physical memory forms, partial controlling masks, tails, aliases and nonbyte-aligned addresses need coverage. Native [descriptor offset handling](/home/m00967009/Workspace/AscendNPU-IR/third-party/llvm-project/mlir/lib/Conversion/LLVMCommon/MemRefBuilder.cpp:211) divides i1 descriptor offsets by eight, while [index/stride addressing](/home/m00967009/Workspace/AscendNPU-IR/third-party/llvm-project/mlir/lib/Conversion/LLVMCommon/Pattern.cpp:77) is separate; this alone does not prove arbitrary indexed-address equivalence with the bridge’s accumulated-bit-offset contract.
+
+**Recommendation and performance (I/Q):** Add first-class VMI predicate load/store with PB granularity and explicit address units, lowering normally to physical predicate operations. Meanwhile validate explicit repair in the actual consuming flow. Successful repair can remove numeric select/truncation/load/compare carriers, but correctness comes first; an unfinalized byte store is not a valid packed-store performance baseline. Measure native versus finalized sequences, memory footprint, instructions and latency across PB widths, offsets and tails. No measured speedup is established.
+
+### T03
+
+**PTOAS version contract: producer and consumer must agree on IR.**
+
+**Applicability (O):** This is cross-cutting build/ABI compatibility, not a particular Q2 vector instruction. The tracker’s term “vendored PTO dialect snapshot” is retained here to identify the row, but its copied-source description is outdated. [Current dependency documentation](/home/m00967009/Workspace/AscendNPU-IR/docs/ptoas-dependency.md:22) explicitly says the compiler builds PTO IR from `third-party/ptoas`, with no copied snapshot; [CMake](/home/m00967009/Workspace/AscendNPU-IR/CMakeLists.txt:101) selects those sources. The recorded gitlink, actual checkout and upstream revisions differ as listed in the follow-up baseline.
+
+**Concrete interface difference (O), schematic spellings:**
+
+~~~text
+Old producer/submodule: pto.load_scalar; vload with dist_mode/repeat-stride fields
+Upstream ec8d1810:      pto.load; old VMI dist_mode spelling rejected
+~~~
+
+See [old scalar op](/home/m00967009/Workspace/AscendNPU-IR/third-party/ptoas/include/PTO/IR/PTOOps.td:185), [upstream scalar op](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/include/PTO/IR/VPTOOps.td#L171), and [upstream rejection test](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/test/lit/vmi_new/vmi_dist_mode_removed_invalid.pto#L11). Different names alone do not imply lost scalar-load support; incompatible schemas require bridge adaptation and emitted-text validation. F02/F03/F14 describe separate semantic consequences.
+
+**Current handling and recommendation (O/I):** The pinned dependency gives local builders/verifiers a concrete schema, and the comparison flow invokes a separate PTOAS tool. That is not a guarantee they match. Pin and record the producer source, actual submodule checkout, generated PTODSL resources and consuming binary together; run representative emitted bridge IR through that exact consumer. Do not recommend refreshing nonexistent copied headers. There is no intrinsic runtime penalty from dependency packaging; compilation failures or changed downstream behavior are the risk. No new paired build was executed for this addition.
+
+### T04
+
+**External CCE calls: a pointer argument is not automatically a memref descriptor.**
+
+**Applicability (O/Q):** This tracks the bridge’s external native-template compatibility mode. Exact current Q2 occurrence and complete external linking were not established here. It is distinct from F11: F11 concerns reconstructing addresses after descriptor erasure; this finding concerns calling a function that still expects the descriptor itself.
+
+**Adapted shape from the external-call regression:**
+
+~~~text
+Native source:
+  native_template(src: ranked memref, dst: ranked memref)
+
+Bridge external-call mode:
+  kernel(src_ptr: !pto.ptr, dst_ptr: !pto.ptr)
+    src_memref = unrealized_conversion_cast(src_ptr -> ranked memref)
+    dst_memref = unrealized_conversion_cast(dst_ptr -> ranked memref)
+    call native_template(src_memref, dst_memref)
+  metadata: pto.preserve_external_call_memrefs + native fallback symbols
+~~~
+
+**Observed support:** [Declaration/call classification](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:1372) identifies native fallback symbols. [Entry rewriting](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:1422) restores controlled internal memref carriers from pointer arguments; explicit reinterpret views retain sizes/strides. [Call patterns](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:2268) retain matching native memref arguments and reject memref results/mismatched signatures. [external-call-memref-abi.mlir](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/external-call-memref-abi.mlir:3) checks pointer launch, internal casts/views and a retained `nd2nz_half` call. [no-native-fallback-metadata.mlir](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/no-native-fallback-metadata.mlir:1) checks that the marker is absent without fallback symbols.
+
+**PTOAS limitation (O/Q):** No consumer of `pto.preserve_external_call_memrefs` or `pto.native_template_fallback` was found in upstream include/lib/tools/test. [Final VPTO validator](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/lib/PTO/Transforms/Passes/PTOValidateVPTOIR.cpp#L1065) rejects remaining memref function arguments/results and, at line 1100, memref buffer operands/residual scaffolding. This does not prove every external route fails: earlier normalization or separately integrated native linking may resolve a case. It does mean bridge-local verification and a private marker do not establish a supported descriptor ABI.
+
+**Recommendation and performance (I/Q):** Use an explicit supported descriptor materialization/call ABI, or replace the call with an exact PTO-native template when available. Validate descriptor base/offset/sizes/strides, symbol linkage and final output before timing. The cast itself is not evidence of a memory copy; any descriptor setup, spills or call overhead must be counted in final code. No measured cost or general end-to-end semantic guarantee is available.
+
+### T05
+
+**Target and mixed-core metadata: select the right machine and package both core kinds.**
+
+**Applicability (O):** A module-wide contract, with Q2 mixed Cube/Vector context already covered in F14. This finding concerns target/core packaging, not semaphore semantics.
+
+**Current mapping, schematic:**
+
+~~~text
+NPU-IR: device specification + functions marked AIC / AIV
+PTOAS:  pto.target_arch = "a5"                 // currently hard-coded
+        pure module: pto.kernel_kind = cube OR vector
+        mixed module: no outer kind;
+          AIC bodies inside pto.section.cube
+          AIV bodies inside pto.section.vector
+        PTOAS splits sections into canonical child modules by kind
+~~~
+
+**Observed implementation:** [Metadata conversion](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:1539) classifies AIC/AIV functions and rejects unsplit MIX, AIC_OR_AIV, ambiguous or unclassified mixed definitions. [Mixed wrappers](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:1513) require single-block functions without results and a void return. [Target assignment](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:1603) unconditionally sets A5. [preflight-metadata-container.mlir](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/preflight-metadata-container.mlir:3) checks device metadata becoming A5; [preflight-mixed-kernel-metadata.mlir](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/preflight-mixed-kernel-metadata.mlir:3) checks both sections without an outer kind; [negative test](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/preflight-reject-unclassified-mixed-function.mlir:1) rejects missing classification.
+
+**Upstream (O):** [Kernel kinds](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/include/PTO/IR/PTOAttrs.td#L643) contain cube/vector; [mixed splitting](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/lib/PTO/Transforms/VPTO/VPTOSplitCVModule.cpp#L343) and [container normalization](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/lib/PTO/Transforms/VPTO/VPTONormalizeContainer.cpp#L44) support the structural representation. Absence of a third `mixed` enum is not missing mixed-kernel support.
+
+**Recommendation and performance (I/Q):** Validate or derive the target from the confirmed source device specification, keep exact per-function core classification, and document CFG/result restrictions. Generalize only with a supported representation. Packaging itself has no established runtime overhead; a wrong architecture or omitted core body is a compatibility/correctness risk. Compare paired final modules/core dispatch and hardware results before claiming equivalent behavior or a performance benefit.
+
+### T06
+
+**Row-split F32→F16 fixpipe: conversion plus one accumulator transfer to two vector subblocks.**
+
+**Applicability (O/Q):** This is a Stage 1 structured `hivm.hir.fixpipe` contract, not an AVE vector instruction. No exact Q2 specialization containing this F16 row-split form was established. Broader Q2 BF16/F32 Cube-template failures remain distinct.
+
+Adapted input and **actual checked public-path output**:
+
+~~~mlir
+hivm.hir.fixpipe {
+    dma_mode = #hivm.dma_mode<nz2nd>,
+    pre_quant = #hivm.fixpipe_pre_quant_mode<F322F16>}
+    ins(%src : memref<4x4x16x16xf32, #cc>)
+    outs(%dst : memref<32x64xf16, strided<[64, 1]>, #ub>)
+    dual_dst_mode = <ROW_SPLIT>
+~~~
+
+~~~text
+Current selected path: call @fixpipe_nz2nd_dual_float_to_half_4d_to_2d_ubuf
+                      with native memref descriptors
+Not selected by that regression: call @__pto_fixpipe...
+Alternative converted PTODSL resource: two single-destination transfers,
+                                      one per subblock, with F32F16 conversion
+~~~
+
+**Observed current handling:** [fixpipe-row-split-ptodsl.mlir](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMTemplatesToPTO/fixpipe-row-split-ptodsl.mlir:3) explains that the legacy helper lacks an exact native resource; lines 38–50 check the retained native helper and forbid a `__pto_fixpipe` call. The [resource registry](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMTemplatesToPTO/PTODSLTemplateRegistry.cpp:61) requires an exact installed resource name. [Native lowering](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMToStandard/HIVMToStandard.cpp:511) retains conversion and dual-mode information; the [native dual-template dispatch](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Template/lib/RegBase/Cube/include/Fixpipe/FixpipeUtils.h:386) implements that route. Selecting the fallback is not proof of final external-ABI closure; see T04.
+
+**Alternative implementation (O):** [Cube conversion eligibility](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMTemplatesToPTO/Cube/MatmulRegionToPTO.cpp:412) is guarded. The [PTODSL generator](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Template/lib/RegBase/Cube/nd2nz_fixpipe_ptodsl.py:151) uses split-M for the unquantized case but two single-destination transfers for converted row-split output; [checked F16 resource](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Template/lib/RegBase/Cube/PTODSL/instantiations/fixpipe_nz2nd_f32_f16_row_split_ub.mlir:2) contains those two transfers. Therefore the tracker’s stated current one-`split_m` transfer with implicit conversion is stale for the checked selected path and is not the converted resource sequence either.
+
+**Upstream limitation (O):** [Dual-destination verification](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/lib/PTO/IR/VPTO/mte/VPTOMteShared.cpp#L201) rejects explicit prequantization and other unsupported dual-mode settings. [Transfer expansion](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/lib/PTO/Transforms/VPTO/VPTOExpandWrapperOps.cpp#L1849) creates a typed copy; [intrinsic selection](https://github.com/hw-native-sys/PTOAS/blob/ec8d1810b6c107b391a88305a14bde4c334cb21c/lib/PTO/Transforms/VPTO/VPTOCANN900LLVMEmitterCalleeMemory.cpp#L209) uses the source/destination type pair, including F32→F16. Quantization configuration also matters: an F16 pointer alone does not prove that the entire source fixpipe contract is preserved.
+
+**Recommendation and performance (I/Q):** First establish exact resource selection and external fallback behavior. Then test a supported combined conversion/dual-transfer lowering against the native helper, including subblock addressing, layout, rounding, tails and non-64 tile sizes before generalizing. Two single-destination issues may add setup/issue work relative to one dual transfer; the chosen native fallback has no established per-finding timing penalty. Compare native, exact imported two-transfer resource and any legal combined transfer on the same 64×64 source, counting transfers, configuration and latency. No measured speedup or general equivalence is claimed.
+
 ## Tracker reconciliation and covered controls
 
 The tracker remains useful, but its rows span different dates and validation levels.
 
 | Tracker terminology | This assessment |
 |---|---|
-| Signed vsmins/vsmaxs | No occurrence established in reviewed Q2 generated paths; excluded from confirmed inventory. Signed comparison in F16 is different. Current constant min/max code accepts supported direct masks, broader than the tracker’s all-active-only text. |
+| Signed vsmins/vsmaxs | T01: explicit signed carriers for constant scalars; supported direct partial masks already accepted, dynamic scalars rejected. Exact Q2 occurrence unconfirmed; F16 is a different operation. |
 | reduction ADD/MAX | F04 confirms ADD in Q2; source SDPA MAX is present, but exact Q2 MAX AVE lowering was not captured here. |
 | BRC_B32/BRC_B16 singleton; B16 64-lane | F02/F03. Preserve pipeline distinctions. |
 | Continuous ONEPT_B32 | F05 additionally establishes dqkwg occurrence. |
-| Predicate-valued PB8/PB16/PB32 memory | Real compatibility issue; Q2 packed-memory occurrence unresolved. Ordinary predicates and masked numeric stores do not prove predicate memory. |
+| Predicate-valued PB8/PB16/PB32 memory | T02: byte carrier plus opt-in physical repair; current default flow does not invoke repair. Q2 packed-memory occurrence unresolved. |
 | VL1 vextf | F01; also track VL1 vtruncf and cumsum non-ALL promotion separately by consumer contract. |
 | Partial arithmetic masks | F06; current H support supersedes older design-note rejection. Mask loss remains in pinned submodule but is fixed upstream by U01. |
 | Stored F32 -inf | F15, with exact Q2 scalar-store trigger unproven. |
 | sync_block_set/wait | F14; named A5 intra-block support supersedes old blanket core/mode-loss description. |
-| Vendored snapshot, external CCE ABI, pointer collapse | F11/F14 and pinned compatibility validation. No independent runtime penalty is assigned to merely vendoring the dialect. |
+| Vendored PTO dialect snapshot | T03: copied-snapshot description superseded by direct submodule integration; producer/consumer version drift remains. |
+| Memref descriptor to pointer collapse | F11: retain normalized-base and metadata/addressing contract. |
+| External CCE-call memref ABI | T04: dedicated descriptor-call boundary, residual casts and private markers; separate from F11 address collapse. |
 | GM scalar cache bypass; strided GM stores | F12/F13; backend/version and cache semantics are part of the contract. |
 | Singleton wrappers | F07; cast elimination is not scope completion. |
-| Target metadata / host-device separation | Packaging context; current hard-coded A5 and host sidecar handoff are not additional AVE instruction inventory. |
-| Row-split F32-to-F16 fixpipe example | Not established for the exact Q2 cases reviewed. Historical Q2 BF16/F32 Cube-stage blockers are real but distinct. |
+| Target metadata / host-device separation | T05: hard-coded A5 and restricted classified mixed-function packaging; PTOAS mixed splitting exists. Packaging contract, not an AVE instruction. |
+| Row-split F32-to-F16 fixpipe example | T06: native helper retained in current checked public path; alternative converted resource uses two transfers. Tracker’s single-transfer description is stale; exact Q2 occurrence unconfirmed. |
 | Layernorm sparse interleave/widening | F08. |
 | Layernorm nested-scope rematerialization | F09, reproduced on old local baseline; latest upstream execution remains unresolved. |
 
-**O — finalizer status matters:** the existing predicate-memory note says the comparison runner automatically repairs byte carriers after PTOAS. Current runner [RUN:745](/home/m00967009/Workspace/Planner/bridge/tools/run_comparison_flow.sh:745)–764 copies raw VPTO unchanged, and compiler [PIPE:305](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Tools/bishengir-compile/regbase/PassPipeline.cpp:305)–313 keeps bridge finalizers opt-in. The earlier flash_atten_64x64 simulator result in Planner/bridge/designs/flash-attention-bridge-summary.md depended on explicit physical predicate repair. It does not validate raw VPTO today. Confirm Q2 predicate spilling before adding it to this report’s findings; if present, default-path correctness becomes a high priority.
+**O — finalizer status matters:** T02 distinguishes implemented physical repair from default integration. Current [runner](/home/m00967009/Workspace/Planner/bridge/tools/run_comparison_flow.sh:723) writes PTOAS VPTO without the predicate finalizer; [compiler pipeline](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Tools/bishengir-compile/regbase/PassPipeline.cpp:315) keeps finalizers opt-in. Historical masked FlashAttention simulator success depended on explicit repair and does not validate current raw VPTO. T02 is now included as a tracker-wide finding; capture an exact Q2 predicate spill before attributing this gap to a Q2 specialization.
 
 **O — covered rather than missing:** ordinary full-mask arithmetic, direct floating vmax, NORM loads/stores, ALL/observed H prefixes, fused vexpdif, and full-register interleave have representations. Dqkwg vexpdif is in [R:1263](/home/m00967009/Workspace/Logs/raw_bwd_dqkwg_sep29.log:1263), mapped by [B:3841](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToPTOASVMI/HIVMAVEToPTOASVMI.cpp:3841)–3870 to VMI vexpdif and lowered directly by [P:9149](/home/m00967009/Workspace/PTOAS/lib/PTO/Transforms/VMIToVPTO.cpp:9149)–9224. Do not replace it with subtract+exp merely because a primitive name appears unfamiliar.
 
@@ -1304,6 +1504,10 @@ Stage 1’s historical Cube failures must not be counted as VMI vector gaps: cur
 | Masked-tail and scan UB traffic | S01, S02 | Forward/reverse scan sizes, contiguous/padded rows and D50 tails; count gather/scatter vs vlds/vsts/DMA and stage barriers |
 | Rematerialization and synchronization | F09, F17 | Compare a legal repaired build with native; count pset/vdup repetitions and barriers; do not assign a runtime penalty to a non-compiling build |
 | Predication repair | F01, F06 | Compare native masked instructions vs safe select/zero expansion; test inactive-lane escape graphs and instruction count separately |
+| Signed scalar normalization | T01 | Compare physical scalar min/max, constant materialization and masks; do not count type bitcasts as executed instructions |
+| Predicate-memory representation | T02 | Compare native vs explicitly finalized PB load/store; validate packed layout/addresses before timing carrier removal |
+| External-call materialization and converted row-split transfers | T04, T06 | Resolve actual selected resource/ABI; compare final descriptors, call setup and one vs two transfer issues on identical tiles |
+| Dependency/target packaging | T03, T05 | No inherent runtime penalty established; establish paired compilation, correct architecture/core bodies and output first |
 
 Use fixed Q2 shapes and exact BT/warp/autotuning choices, same hardware/core count/compiler options/cache policies, warmups, repeated paired runs, and distribution/error bars. Measure both device kernel time and end-to-end launch time; the 4–5 μs case is especially sensitive to overhead/noise. Compare numerical outputs before timing, including tails, nonzero offsets, NaNs/infinities/signed zero where the kernel contract allows them. Simulator success alone cannot quantify hardware pipeline overlap or cache latency. Avoid summing estimated per-finding penalties: optimizations and register pressure interact.
 
@@ -1313,12 +1517,16 @@ Use fixed Q2 shapes and exact BT/warp/autotuning choices, same hardware/core cou
 |---|---|---|---|
 | P0 | Integrate upstream F06 mask-preserving lowering with its dependencies; keep enforcing partial-conversion guards, F01 | High when inactive lanes escape; reject outside proof | Shared across promotions, tails and reductions; first establish the exact cumsum mask |
 | P0 | Probe upstream stream fusion on exact singleton stores; add logical state only if needed, F05 | Unresolved stream/flush correctness | Confirmed dqkwg, plus existing attention evidence; potential store/sync overhead |
-| P0 conditional | Establish Q2 predicate-memory and scalar -inf lowering, then protect those default paths | High if those paths occur; F15 changes IEEE values | Source attention patterns exist, but exact generated path is missing; do not implement speculative support inventories |
+| P0 | Protect predicate-memory default-path correctness wherever used, T02; retain explicit packed-layout/address validation | Raw byte carrier requires physical repair; inspected default flows omit it | Confirmed tracker/Planner attention contract; exact Q2 attribution still requires captured IR |
+| P0 conditional | Establish Q2 scalar -inf lowering and protect that path, F15 | Rewriting infinity changes IEEE values if triggered | Source attention initializer exists; exact generated scalar-store path missing |
 | P1 | Reproduce F09 on latest upstream, then fix nested-scope rematerialization if still needed | Confirmed pinned-baseline compilation blocker; latest status unresolved | Four D1200 warp choices; preferred general fix over loop-local constant workaround |
 | P1 | Complete BF16 packed-store carriers and bridge barrier lifetime handling, F10/F17 | Compilation blockers; unsafe “fixes” could change values/order | Exposes the next dqkwg stage; validate each separately, not only reduced functions |
 | P1 | Revalidate descriptor, cache and sync contracts on pinned paired builds, F11–F14 | Addressing/cache/order errors can be severe | Causal convolution, gate vectors and mixed Cube/Vector paths; record full failing IR |
+| P1 | Pair dialect/resources/consumer revisions and validate external CCE ABI and target/core packaging, T03–T05 | Version, descriptor or target mismatch can invalidate compilation/execution | Cross-cutting; direct submodule integration replaces copied snapshots but not paired validation |
 | P2 | Re-probe F16 after upstream mask fixes before retaining its widening workaround; optimize F02/F08 layouts | Lower after correct guarded support | Select has concrete conversion expansion; widening-first may already be efficient |
 | P2 | Eliminate redundant reduction/broadcast wrappers and compare scan/copy fallback cost, F03/F04/F07/S01/S02 | Preserve defined-lane and tail semantics | Layernorm broadly affected; historical slowdown is measured but causality is unknown |
+| P2 | Generalize signed scalar min/max only after supported signed materialization, T01 | Wrong signed ordering changes negative values; current dynamic form fails safely | Constant subset already has direct lowering; broader Q2 demand unconfirmed |
+| P2 | Validate exact row-split resource and improve conversion/dual-transfer support, T06 | Subblock/layout/rounding equivalence required | Restricted Stage 1 case; potential two-transfer overhead unmeasured |
 
 For representation changes, prefer: (1) a semantic VMI operation with PTOAS-native physical lowering; (2) a guarded composition of existing logical VMI operations; (3) a narrowly documented compatibility fallback. Preserve Stage 1’s actual CCE-template boundary. Do not introduce bridge-only physical backends for instruction-lowered AVE behavior.
 
@@ -1336,6 +1544,9 @@ For representation changes, prefer: (1) a semantic VMI operation with PTOAS-nati
 10. How much of the historical layernorm slowdown remains on these revisions, and which physical sequences account for it? No per-issue timing is available.
 11. Are every prebuilt compiler and generated PTODSL resource exactly reproducible from the recorded source? Add binary/resource hashes and paired toolchain CI.
 12. How should Q2 FP8 attention and other repository kernels beyond the saved FLA corpus be captured? Their source alone is insufficient to assert specific unsupported AVE instructions.
+13. Which real kernels require dynamic signed scalar min/max or computed predicates beyond T01’s direct-mask subset? Does the complete signed carrier sequence preserve partial-lane behavior in paired native/upstream tests?
+14. Do all T02 PB widths, tails, aliases and indexed/nonbyte-aligned addresses match native memory layout after explicit repair, and where should that repair be integrated until logical predicate-memory operations exist?
+15. Which supported consumer materializes T04’s external-call descriptors and links native helpers? Does T06 select the intended exact PTO resource, and can one combined transfer preserve its conversion and split semantics?
 
 ## Checks performed for this assessment
 
@@ -1362,3 +1573,8 @@ For the original assessment, only this Markdown report was added to the project 
 ## Explanation update
 
 This documentation update records the upstream/submodule commit comparison, corrects F06’s upstream status and F03’s existing alternative, and adds a glossary, a suggested reading order, before/after examples, and a native AscendNPU-IR behavior/lowering table column for all 19 findings. It preserves the original source evidence and validation results. Adapted IR was compared with the cited regression inputs, expected outputs, saved conversion output, or conversion code. Pseudocode and proposed/conditional output are explicitly labeled. No compiler or kernel implementation was changed, and no new performance result is claimed.
+
+
+## Tracker coverage update (2026-10-19)
+
+Added six tracker-wide findings T01–T06 to the main table and detailed explanations, with AVE/native behavior, current VMI or template handling, upstream limitations, examples and performance comparisons needed. Every one of the tracker’s 13 rows now maps to an explicit finding in the reconciliation table. Corrected stale ALL-only signed-min/max, copied-snapshot, automatic predicate-finalizer and row-split single-transfer descriptions. These are source/test-contract observations at the follow-up revisions above; no compiler tests, device benchmarks or new Q2 reproductions were run for this documentation addition. Only this report was changed.
