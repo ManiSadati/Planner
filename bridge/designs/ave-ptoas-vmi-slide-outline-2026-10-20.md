@@ -52,32 +52,38 @@ ave.hir.masked_store <NORM_B8> %dst[%c0], %active, %predicate
 
 A mask that controls a numeric store is different from a mask stored as data. Physical support already exists. The byte-carrier workaround needs explicit repair, which the inspected default flows omit; its raw output is not proof of packed-memory equivalence. Other PB widths, tails and indexed addresses need validation. [G03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:82) · [E03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:101).
 
-## Slide 3 — Normalize scalar and vector types together
+## Slide 3 — Support explicit signed `vmins` / `vmaxs`
+
+**Category:** Operation and semantic coverage — explicit signedness interface.
 
 **On slide**
 
-- **Reproduced defect:** A focused probe becomes vector `ui32` plus scalar `i32` after normalization and fails verification. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181).
-- **PTOAS request:** Normalize vector/scalar operands consistently, including runtime scalars, while retaining the intended signedness. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181).
-- **Existing support:** Explicitly typed signed/unsigned min/max already lower; the tested same-width casts disappear from LLVM. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181).
+- **AVE behavior:** `ave.hir.vsmins` / `ave.hir.vsmaxs` specify signed ordering on `i32` vector/scalar operands. Current VMI expresses signed ordering through matching `si32` operands, requiring signedness casts in the bridge IR. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181).
+- **PTOAS request:** Add explicit signed forms of `pto.vmi.vmins` / `pto.vmi.vmaxs`, or a signedness attribute, accepting signless `i32` vector/scalar operands and results. Support constant and runtime scalars; lower to the signed `llvm.hivm.vmins.s.x.v64i32` / `llvm.hivm.vmaxs.s.x.v64i32` intrinsics. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181).
+- **Acceptance:** Preserve signed ordering and masks without bridge-added signedness casts; keep unsigned behavior distinct. The demonstrated benefit is simpler IR; no NPU instruction saving is established. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181).
 
-**Code example — actual normalization-probe failure**
+**Code example — AVE signed minimum and current VMI workaround**
 
 ```mlir
-// Input: %s is a runtime i32 scalar.
-%r = pto.vmi.vmins %v, %s, %m
-    : !pto.vmi.vreg<64xi32>, i32, !pto.vmi.mask<64xpred>
-      -> !pto.vmi.vreg<64xi32>
-// Rejected normalized operation, shown in the diagnostic:
-%r = "pto.vmi.vmins"(%v_ui32, %s, %m)
-    : (!pto.vmi.vreg<64xui32>, i32, !pto.vmi.mask<64xpred>)
-      -> !pto.vmi.vreg<64xui32>
+// AVE: the operation specifies signed ordering, including for a runtime scalar.
+%min = ave.hir.vsmins %v, %s, %m
+    : vector<64xi32>, i32, vector<64xi1>
+// Current VMI: signed ordering comes from both operand types.
+%sv = pto.vmi.bitcast %v : !pto.vmi.vreg<64xi32> -> !pto.vmi.vreg<64xsi32>
+%ss = builtin.unrealized_conversion_cast %s : i32 to si32
+%r = pto.vmi.vmins %sv, %ss, %pm
+    : !pto.vmi.vreg<64xsi32>, si32, !pto.vmi.mask<64xpred>
+      -> !pto.vmi.vreg<64xsi32>
+%min = pto.vmi.bitcast %r : !pto.vmi.vreg<64xsi32> -> !pto.vmi.vreg<64xi32>
 ```
 
-The normalizer changes the vector to `ui32` but leaves the scalar `i32`, violating scalar/element type agreement. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181) [Probe input](/tmp/ptoas-signed-minmax-20261020/signless-normalization.pto:2), [actual rejection](/tmp/ptoas-signed-minmax-20261020/signless-normalization.log:1).
+An explicit signed VMI form would carry AVE's intent directly and remove these carrier casts; `vmaxs` uses the same signedness pattern. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181) [AVE testcase](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/unsupported-signed-vector-scalar-dynamic.mlir:4), [typed VMI probe](/tmp/ptoas-signed-minmax-20261020/signedness-casts.pto:5).
+
+**Side note — normalization bug:** A separate focused probe normalizes the vector from `i32` to `ui32` but leaves the scalar `i32`, causing a verifier error. Normalize both operands consistently while preserving the intended signedness. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181) [Actual rejection](/tmp/ptoas-signed-minmax-20261020/signless-normalization.log:1).
 
 **Speaker notes**
 
-This is a focused defect with matching upstream source at `739480c309c2`; exact Q2 occurrence is unconfirmed. The normalization probe used the local compiler, not a freshly built upstream compiler. Separate signed/unsigned operation names or an attribute closer to the existing signed/unsigned LLVM intrinsics are optional interface improvements. The bridge's constant-only gate remains separate. Claim extra IR complexity, not demonstrated NPU casting overhead. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181).
+The main request is an operation-level signedness interface; signed/unsigned arithmetic already works with explicit `si32` / `ui32` vector and scalar types, including runtime scalars. The tested same-width casts disappear from LLVM. The bridge's constant-only gate remains a separate restriction. The normalization defect has matching upstream source at `739480c309c2`, but the probe used the local compiler, not a freshly built upstream compiler. Exact Q2 `vsmins` / `vsmaxs` occurrence is unconfirmed; relevance here is the focused bridge testcase. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181).
 
 ## Slide 4 — Integrate the mask fix; recheck scope placement
 
