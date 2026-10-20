@@ -1,6 +1,6 @@
 # AVE–PTOAS VMI: slide outline — 2026-10-20
 
-Five main slides, followed by two optional appendix groups. The audience is PTOAS project owners; links are review references and can move into presentation notes. Scope is source and compile evidence on the report's named revisions, not a device-performance claim. [scope / E00](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:17).
+Six main slides, followed by two optional appendix groups. The audience is PTOAS project owners; links are review references and can move into presentation notes. Scope is source and compile evidence on the report's named revisions, not a device-performance claim. [scope / E00](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:17).
 
 Code examples are short, adapted excerpts from the cited sources, not standalone programs; SSA names and unrelated attributes are simplified. Paired forms show separate stages, and rejected IR is labeled. `#ub` / `#gm` abbreviate HIVM memory-space attributes; `#map` is the source layout. Ellipses occur only in explicitly abbreviated shuffle indices.
 
@@ -142,6 +142,36 @@ The VMI store has no returned alignment/base state or stream-completion operatio
 
 Native lowering uses updated alignment/base values and stream completion. Upstream's positive stream example writes 64-F32 chunks; it does not establish that the singleton case is covered. Compare exact addresses, state and completion before removing the workaround. A memory barrier does not encode stream completion, and no performance saving is measured. [G04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103) · [E04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:113).
 
+## Slide 6 — Handle full-width AVE reduction results
+
+**Category:** Reduction and broadcast abstractions — G08 / F04.
+
+**On slide**
+
+- **Example and limitation:** Q2 backward layernorm D1200 uses full-width `ave.hir.reduction <add>` results. VMI floating reductions require a singleton result, so the bridge adds `pto.vmi.broadcast` to restore the AVE carrier width. [G08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:151) · [E08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:161).
+- **PTOAS request:** Keep reduced values singleton through compatible consumers; eliminate broadcasts used only to reconstruct the result carrier, and materialize a broadcast when consumers require it. [G08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:151) · [E08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:161).
+- **Acceptance:** Preserve AVE's defined first result position and masks; test consumers that need only that position separately from consumers that need replication. [G08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:151) · [E08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:161).
+
+**Code example — captured AVE and generated VMI**
+
+```mlir
+// AVE retains the vector width; the reduced value is defined at position zero.
+%sum = ave.hir.reduction <add>, %x, %all
+    : vector<64xf32>, vector<64xi1> -> vector<64xf32>
+// Bridge VMI reconstructs the surrounding carrier width.
+%one = pto.vmi.reduce_addf %x, %all {reassoc}
+    : !pto.vmi.vreg<64xf32>, !pto.vmi.mask<64xpred>
+      -> !pto.vmi.vreg<1xf32>
+%sum = pto.vmi.broadcast %one
+    : !pto.vmi.vreg<1xf32> -> !pto.vmi.vreg<64xf32>
+```
+
+The reduction is supported; the extra logical broadcast reconstructs its result carrier, and whether it can be removed depends on the consumers. [G08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:151) · [E08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:161) [Captured AVE](/home/m00967009/Workspace/Logs/q2_ave_requirements_oct19/captures/norm_bwd_D1200/before-bridge.mlir:368), [generated VMI](/home/m00967009/Workspace/Logs/q2_ave_requirements_oct19/captures/norm_bwd_D1200/converted.vmi.mlir:603).
+
+**Speaker notes**
+
+AVE's full-width result does not promise a full-width splat. The result-shape difference is confirmed; an unnecessary broadcast in every graph, an extra machine instruction and a runtime penalty are not established. ADD is captured in Q2. The tracker also lists MAX, but its exact Q2 lowering remains unvalidated. This is an abstraction/optimization request, not a claim that PTOAS cannot execute reductions. [G08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:151) · [E08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:161).
+
 ## Appendix A — Layout and optimization review
 
 These are captured mappings or proposed optimization work, not a quantified performance case.
@@ -151,7 +181,6 @@ These are captured mappings or proposed optimization work, not a quantified perf
 | G05 — Partial B16 results | D1200 sparse `vintlv` → `vextf`: support partial B16 shuffle-result materialization with correct lane mapping/padding treatment. [G05](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:115) · [E05](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:125) | Widen-first composition already works for checked consumers; general materialization still restricts partial chunks. |
 | G06 — Broadcast producer layout | Dqkwg `vload <BRC_B16>` → widening: allow the 64-lane producer to satisfy the consumer layout while retaining scalar-address broadcast behavior. [G06](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:127) · [E06](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:137) | Pinned workaround confirmed; validate the migrated upstream memory interface before claiming a remaining upstream defect. |
 | G07 — Predicate granularity | Dqkwg I32 compare → F16 `vsel`: validate/extend B32-to-B16 predicate adaptation to avoid widening both data streams. [G07](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:139) · [E07](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:149) | Related upstream support exists; exact 64-lane sparse path remains unvalidated. |
-| G08 — Reduction carriers | D1200 singleton `reduce_addf` → broadcast: retain singleton values through compatible consumers and eliminate carrier-only expansion where legal. [G08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:151) · [E08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:161) | Reduction works; AVE defines the first result position, not a full splat. No runtime penalty established. |
 
 **Code examples for the optional appendix**
 
@@ -201,21 +230,9 @@ A 128-lane scalar-address broadcast and lane-zero replication supply the require
 
 The current mapping widens both data bit carriers instead of adapting only the predicate for B16 selection. [G07](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:139) · [E07](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:149) [Exact dqkwg regression expectations](/home/m00967009/Workspace/AscendNPU-IR/bishengir/test/Conversion/HIVMAVEToPTOASVMI/preflight-vsel-dqkwg.mlir:5).
 
-**G08 — reduction carrier reconstruction**
-
-```mlir
-%one = pto.vmi.reduce_addf %x, %all {reassoc}
-    : !pto.vmi.vreg<64xf32>, !pto.vmi.mask<64xpred>
-      -> !pto.vmi.vreg<1xf32>
-%sum = pto.vmi.broadcast %one
-    : !pto.vmi.vreg<1xf32> -> !pto.vmi.vreg<64xf32>
-```
-
-The singleton result is expanded to the surrounding carrier width; whether that expansion is unnecessary depends on its consumers. [G08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:151) · [E08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:161) [Saved D1200 output](/home/m00967009/Workspace/Logs/q2_ave_requirements_oct19/captures/norm_bwd_D1200/converted.vmi.mlir:603).
-
 **Speaker notes**
 
-Keep these requests separate: result-chunk materialization, broadcast-producer adaptation and predicate conversion require different implementations. Logical shuffle/conversion counts do not prove machine-instruction costs. Treat reduction carrier handling as an optimization candidate, not missing reduction execution. [G05](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:115) · [E05](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:125); [G06](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:127) · [E06](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:137); [G07](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:139) · [E07](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:149); [G08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:151) · [E08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:161).
+Keep these requests separate: result-chunk materialization, broadcast-producer adaptation and predicate conversion require different implementations. Logical shuffle/conversion counts do not prove machine-instruction costs. [G05](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:115) · [E05](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:125); [G06](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:127) · [E06](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:137); [G07](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:139) · [E07](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:149).
 
 ## Appendix B — Bridge-owned and conditional work
 
