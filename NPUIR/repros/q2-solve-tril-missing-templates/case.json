@@ -1,0 +1,68 @@
+{
+  "test_repository": "Q2TritonKernel",
+  "test_repository_revision": "ebf78b205a87ecc5cd935a214bd2ef0fc176dcd9",
+  "test_file": "tests/fla_perf/test_solve_tril_perf.py",
+  "test_function": "test_solve_tril_perf",
+  "pytest_parameter_id": "B1-T1024-H64-chunk_size64",
+  "parameters": {
+    "B": 1,
+    "T": 1024,
+    "H": 64,
+    "chunk_size": 64,
+    "dtype": "float32"
+  },
+  "kernel": "merge_16x16_to_64x64_inverse_kernel",
+  "kernel_file": "src/kernels/fla/ops/utils/solve_tril.py",
+  "launch": {
+    "DOT_PRECISION": "ieee",
+    "num_stages": 2,
+    "multibuffer": true,
+    "limit_auto_multi_buffer_of_local_buffer": "no-limit",
+    "sync_solver": true,
+    "USE_TMA": false,
+    "autotune": false
+  },
+  "input_file": "input.ttadapter.mlir",
+  "input_sha256": "5b294ffbfec7967161b63ee0f99236505fd78d47716ca8063cbdac9fa4fdcbfc",
+  "compiler_flags": [
+    "--target=Ascend910_9589",
+    "--enable-lib-call-no-inline=false",
+    "--enable-auto-multi-buffer=True",
+    "--enable-auto-bind-sub-block=True",
+    "--disable-ffts",
+    "--limit-auto-multi-buffer-of-local-buffer=no-limit",
+    "--enable-auto-blockify-loop",
+    "--enable-hfusion-compile=true",
+    "--enable-triton-kernel-compile=true",
+    "--mlir-disable-threading",
+    "--mlir-print-ir-module-scope",
+    "--mlir-print-ir-before=convert-hivm-to-std",
+    "--mlir-print-ir-after=convert-hivm-to-std"
+  ],
+  "expected_unresolved_symbols": [
+    "_mlir_ciface_transpose_3d_without_last_axis_float",
+    "_mlir_ciface_vadd_1d_float"
+  ],
+  "historical_replay": {
+    "captured_utc": "2026-10-16T22:45:43.666068+00:00",
+    "revisions": {
+      "npuir": "3ed2ee73764157ee39f2e0650c24fb740c0ac68b",
+      "ascend_llvm": "8ce9217f83f3376970d10428de4e2d1c15039e08",
+      "ptoas": "a7ed88b81eaacee966672f0097584e76e06b8b8d",
+      "pto_llvm": "fa2fd1f75d742fec91ecf40d98c9c7961647ec42",
+      "q2": "ebf78b205a87ecc5cd935a214bd2ef0fc176dcd9"
+    },
+    "compiler_version": "bishengir-compile 1.2.0 (git@gitcode.com:wilsoncxfeng/AscendNPU-IR.git 3ed2ee737641 2026-10-16) \nllvm 19.1.7 8ce9217f83f3\nRelease build",
+    "compiler_sha256": "5448e5c09c0d6eb2a5ced55b0babd6187c213296bce199d35b8b3d40604e38cb",
+    "template_library_sha256": {
+      "meta_op.aic.c310.bc": "b0cd46d30cc696492bfaeac04b4abf0ea08c7874794fa4e3695fd933a250fd03",
+      "meta_op.aiv.c310.bc": "d4cc5a6a4573992024434a4d8ce0046db96852e1d9d33e13c46693779bf69818",
+      "meta_op.mix.aic.c310.bc": "1ec216bf0eb5094b624384d18e9091fd59ce66496ce1f224673eade373a80df9",
+      "meta_op.mix.aiv.c310.bc": "c1ad8eb63abcdd719b08f91593416d7c702e52ed9eeb9f15dab4a2b2a9cc87f2"
+    },
+    "cann_version": "9.1.0-beta.3",
+    "compiler_exit_code": 1,
+    "runtime_executed": false,
+    "interpretation": "Native lowering emitted these calls; historical selected libraries failed to resolve the wrappers. This is evidence about that installation, not every upstream build."
+  }
+}

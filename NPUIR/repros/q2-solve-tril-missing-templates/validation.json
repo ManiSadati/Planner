@@ -1,0 +1,19 @@
+{
+  "checked_date": "2026-10-21",
+  "real_compiler_executed_for_bundle_validation": false,
+  "kernel_execution_performed": false,
+  "checks_passed": [
+    "bundled_input_matches_historical_sha256",
+    "standard_library_runner_syntax",
+    "dry_run_creates_no_outputs",
+    "local_paths_containing_spaces",
+    "CANN_setup_cannot_enable_bridge",
+    "expected_missing_symbol_classification",
+    "successful_link_classification_and_explicit_target_override",
+    "unrelated_failure_classification",
+    "timeout_kills_dummy_compiler_and_its_child",
+    "existing_output_is_preserved",
+    "no_original_account_paths_in_bundle"
+  ],
+  "historical_failure_evidence": "historical-errors.txt and case.json; no new native compilation claimed"
+}

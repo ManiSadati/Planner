@@ -1,0 +1,5 @@
+ld.lld: error: undefined symbol: _mlir_ciface_transpose_3d_without_last_axis_float
+ld.lld: error: undefined symbol: _mlir_ciface_vadd_1d_float
+
+Curated verbatim diagnostics from the recorded native compile-only replay.
+Compiler exited 1; no kernel or simulator was executed.

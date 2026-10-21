@@ -5,6 +5,9 @@ This folder contains Planner-side AscendNPU-IR notes and NPU-IR-only tools.
 - `design/`: pipeline and bridge-relevant IR summaries.
 - `coding-guide/`: build, simulator, replay, install, and validation notes.
 - `tools/`: NPU-IR-only helper scripts.
+- `repros/`: portable native compiler reproductions with bundled inputs;
+  [Q2 missing transpose/add templates](repros/q2-solve-tril-missing-templates/README.md)
+  needs only the recipient's compiler/CANN installation and Python standard library.
 
 Bridge-level comparison, PTOAS handoff, and cross-repo test orchestration stay
 under `bridge/`.
