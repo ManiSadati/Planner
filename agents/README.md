@@ -8,6 +8,7 @@ Each role has one maintained `AGENT.md` entry point. Shared workflows remain in
 | Investigator / Coordinator | [AGENT.md](investigator-coordinator/AGENT.md) | `investigator_coordinator` |
 | AVE-to-VMI Developer | [AGENT.md](ave-vmi-developer/AGENT.md) | `ave_vmi_developer` |
 | Template Developer | [AGENT.md](template-developer/AGENT.md) | `template_developer` |
+| Triton-Ascend / Installer | [AGENT.md](triton-ascend-installer/AGENT.md) | `triton_ascend_installer` |
 | Test Author | [AGENT.md](test-author/AGENT.md) | `test_author` |
 | Validator | [AGENT.md](validator/AGENT.md) | `bridge_validator` |
 | CI Runner | [AGENT.md](ci-runner/AGENT.md) | `ci_runner` |
@@ -35,6 +36,16 @@ changes, keep deferred workarounds deferred, and do not stage or commit.
 
 The same role can complete an already approved implementation assignment; pass
 the agreed scope, base branch, owned files, and verification budget explicitly.
+
+For Triton-Ascend/environment work, use the combined installer role:
+
+```text
+Read agents/triton-ascend-installer/AGENT.md in Planner and its primary skill.
+Audit the installed Triton-Ascend version and current bridge patch against the
+matching 3.6 source. Propose the minimal native/bridge option-sharing changes
+and installation plan. Do not install or modify code yet. Ask before removing
+any existing patch hunk or behavior.
+```
 
 The small [Codex definitions](../.codex/agents/) explicitly tell custom agents
 to read these files. Role instructions live here; those TOML files are loaders.
