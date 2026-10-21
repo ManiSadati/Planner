@@ -1,10 +1,12 @@
 # AVE–PTOAS VMI: slide outline — 2026-10-20
 
-Eight numbered slides, including an overview table and a closing integration slide; two optional appendix groups precede the closing slide. The audience is PTOAS project owners; links are review references and can move into presentation notes. Scope is source and compile evidence on the report's named revisions, plus the separately cited PR #1660, not a device-performance claim. [scope / E00](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:17).
+Nine numbered slides, ending with a complete summary table. Two optional appendix groups follow Slide 6; device-object integration and interface compatibility follow them, before the final summary. The audience is PTOAS project owners; links are review references and can move into presentation notes. Scope includes the original report, the October 21 Q2 re-audit and separately cited PR #1660; no device-performance result is claimed. [Original scope / E00](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:17), [Q2 re-audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:5).
 
 Code examples are short, adapted excerpts from the cited sources, not standalone programs; SSA names and unrelated attributes are simplified. Paired forms show separate stages, and rejected IR is labeled. `#ub` / `#gm` abbreviate HIVM memory-space attributes; `#map` is the source layout. Ellipses occur only in explicitly abbreviated shuffle indices.
 
 ## Slide 1 — Add masks to floating conversion
+
+**Category:** New Operations Request.
 
 **On slide**
 
@@ -31,6 +33,8 @@ AVE carries `%half`; the available VMI form has no conversion-mask operand. [G01
 The example is a captured 64-lane F16-to-F32 graph with a same-mask store. Existing ALL and narrowly proven VL1 paths are supported; this is not a claim that all conversion is unavailable. Arithmetic-mask preservation is a separate issue. Numerical/FP-status validation and any timing attribution remain outstanding. [G01](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:47) · [E01](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:68).
 
 ## Slide 2 — Treat predicates as memory data
+
+**Category:** New Operations Request.
 
 **On slide**
 
@@ -91,7 +95,7 @@ A mask that controls a numeric store is different from a mask stored as data. Th
 
 ## Slide 3 — Support explicit signed `vmins` / `vmaxs`
 
-**Category:** Operation and semantic coverage — explicit signedness interface.
+**Category:** Feature Request — explicit signedness interface; the normalization side note is a Lowering Issue.
 
 **On slide**
 
@@ -120,15 +124,17 @@ An explicit signed VMI form would carry AVE's intent directly and remove these c
 
 **Speaker notes**
 
-The main request is an operation-level signedness interface; signed/unsigned arithmetic already works with explicit `si32` / `ui32` vector and scalar types, including runtime scalars. The tested same-width casts disappear from LLVM. The bridge's constant-only gate remains a separate restriction. The normalization defect has matching upstream source at `739480c309c2`, but the probe used the local compiler, not a freshly built upstream compiler. Exact Q2 `vsmins` / `vsmaxs` occurrence is unconfirmed; relevance here is the focused bridge testcase. [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) · [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181).
+The main request is an operation-level signedness interface; signed/unsigned arithmetic already works with explicit `si32` / `ui32` vector and scalar types, including runtime scalars. The earlier local LLVM probe removes same-width casts. The October 21 re-audit establishes a Q2 Mamba DQKV occurrence with constant scalars and an H mask; its extracted helper converts to signed VMI. A fresh upstream build reproduces the normalization mismatch and accepts independently typed signed runtime scalars. Unchanged bridge output separately needs the interface migration on Slide 8. **Priority: Low** for the captured form because a typed workaround exists; no runtime cast penalty is established. [G09 / re-audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:25), [Q2 operations](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/captures/mamba_volatile/before-bridge.mlir:942), [fresh signed lowering](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/typed-signed.mlir:2).
 
 ## Slide 4 — Integrate the mask fix; recheck scope placement
+
+**Category:** Lowering Issue.
 
 **On slide**
 
 - **Pinned arithmetic-mask loss:** Integrate the existing upstream mask-preserving lowering and matching layout handling; verify predicates reach physical arithmetic. [G02](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:70) · [E02](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:80).
-- **Historical D1200 scope failure:** Reproduce on the supported pair; if still present, repair nested predicate placement/rematerialization and add a downstream regression. [G10](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:183) · [E10](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:193).
-- **Boundary:** Upstream fixes arithmetic masks; current-upstream closure of the saved scope failure is unverified. [G02](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:70) · [E02](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:80); [G10](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:183) · [E10](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:193).
+- **Reproduced scope failure:** Fresh upstream still rejects the D1200-derived focused loop because a generated `!pto.mask<b32>` escapes its vector scope. Repair predicate placement/rematerialization and add a downstream regression. **Priority: High for the focused defect.** [G10 / re-audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:19), [fresh diagnostic](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/nested-scope.stderr:1).
+- **Boundary:** Fresh upstream preserves arithmetic masks. Complete Q2 D1200 replay stops earlier at the interface mismatch on Slide 8, so the focused scope failure does not establish that the full migrated kernel still fails there. [Mask result](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/partial-arithmetic.mlir:2), [Q2 replay diagnostic](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/q2-d1200.stderr:1).
 
 **Code example — masked arithmetic from dqkwg**
 
@@ -155,7 +161,7 @@ The arithmetic correction is upstream commit `2503c259`; it is an integration re
 
 ## Slide 5 — Preserve continuous-store intent in VMI
 
-**Category:** Stateful memory streams — lowering and fusion coverage (G04 / F05).
+**Category:** Feature Request — continuous-store intent and eligible stream fusion (G04 / F05).
 
 **On slide**
 
@@ -230,7 +236,7 @@ The current selection is deterministic: the requested change is explicit control
 
 ## Slide 6 — Handle full-width AVE reduction results
 
-**Category:** Reduction and broadcast abstractions — G08 / F04.
+**Category:** Performance Issue — reduction carrier reconstruction (G08 / F04).
 
 **On slide**
 
@@ -256,29 +262,7 @@ The reduction is supported; the extra logical broadcast reconstructs its result 
 
 **Speaker notes**
 
-AVE's full-width result does not promise a full-width splat. The result-shape difference is confirmed; an unnecessary broadcast in every graph, an extra machine instruction and a runtime penalty are not established. ADD is captured in Q2. The tracker also lists MAX, but its exact Q2 lowering remains unvalidated. This is an abstraction/optimization request, not a claim that PTOAS cannot execute reductions. [G08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:151) · [E08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:161).
-
-## Slide 7 — PTOAS VMI requests at a glance
-
-**On slide**
-
-| Category | Topic / detail slide | Requested PTOAS capability | Current evidence / status |
-|---|---|---|---|
-| Masking and tails | Masked floating conversion — S1, [G01](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:47) | Add conversion masks with defined inactive lanes, rounding and lane placement. | Direct mask operand absent; captured H-mask conversion rejects. [E01](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:68) |
-| Operation semantics | Predicate memory — S2, [G03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:82) | Add predicate-valued load/store with PB granularity and explicit packed-address units. | Q2 PB32 spill/reload established; direct VMI memory payloads are numeric. [E03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:101) |
-| Operation semantics | Signed scalar min/max — S3, [G09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:163) | Add explicit signed `vmins` / `vmaxs` semantics for signless operands, including runtime scalars. | Typed signed support exists; interface improvement requested. Normalization bug is a separate fix. [E09](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:181) |
-| Lowering correctness | Arithmetic masks — S4, [G02](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:70) | Integrate upstream mask-preserving lowering and matching layout handling. | Pinned lowering drops masks; upstream fix exists. [E02](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:80) |
-| Lowering correctness | Nested predicate scopes — S4, [G10](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:183) | Reproduce on the supported pair; repair predicate placement/rematerialization if still needed. | Historical D1200 failure; current-upstream persistence unverified. [E10](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:193) |
-| Stateful memory streams | Continuous singleton stores — S5, [G04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103) | Express and preserve stream intent on `pto.vmi.vstore`; fuse multiple independent streams safely. | Stream primitives exist; tested singleton dispatch emits point stores, and multi-stream fusion is restricted. [Upstream follow-up](/tmp/ptoas-onept-check-20261020/results.json:1), [fusion guard](https://github.com/hw-native-sys/PTOAS/blob/739480c309c265feee7703cdde42fe89da60b1d9/lib/PTO/Transforms/VPTO/VPTOStatefulStreamFusion.cpp#L582) |
-| Reduction / broadcast | Reduction result carriers — S6, [G08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:151) | Retain singleton results through compatible consumers; remove carrier-only broadcasts where legal. | Reduction works; result-shape optimization. ADD captured; exact Q2 MAX unvalidated. [E08](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:161) |
-| Layout and data movement | Partial B16 shuffle; broadcast layout; mixed-width predicates — Appendix A, G05–G07 | Support partial B16 results; adapt 64-lane B16 broadcast layouts; adapt B32 predicates for B16 selection. | Existing compositions cover checked graphs; exact upstream closure varies. [E05](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:125), [E06](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:137), [E07](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:149) |
-| Bridge integration / contracts | Integer loads; BF16 wrappers; barrier lifetimes; scalar consumers — Appendix B, G11–G14 | Document/test scalar-load, BF16-store, barrier-lifetime and lane-to-scalar contracts; coordinate bridge fixes. | No new target instruction established; barrier case conditional, genuine Q2 scalar extraction unconfirmed. [E11](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:207), [E12](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:219), [E13](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:231), [E14](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:243) |
-
-**Speaker notes**
-
-The table covers all 14 report entries. Seven main requests remain separate; the two appendix rows summarize three layout items and four bridge-integration items without merging their implementation requests. Use the detail slides for the code and exact evidence boundaries. Signed min/max follows Slide 3's revised operation-semantics category; its normalization defect remains a side note. G04 uses the fresh upstream follow-up recorded on Slide 5 rather than the report's earlier conditional status.
-
-Rows distinguish new interface/coverage requests, an existing upstream fix to integrate, conditional correctness work and optimization opportunities. They are not a severity or frequency ranking. No per-gap Q2 performance improvement has been measured; logical IR expansions and differing store strategies do not by themselves establish a runtime penalty. [Assessment limits](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:260).
+AVE's full-width result does not promise a full-width splat. The October 21 paired loop probe confirms extra VPTO work for a wide carrier: an in-loop `pto.vdup {position = "LOWEST"}` and a final projection broadcast disappear with a singleton accumulator. **Priority: Medium for demonstrated generated-work overhead; elapsed-time degradation and device equivalence remain unmeasured.** This is specific to lane-zero-only consumers, not every reduction graph. ADD is captured in Q2; exact Q2 MAX lowering remains unvalidated. [G08 / re-audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:20), [paired output](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/reduction-loop-pair.mlir:11).
 
 ## Appendix A — Layout and optimization review
 
@@ -405,9 +389,9 @@ The scalar arithmetic cannot be handled by folding the value back into a vector 
 
 G11 is a recorded Q2 blocker owned by bridge conversion. G13 must stay separate from the PTOAS-introduced predicate failure on Slide 4. Source-only requirements, unresolved infinity/ABI cases and historical whole-kernel timings are excluded from the main claims. Use the report's limitations before expanding the scope. [G11](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:197) · [E11](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:207); [G13](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:221) · [E13](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:231); [scope / E00](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:17).
 
-## Slide 8 — Device object output for Triton-Ascend integration
+## Slide 7 — Device object output for Triton-Ascend integration
 
-**Category:** Compiler output and runtime integration — implemented in PR, pending upstream merge.
+**Category:** Feature Request — implemented in PR, pending upstream merge at the October 21 check.
 
 **On slide**
 
@@ -434,7 +418,73 @@ At inspected PR head `a3c33b9372617eb06786fb139935e5be797010d7`, device emission
 
 This slide records integration work, separate from the VMI instruction gaps. Source and PR status were checked for this update; a successful end-to-end Triton-Ascend device run was not independently verified here.
 
+## Slide 8 — N01: Compatibility with the current VMI/PTO interface
+
+**Category:** Lowering Issue — bridge/PTOAS interface compatibility.
+
+**On slide**
+
+- **Observed:** Current upstream rejects Q2 D1200's `pto.load_scalar` and the freshly converted Mamba helper's `pto.vmi.vload {dist_mode = "brc"}`. Scalar and broadcast loads still have supported forms. [N01](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:29).
+- **PTOAS / bridge request:** Publish a supported revision pair and migration contract. Update bridge emission or provide an explicit compatibility conversion for the changed scalar-memory and unified-memory interfaces; preserve addresses, types and broadcast behavior. [N01 requested action](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:35).
+- **Priority: Low while retaining a compatible pair; blocking for unchanged bridge output on current upstream.** Pinning avoids this mismatch while migration is completed; it does not fix the other gaps. [Workaround and boundary](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:46).
+
+**Actual rejection messages — separate Q2 replays**
+
+```text
+error: custom op 'pto.load_scalar' is unknown
+error: 'pto.vmi.vload' op dist_mode is no longer supported
+```
+
+The existing D1200 output and newly converted Mamba helper fail at the IR interface before complete downstream validation. [D1200 diagnostic](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/q2-d1200.stderr:1), [Mamba diagnostic](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/mamba-signed.stderr:1).
+
+**Current broadcast form — tested VMI composition**
+
+```mlir
+%one = pto.vmi.vload %src[%c0]
+    : !pto.ptr<bf16, ub> -> !pto.vmi.vreg<1xbf16>
+%many = pto.vmi.vbrc %one
+    : !pto.vmi.vreg<1xbf16> -> !pto.vmi.vreg<64xbf16>
+```
+
+This form lowers to a scalar-address `BRC_B16` load; current scalar-memory syntax uses `pto.load`. [Tested input](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/probes.pto:9), [lowering](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/mixed-select-and-brc.mlir:18), [scalar definition](/tmp/ptoas-q2-audit-upstream-20261021/include/PTO/IR/VPTOOps.td:171).
+
+**Speaker notes**
+
+The checked upstream revision is `37f5f25e3b5b433e7cc760d148fea83dddef9934` (October 21). This is a compatibility/migration request; no additional missing VMI instruction was established. Acceptance is successful conversion and downstream replay of both captured graphs with the selected compiler pair, followed by device validation. The focused broadcast probe does not establish complete migration or whole-kernel correctness. [N01 evidence and limits](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:33).
+
+## Slide 9 — All issues and priorities at a glance
+
+**On slide**
+
+| Category | Priority | Issue / detail slide | Requested action | Evidence / status |
+|---|---|---|---|---|
+| New Operations Request | **High** | G01 — Masked floating conversion · S1 | Add masked widening/narrowing with defined inactive lanes and packing. | Direct mask form rejects; broader workaround unvalidated. [G01 audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:17) |
+| New Operations Request | **High** | G03 — Predicate memory · S2 | Add predicate-valued load/store and packed-buffer/address semantics. | Q2 spills and Mamba carrier failure; byte route incomplete. [G03 audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:18) |
+| Lowering Issue | **High — focused** | G10 — Nested predicate scopes · S4 | Rematerialize generated predicates inside consuming scopes. | Fresh focused failure; full Q2 replay first hits N01. [G10 audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:19) |
+| Lowering Issue | **High — bridge** | G11 — Integer metadata loads · Appendix B | Bridge: lower I32 GM loads; PTOAS: document/test the scalar-load contract. | Existing target capability; default bridge mapping rejects. [G11 / E11](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:197), [priority](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:50) |
+| Lowering Issue | **High — bridge** | G12 — BF16 store wrappers · Appendix B | Bridge: recognize BF16 carriers; PTOAS: regress the resulting stores. | BF16 storage exists; wrapper recognition blocks conversion. [G12 / E12](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:209), [priority](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:50) |
+| Lowering Issue | **Low — integration** | G02 — Arithmetic masks · S4 | Integrate existing mask-preserving lowering with a compatible bridge. | Fixed upstream; fresh partial arithmetic retains its mask. [Current result](/home/m00967009/Workspace/Logs/q2_vmi_gap_reaudit_oct21/partial-arithmetic.mlir:2) |
+| Lowering Issue | **Low** | G05 — Partial B16 results · Appendix A | Extend partial-result materialization for demonstrated additional consumers. | Widen-first composition works for checked Q2 graphs. [G05 audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:22) |
+| Lowering Issue | **Low** | G06 — B16 broadcast layout · Appendix A | Adapt bridge producers to the supported broadcast/widen composition. | Current composition lowers; old spelling needs N01 migration. [G06 audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:23) |
+| Lowering Issue | **Low** | G07 — Mixed-width selection · Appendix A | Validate exact sparse predicate/layout adaptation before simplifying. | Both tested routes lower; faster replacement unproven. [G07 audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:24) |
+| Lowering Issue | **Low — typed workaround** | G09 — Scalar normalization side note · S3 | Normalize vector/scalar types consistently, preserving signedness. | Mismatch reproduced; matching `si32` operands work. [G09 audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:25) |
+| Lowering Issue | **Low — compatible pair** | N01 — VMI/PTO interface migration · S8 | Publish a revision contract and migrate old memory forms or provide an adapter. | Unchanged bridge/current upstream combination blocks; pinning avoids mismatch. [N01](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:29) |
+| Lowering Issue | **Unranked — conditional** | G13 — Barrier lifetimes · Appendix B | Agree/test live-value handling; fix bridge barrier placement where needed. | Opt-in experiment; default Q2 defect unestablished. [G13 / E13](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:221) |
+| Performance Issue | **Medium*** | G08 — Reduction carriers · S6 | Keep lane-zero-only accumulators singleton; remove carrier-only broadcasts. | Paired lowering shows removable `vdup`; timing unmeasured. [G08 audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:20) |
+| Feature Request | **Low** | G04 — Continuous-store intent/fusion · S5 | Express stream intent on `vstore`; fuse eligible independent streams safely. | Point stores work; stream parity differs and speed impact is unmeasured. [G04 audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:21) |
+| Feature Request | **Low** | G09 — Explicit signed `vmins` / `vmaxs` · S3 | Add signed forms or an attribute accepting signless vector/scalar carriers. | Typed signed support exists; Q2 Mamba occurrence confirmed. [G09 audit](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:25) |
+| Feature Request | **Unranked — Q2 need pending** | G14 — Genuine scalar consumers · Appendix B | Specify/test lane-to-scalar materialization; add an operation only if needed. | Focused tests exist; exact Q2 demand remains unconfirmed. [G14 / E14](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:233) |
+| Feature Request | **Low — merge follow-up** | PR #1660 — Device object output · S7 | Review/merge `--emit-device-object` and validate Triton-Ascend integration. | Implemented in PR; open at the October 21 check. [PR #1660](https://github.com/hw-native-sys/PTOAS/pull/1660) |
+
+**Priority key:** High = no validated general workaround; Medium* = extra generated work demonstrated, timing unmeasured; Low = bounded workaround or integration follow-up is adequate for now. Conditional/unconfirmed Q2 items remain unranked. [Audit priority rule and caveat](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:11).
+
+**Speaker notes**
+
+Coverage is G01–G14, N01 and PR #1660, including both appendices. G09 has separate rows for the signedness interface and normalization fix because their implementation requests and categories differ. New Operations Request covers new masked-operation forms or predicate-data interfaces; Lowering Issue covers existing-capability mapping/correctness and interface migration; Performance Issue covers demonstrated extra generated work; Feature Request covers supported-interface extensions and integration features. Categories describe the requested work, not proof that an underlying physical instruction is missing.
+
+Priorities follow the Q2 re-audit where assigned. Low for G02 and PR #1660 denotes follow-up on an existing implementation, not a new unimplemented capability. G11/G12 remain bridge-owned High items. G08's Medium tier does not establish elapsed-time degradation; device equivalence and timing remain to validate. N01 becomes blocking if the incompatible compiler combination is required. Unranked G13/G14 have insufficient applicability evidence for a High/Medium/Low assignment. [Priority boundaries](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:27), [bridge/conditional entries](/home/m00967009/Workspace/Planner/bridge/designs/q2-ptoas-vmi-additional-gaps-and-priorities-2026-10-21.md:48).
+
 ## Review handoff
 
-Agree owners and semantic contracts for the main requests; use captured Q2 graphs to evaluate the conditional work. The report's acceptance section distinguishes proposed checks from completed results. All gap claims above cite a report entry Gxx and its labeled evidence Exx; the report links those references to source/test artifacts. The closing integration slide instead cites PR #1660 and its inspected implementation directly.
+Agree owners and semantic contracts for the main requests; use captured Q2 graphs to evaluate the conditional work. Original Gxx/Exx references lead to the report and its source/test artifacts; updated priorities/status and N01 lead to the October 21 re-audit and fresh compiler outputs. Device-object work cites PR #1660 directly. The final summary includes every main-slide and appendix issue while distinguishing implementation ownership, resolved work and unverified cases.
 
