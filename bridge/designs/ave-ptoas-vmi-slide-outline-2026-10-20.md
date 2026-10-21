@@ -38,19 +38,56 @@ The example is a captured 64-lane F16-to-F32 graph with a same-mask store. Exist
 - **PTOAS request:** Add predicate-valued load/store with PB granularity and explicit packed-address units, lowered to existing physical predicate-memory instructions. [G03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:82) · [E03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:101).
 - **Acceptance:** Validate the captured PB32 store/reload and its controlling mask before generalizing widths and addresses. [G03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:82) · [E03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:101).
 
-**Code example — predicate data in a called Q2 solve helper**
+**Code comparison — numeric VMI store versus AVE predicate store**
 
 ```mlir
-ave.hir.masked_store <NORM_B8> %dst[%c0], %active, %predicate
-    {functionType = #ave.func_dist_type<pb32>}
-    : memref<8xi1, #map, #ub>, vector<64xi1>, vector<64xi1>
+// Supported numeric stores: equivalent contiguous, full-vector examples.
+pto.vmi.store %values, %dst[%c0]
+    : !pto.vmi.vreg<64xf32>, !pto.ptr<f32, ub>
+// Unified spelling; shown as an alternative, not a second write.
+pto.vmi.vstore %values, %dst[%c0]
+    : !pto.vmi.vreg<64xf32>, !pto.ptr<f32, ub>
 ```
 
-`%predicate` is the value being stored, while `%active` independently controls the write; VMI needs to represent both roles. [G03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:82) · [E03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:101) [Captured store](/home/m00967009/Workspace/Logs/q2_ave_requirements_oct19/captures/solve/before-bridge.mlir:1515).
+Both store numeric data; the unified `vstore` also supports optional masks and other access modes. [Legacy store definition](/home/m00967009/Workspace/PTOAS/include/PTO/IR/VMIOps.td:732) · [Unified store definition](/home/m00967009/Workspace/PTOAS/include/PTO/IR/VMIOps.td:1461) · [Contiguous lowering testcase](/home/m00967009/Workspace/PTOAS/test/lit/vmi_new/vmi_to_vpto_load_store_contiguous.pto:14).
+
+```llvm
+; Numeric F32 normal-store path, after resolving %dst[%c0].
+; %active is an all-active physical predicate for this example.
+call void @llvm.hivm.vstsx1.v64f32(
+    <64 x float> %values, ptr addrspace(6) %dst,
+    i32 0, i32 2, i32 0, <256 x i1> %active)
+```
+
+The numeric vector is the stored payload; the last predicate operand controls which lanes write. This intrinsic call is adapted from saved Q2 bridge LLVM output; it does not describe every VMI store mode. [Emitted call](/home/m00967009/Workspace/Planner/bridge/testcases/row_softmax_16x256/row_softmax_16x256.ptoas.ll:140) · [Intrinsic signature](/home/m00967009/Workspace/AscendNPU-IR/third-party/llvm-project/llvm/include/llvm/IR/IntrinsicsHIVM.td:1155).
+
+```mlir
+// Q2 KKT: simplified names; #ub denotes the UB address space.
+%all = ave.hir.pge <ALL> {functionType = #ave.func_dist_type<pb32>}
+    : vector<64xi1>
+ave.hir.masked_store <NORM_B8> %dst[%c0], %all, %predicate
+    {functionType = #ave.func_dist_type<pb32>}
+    : memref<64xi1, #map, #ub>, vector<64xi1>, vector<64xi1>
+```
+
+Here the predicate itself is the payload, and `%all` enables the whole write. [Captured Q2 store](/home/m00967009/Workspace/Logs/q2_ave_requirements_oct19/captures/reused_kkt_H2_B1/before-bridge.mlir:456).
+
+```llvm
+; Ascend950 native PB32 path; address calculation omitted.
+%init = call <32 x i8> @llvm.hivm.init.vector.align.data()
+%packed = call { <32 x i8>, ptr addrspace(6) } @llvm.hivm.pstu.b32(
+    <256 x i1> %predicate, ptr addrspace(6) %dst, <32 x i8> %init)
+%state = extractvalue { <32 x i8>, ptr addrspace(6) } %packed, 0
+%end = extractvalue { <32 x i8>, ptr addrspace(6) } %packed, 1
+call void @llvm.hivm.vstas(
+    <32 x i8> %state, ptr addrspace(6) %end, i32 0, i32 0)
+```
+
+`pstu.b32` packs PB32 predicate data for memory, returns updated alignment/pointer state, and `vstas` completes the store. This simplified LLVM sequence follows native lowering and intrinsic declarations; it is not a newly captured end-to-end compile. [Native PB32 dispatch](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:1197) · [Sequence builder](/home/m00967009/Workspace/AscendNPU-IR/bishengir/lib/Conversion/HIVMAVEToAVEIntrin/HIVMAVEToAVEIntrin.cpp:777) · [PSTU signature](/home/m00967009/Workspace/AscendNPU-IR/third-party/llvm-project/llvm/include/llvm/IR/IntrinsicsHIVM.td:1416) · [VSTAS signature](/home/m00967009/Workspace/AscendNPU-IR/third-party/llvm-project/llvm/include/llvm/IR/IntrinsicsHIVM.td:1361).
 
 **Speaker notes**
 
-A mask that controls a numeric store is different from a mask stored as data. Physical support already exists. The byte-carrier workaround needs explicit repair, which the inspected default flows omit; its raw output is not proof of packed-memory equivalence. Other PB widths, tails and indexed addresses need validation. [G03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:82) · [E03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:101).
+A mask that controls a numeric store is different from a mask stored as data. The physical `<256 x i1>` predicate register represents the logical 64-lane PB32 predicate here. `pstu.b32` has no separate controlling-mask operand: the all-active KKT example does not establish general partial-mask/tail semantics. Physical support already exists; VMI needs a predicate-data memory interface that selects it correctly. Other PB widths, tails and indexed addresses need validation. [G03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:82) · [E03](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:101).
 
 ## Slide 3 — Support explicit signed `vmins` / `vmaxs`
 
@@ -157,7 +194,21 @@ vstas(state1, end1)
 
 Each output keeps its own alignment state between iterations; both final `vstas` completions are outside the loop. This is schematic notation for the emitted intrinsics, not executable syntax. [Native output](/tmp/ptoas-onept-check-20261020/native-after-hoist.mlir:10), [completion operations](/tmp/ptoas-onept-check-20261020/native-after-hoist.mlir:29).
 
-**PTOAS VMI lowering — simplified excerpt of the tested result**
+**VMI input — the higher-level code before PTOAS lowering**
+
+```mlir
+// Each reduction produces one logical F32 lane; reductions omitted.
+scf.for %row = %c0 to %c32 step %c1 {
+  pto.vmi.vstore %one0, %out0[%row]
+      : !pto.vmi.vreg<1xf32>, !pto.ptr<f32, ub>
+  pto.vmi.vstore %one1, %out1[%row]
+      : !pto.vmi.vreg<1xf32>, !pto.ptr<f32, ub>
+}
+```
+
+These two unified VMI stores express consecutive one-value writes to separate outputs, but carry no explicit continuous-stream intent comparable to AVE's `hivm.is_continuous`. This is the simplified input to the tested lowering below, with destination names changed for consistency. [VMI probe: reductions and stores](/tmp/ptoas-onept-check-20261020/singleton-loops.pto:32) · [G04 / E04](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:103).
+
+**PTOAS physical lowering — simplified excerpt of the tested result**
 
 ```mlir
 // Reductions and construction of the first-lane predicate are omitted.
