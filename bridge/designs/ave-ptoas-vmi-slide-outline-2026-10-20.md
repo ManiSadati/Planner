@@ -1,6 +1,6 @@
 # AVE–PTOAS VMI: slide outline — 2026-10-20
 
-Seven main slides, including an overview table, followed by two optional appendix groups. The audience is PTOAS project owners; links are review references and can move into presentation notes. Scope is source and compile evidence on the report's named revisions, not a device-performance claim. [scope / E00](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:17).
+Eight numbered slides, including an overview table and a closing integration slide; two optional appendix groups precede the closing slide. The audience is PTOAS project owners; links are review references and can move into presentation notes. Scope is source and compile evidence on the report's named revisions, plus the separately cited PR #1660, not a device-performance claim. [scope / E00](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:17).
 
 Code examples are short, adapted excerpts from the cited sources, not standalone programs; SSA names and unrelated attributes are simplified. Paired forms show separate stages, and rejected IR is labeled. `#ub` / `#gm` abbreviate HIVM memory-space attributes; `#map` is the source layout. Ellipses occur only in explicitly abbreviated shuffle indices.
 
@@ -405,7 +405,36 @@ The scalar arithmetic cannot be handled by folding the value back into a vector 
 
 G11 is a recorded Q2 blocker owned by bridge conversion. G13 must stay separate from the PTOAS-introduced predicate failure on Slide 4. Source-only requirements, unresolved infinity/ABI cases and historical whole-kernel timings are excluded from the main claims. Use the report's limitations before expanding the scope. [G11](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:197) · [E11](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:207); [G13](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:221) · [E13](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:231); [scope / E00](/home/m00967009/Workspace/Planner/bridge/designs/ave-ptoas-vmi-gap-report-2026-10-20.md:17).
 
+## Slide 8 — Device object output for Triton-Ascend integration
+
+**Category:** Compiler output and runtime integration — implemented in PR, pending upstream merge.
+
+**On slide**
+
+- **Integration need:** Our end-to-end Triton-kernel execution path through Triton-Ascend needed a device object file. PTOAS previously exposed fat-object emission for this VPTO output path. The Triton-Ascend requirement is project context supplied by the integration owner; the before/after output paths are visible in the [PR implementation](https://github.com/hw-native-sys/PTOAS/pull/1660/files).
+- **Work added:** [PR #1660 — `feat: add an option to emit device object file`](https://github.com/hw-native-sys/PTOAS/pull/1660) adds `--emit-device-object` to write the final linked AICore device object directly to `-o`, without host-stub/fat-object packaging. Existing default fat-object output remains available. [Driver selection](https://github.com/hw-native-sys/PTOAS/blob/a3c33b9372617eb06786fb139935e5be797010d7/tools/ptoas/driver.cpp#L1122) · [Device emission](https://github.com/hw-native-sys/PTOAS/blob/a3c33b9372617eb06786fb139935e5be797010d7/tools/ptoas/ObjectEmission.cpp#L1204).
+- **PTOAS next step:** Review and merge the opt-in output mode, then validate the emitted object in the Triton-Ascend execution path. **Status checked October 21: PR open, not merged.** [PR status](https://github.com/hw-native-sys/PTOAS/pull/1660).
+
+**Usage — select the output required by the integration**
+
+```bash
+# Existing default: fat object, including host-side packaging.
+ptoas kernel.pto --pto-backend=vpto --pto-arch=a5 -o kernel.fat.o
+
+# Added by PR #1660: final linked AICore device object.
+ptoas kernel.pto --pto-backend=vpto --pto-arch=a5 \
+  --emit-device-object -o kernel.device.o
+```
+
+The flag changes the output artifact; changing the `.o` filename alone does not select device-object emission. [CLI option](https://github.com/hw-native-sys/PTOAS/blob/a3c33b9372617eb06786fb139935e5be797010d7/tools/ptoas/ptoas.cpp#L641) · [Output dispatch](https://github.com/hw-native-sys/PTOAS/blob/a3c33b9372617eb06786fb139935e5be797010d7/tools/ptoas/driver.cpp#L1122).
+
+**Speaker notes**
+
+At inspected PR head `a3c33b9372617eb06786fb139935e5be797010d7`, device emission compiles the available cube/vector LLVM modules and links their device objects through the AICore linker path. Fat-object emission additionally packages device code with a host stub. The new mode requires the VPTO backend and an explicit output file; it rejects mixed-backend modules and debug-IR output flags. [Emission implementation](https://github.com/hw-native-sys/PTOAS/blob/a3c33b9372617eb06786fb139935e5be797010d7/tools/ptoas/ObjectEmission.cpp#L1204) · [Mode restrictions](https://github.com/hw-native-sys/PTOAS/blob/a3c33b9372617eb06786fb139935e5be797010d7/tools/ptoas/driver.cpp#L1334).
+
+This slide records integration work, separate from the VMI instruction gaps. Source and PR status were checked for this update; a successful end-to-end Triton-Ascend device run was not independently verified here.
+
 ## Review handoff
 
-Agree owners and semantic contracts for the main requests; use captured Q2 graphs to evaluate the conditional work. The report's acceptance section distinguishes proposed checks from completed results. All gap claims above cite a report entry Gxx and its labeled evidence Exx; the report links those references to source/test artifacts.
+Agree owners and semantic contracts for the main requests; use captured Q2 graphs to evaluate the conditional work. The report's acceptance section distinguishes proposed checks from completed results. All gap claims above cite a report entry Gxx and its labeled evidence Exx; the report links those references to source/test artifacts. The closing integration slide instead cites PR #1660 and its inspected implementation directly.
 
