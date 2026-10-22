@@ -133,6 +133,16 @@ the template campaign; then use this migration order.
 
 ## Separate Triton-Ascend Follow-Up
 
+Update 2026-10-22: implemented the shared native/bridge compilation path in the
+local Triton-Ascend branch `feature/shared-a5-native-ptoas` at `461aa8f0`.
+The isolated 3.6 candidate passed command/differential tests, native/bridge
+vadd, one paired F16 NN unit-flag case with repeated launches, and one F32 UB
+Fixpipe tail case in both flows. It is the preferred environment for new local
+tests. See the [integration handoff](triton-ascend-3.6-shared-a5-2026-10-22.md)
+for setup, installed patch provenance, publication blocker and limits. This is
+not full 3.6 template-matrix or physical-A5 coverage. The audit and proposed
+actions below describe the original state before that driver follow-up.
+
 Confirmed by the locally available Melika 3.6 bridge branch `e701011bd`:
 `add_stages()` selects `linalg_to_ptoas_vmi()` for the bridge and does not call
 the native `linalg_to_bin_enable_npu_compile_910_95()` function. Native unit-flag
@@ -162,5 +172,6 @@ fallback. Melika's local 3.6 `_needs_lib_call_no_inline()` recognizes only
 `Ascend950...`; broaden alias handling only if those older spellings are retained.
 Do not blindly rename targets without checking the installed backend's whitelist.
 
-The option-sharing redesign is deferred from the MmadL1 branch; this publication
-does not claim native/bridge option parity has already been fixed generally.
+At this record's initial publication, the option-sharing redesign was deferred
+from the MmadL1 branch. Its subsequent driver implementation and bounded parity
+evidence are recorded in the dated integration handoff above.

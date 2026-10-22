@@ -278,6 +278,25 @@ Codex should avoid modifying PTOAS unless the human explicitly asks. The preferr
 
 ## Build And Test Reality
 
+### Preferred Local Triton Environment
+
+For new local native NPU-IR and PTOAS bridge tests on this server, use
+`$HOME/.venv/npuir-sim-3.6-candidate/bin/python` and simulator
+`Ascend950PR_9589`. This preference is server-local, not an assumption that the
+same environment exists on coworkers' servers or physical A5 machines.
+
+The 3.6 bridge shares native A5 compilation and option construction instead of
+duplicating a partial builder that omitted controls such as unit flags. This
+reduces native/bridge drift and makes comparisons more reliable. Read the
+[setup, provenance, evidence and limits](bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md)
+before running; use the intended checkout's NPU-IR compiler, pinned PTOAS build
+and CANN's `hivmc-a5`, not Triton-bundled compiler copies.
+
+Bounded native/bridge vadd, MmadL1 unit-flag and Fixpipe checks pass; this is not
+full-suite or physical-A5 validation. Preserve the old environment for rollback.
+Coordinate before modifying or reinstalling the shared candidate or toolchain.
+Report failures rather than silently switching environments or applying patches.
+
 This server can build and run PTOAS locally, so PTOAS commands and tests may be used here when they are relevant and safe.
 
 AscendNPU-IR development can happen on this server. The server can also run

@@ -10,6 +10,11 @@ Read [Planner's contract](../../../AGENT.md), its required reading, the
 [runtime coverage policy](../../../bridge/inventory/ptodsl-template-test-triage.md#runtime-test-selection-standard).
 Use the actual code checkout, not legacy Planner fixture copies.
 
+For new local runtime tests, use the preferred 3.6 candidate in the
+[environment handoff](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#preferred-local-use).
+Verify the selected interpreter, patch and compiler provenance for both flows;
+do not silently change environments or patch the shared installation to pass.
+
 ## Test Design
 
 1. Inspect existing tests under

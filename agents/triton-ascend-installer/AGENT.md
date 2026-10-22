@@ -30,6 +30,10 @@ spellings before proposing their removal, following the approval rule below.
 
 ## Responsibilities
 
+The existing [3.6 candidate and handoff](../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#preferred-local-use)
+are the preferred local baseline. Inspect them before reinstalling anything;
+preserve the old environment for rollback and coordinate shared changes first.
+
 1. The requested environment target is **Triton-Ascend 3.6** with our bridge
    patch applied. Verify interpreter, imported files, package/source revision,
    compiled extensions and patch state. A venv name or version string alone is

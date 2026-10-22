@@ -11,6 +11,11 @@ Read [Planner's contract](../../../AGENT.md), its required reading, the
 Use `validate-bridge` for toolchain provenance and runtime validation details.
 This skill runs checks; it does not install hosted CI or schedule jobs.
 
+For new checks on this server, select the preferred 3.6 candidate from the
+[environment handoff](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#preferred-local-use).
+Record its actual patch and tool provenance; failures do not authorize switching
+environments or reinstalling shared tools. Other servers need their own verified setup.
+
 ## Select the Check Set
 
 1. Record the requested repository, revision/diff, check set, runtime budget,

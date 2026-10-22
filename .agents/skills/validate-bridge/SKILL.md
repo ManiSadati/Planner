@@ -10,6 +10,11 @@ Read [Planner's contract](../../../AGENT.md), its required reading, the
 [development guide](../../../bridge/designs/ptodsl-template-development-and-fallback.md).
 Use its environment setup rather than adding exports to kernels.
 
+For new local checks, use the preferred 3.6 candidate and setup in the
+[environment handoff](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#preferred-local-use).
+Verify the actual interpreter, patch and compiler paths; do not silently switch
+to an older environment or modify the shared installation after a failure.
+
 ## Establish Provenance
 
 1. Record NPU-IR and all relevant submodule revisions: Ascend LLVM, PTOAS, and

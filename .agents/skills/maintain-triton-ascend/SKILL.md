@@ -13,6 +13,11 @@ That record is historical evidence, not a substitute for inspecting current code
 
 ## Establish the Environment
 
+- The preferred environment for new local tests is the existing 3.6 candidate;
+  read its [setup and provenance](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#preferred-local-use)
+  before proposing installation work. Preserve the old venv for rollback and
+  coordinate ownership and user approval before modifying the shared candidate.
+  Do not silently replace it or treat this server's path as portable to A5 hosts.
 - Target Triton-Ascend **3.6**, not generic CUDA Triton with a similar version.
   Record the selected Python's `sys.executable`, `triton.__version__`,
   `triton.__file__`, backend file locations and `python -m pip` package metadata.
