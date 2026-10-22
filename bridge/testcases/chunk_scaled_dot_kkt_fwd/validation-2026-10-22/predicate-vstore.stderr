@@ -1,0 +1,4 @@
+Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/predicate-vstore.pto:4:5: error: 'pto.vmi.vstore' op operand #0 must be VMI logical vector register type, but got '!pto.vmi.mask<64xpred>'
+    pto.vmi.vstore %mask, %dst[%c0] : !pto.vmi.mask<64xpred>, !pto.ptr<ui8, ub>
+    ^
+Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/predicate-vstore.pto:4:5: note: see current operation: "pto.vmi.vstore"(%arg0, %arg1, %0) <{operandSegmentSizes = array<i32: 1, 1, 1, 0, 0, 0>}> : (!pto.vmi.mask<64xpred>, !pto.ptr<ui8, ub>, index) -> ()

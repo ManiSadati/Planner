@@ -1,0 +1,8 @@
+Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-5.normalized.mlir:49:13: error: 'builtin.unrealized_conversion_cast' op is unsupported by convert-hivmave-to-ptoas-vmi Phase 1: unrealized cast has no supported scalar-like VMI mapping
+      %22 = builtin.unrealized_conversion_cast %19 : vector<64xbf16> to vector<128xbf16>
+            ^
+Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-5.normalized.mlir:49:13: note: see current operation: %128 = "builtin.unrealized_conversion_cast"(%116) : (vector<64xbf16>) -> vector<128xbf16>
+Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-5.normalized.mlir:49:13: error: failed to legalize operation 'builtin.unrealized_conversion_cast'
+      %22 = builtin.unrealized_conversion_cast %19 : vector<64xbf16> to vector<128xbf16>
+            ^
+Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-5.normalized.mlir:49:13: note: see current operation: %128 = "builtin.unrealized_conversion_cast"(%116) : (vector<64xbf16>) -> vector<128xbf16>

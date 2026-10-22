@@ -1,0 +1,35 @@
+{
+  "source": "/home/m00967009/Workspace/Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/all-mlir.npuir.mlir",
+  "sha256": "c2d1b06b60442a65ca3ee8f3c371d560cc3dbf27ea53ac97f460032ef06be66d",
+  "helpers": [
+    {
+      "function": "chunk_scaled_dot_kkt_fwd_kernel_mix_aiv_outlined_vf_4",
+      "first_line": 197421,
+      "last_line": 197481,
+      "snapshot": "// -----// IR Dump After ExpandStridedMetadata (expand-strided-metadata) //----- //",
+      "extracted_file": "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-4.mlir",
+      "transformations": [
+        "copy exact function and same-snapshot aliases",
+        "wrap in module"
+      ]
+    },
+    {
+      "function": "chunk_scaled_dot_kkt_fwd_kernel_mix_aiv_outlined_vf_5",
+      "first_line": 197482,
+      "last_line": 197522,
+      "snapshot": "// -----// IR Dump After ExpandStridedMetadata (expand-strided-metadata) //----- //",
+      "extracted_file": "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-5.mlir",
+      "transformations": [
+        "copy exact function and same-snapshot aliases",
+        "wrap in module"
+      ]
+    }
+  ],
+  "derived_probes": [
+    {
+      "file": "predicate-reload-only.mlir",
+      "source": "helper-vf-5.normalized.mlir",
+      "changes": "Exact predicate vload retained; computed memory view exposed as function argument; result returned; surrounding loop, address construction and consumers omitted. Interface-only probe, not full-kernel equivalence."
+    }
+  ]
+}

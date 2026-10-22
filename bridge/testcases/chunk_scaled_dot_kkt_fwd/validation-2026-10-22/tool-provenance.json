@@ -1,0 +1,25 @@
+{
+  "repositories": {
+    "Q2TritonKernel": {
+      "head": "ebf78b205a87ecc5cd935a214bd2ef0fc176dcd9",
+      "exit": 0
+    },
+    "AscendNPU-IR": {
+      "head": "8b8f40f88e993ac9fde1d13c1084ed53e1d1694c",
+      "exit": 0
+    },
+    "AscendNPU-IR/third-party/ptoas": {
+      "head": "3c1c98fcc8ec0c49b8bededc9a0c7599c6a71a02",
+      "exit": 0
+    },
+    "/tmp/ptoas-q2-audit-upstream-20261021": {
+      "head": "37f5f25e3b5b433e7cc760d148fea83dddef9934",
+      "exit": 0
+    }
+  },
+  "binaries": {
+    "AscendNPU-IR/build/bin/bishengir-opt": "423737d7c69d9e611bed0d269cf4e33c0a552dc9459bbf3f74bcb2c68d57390c",
+    "/tmp/ptoas-q2-audit-build-20261021/tools/pto-test-opt/pto-test-opt": "fbbe2ed02aa9ddd5f1fab131373d979a3c800e60e3bf0f52f532c29d226691ea"
+  },
+  "scope": "Existing local bridge binary and upstream compiler build from 2026-10-21; no new upstream fetch/build; no device execution"
+}

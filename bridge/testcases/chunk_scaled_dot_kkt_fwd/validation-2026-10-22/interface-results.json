@@ -1,0 +1,43 @@
+[
+  {
+    "name": "derived-predicate-reload",
+    "command": [
+      "/home/m00967009/Workspace/AscendNPU-IR/build/bin/bishengir-opt",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/predicate-reload-only.mlir",
+      "--convert-hivmave-to-ptoas-vmi",
+      "-o",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/predicate-reload-only.vmi.mlir"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "predicate-vload",
+    "command": [
+      "/tmp/ptoas-q2-audit-build-20261021/tools/pto-test-opt/pto-test-opt",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/predicate-vload.pto",
+      "-o",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/predicate-vload.verified.mlir"
+    ],
+    "exit": 1
+  },
+  {
+    "name": "predicate-vstore",
+    "command": [
+      "/tmp/ptoas-q2-audit-build-20261021/tools/pto-test-opt/pto-test-opt",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/predicate-vstore.pto",
+      "-o",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/predicate-vstore.verified.mlir"
+    ],
+    "exit": 1
+  },
+  {
+    "name": "numeric-memory-control",
+    "command": [
+      "/tmp/ptoas-q2-audit-build-20261021/tools/pto-test-opt/pto-test-opt",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/numeric-memory-control.pto",
+      "-o",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/numeric-memory-control.verified.mlir"
+    ],
+    "exit": 0
+  }
+]

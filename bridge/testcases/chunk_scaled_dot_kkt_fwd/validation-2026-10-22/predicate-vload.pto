@@ -1,0 +1,7 @@
+module {
+  func.func @predicate_vload(%src: !pto.ptr<ui8, ub>) -> !pto.vmi.mask<64xpred> {
+    %c0 = arith.constant 0 : index
+    %mask = pto.vmi.vload %src[%c0] : !pto.ptr<ui8, ub> -> !pto.vmi.mask<64xpred>
+    return %mask : !pto.vmi.mask<64xpred>
+  }
+}

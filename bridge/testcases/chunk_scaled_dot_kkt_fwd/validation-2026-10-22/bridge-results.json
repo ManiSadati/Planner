@@ -1,0 +1,48 @@
+[
+  {
+    "name": "normalize-vf-4",
+    "command": [
+      "/home/m00967009/Workspace/AscendNPU-IR/build/bin/bishengir-opt",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-4.mlir",
+      "--lower-affine",
+      "--canonicalize",
+      "-o",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-4.normalized.mlir"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "bridge-vf-4",
+    "command": [
+      "/home/m00967009/Workspace/AscendNPU-IR/build/bin/bishengir-opt",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-4.normalized.mlir",
+      "--convert-hivmave-to-ptoas-vmi",
+      "-o",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-4.vmi.mlir"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "normalize-vf-5",
+    "command": [
+      "/home/m00967009/Workspace/AscendNPU-IR/build/bin/bishengir-opt",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-5.mlir",
+      "--lower-affine",
+      "--canonicalize",
+      "-o",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-5.normalized.mlir"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "bridge-vf-5",
+    "command": [
+      "/home/m00967009/Workspace/AscendNPU-IR/build/bin/bishengir-opt",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-5.normalized.mlir",
+      "--convert-hivmave-to-ptoas-vmi",
+      "-o",
+      "Planner/bridge/testcases/chunk_scaled_dot_kkt_fwd/validation-2026-10-22/helper-vf-5.vmi.mlir"
+    ],
+    "exit": 1
+  }
+]
