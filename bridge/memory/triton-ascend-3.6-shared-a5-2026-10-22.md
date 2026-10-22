@@ -21,7 +21,7 @@ Repository: `$HOME/triton-ascend`, origin
 | --- | --- |
 | `e9f9b169f8ffd6dda35a6853135c83d7e66df25f` | Native 3.6 frontend base used to build the candidate |
 | `e701011bda3ceb2e94f1b3905084dc2e34b97424` | Melika's original 3.6 bridge; its separate bridge builder omitted native options, including `unit_flag` |
-| `461aa8f086c6bf26229ee324b8f4b5d3902e002d` | Local refactor commit, `Share native A5 compilation with PTOAS VMI output` |
+| `461aa8f086c6bf26229ee324b8f4b5d3902e002d` | Published refactor commit, `Share native A5 compilation with PTOAS VMI output` |
 
 Local branch: `feature/shared-a5-native-ptoas`, clean at handoff. Relative to
 Melika's bridge, this commit changes only:
@@ -45,13 +45,37 @@ lock/resource guards, pure-SIMT rejection, and debug stage wrapping remain.
 Both flows share frontend stages through `bcmlir`; the bridge adds `ptovmi`
 before its final `npubin` stage.
 
-**Publication is blocked.** The user authorized pushing, but GitHub denied SSH
-write access to Melikano's repository for account `ManiSadati`. HTTPS credentials
-were unavailable; the probed `ManiSadati/triton-ascend` repository did not exist.
-There is no published branch URL. Await write access or the user's chosen fork;
-do not infer a new publication destination. A local commit patch is saved as
+## Shared Source Baseline
+
+Published on 2026-10-22 after repository write access was granted:
+[`Melikano/triton-ascend:feature/shared-a5-native-ptoas`](https://github.com/Melikano/triton-ascend/tree/feature/shared-a5-native-ptoas),
+validated at [`461aa8f086c6bf26229ee324b8f4b5d3902e002d`](https://github.com/Melikano/triton-ascend/commit/461aa8f086c6bf26229ee324b8f4b5d3902e002d).
+The local branch now tracks the same-named remote branch. The earlier push-access
+blocker is resolved; this is a published feature branch, not a claim of merging
+into Melika's original bridge branch or upstream.
+
+Colleagues should use a compatible installation from this source baseline and
+record the installed revision. A stock 3.6 package or a similarly named venv is
+not proof of the patch. The preferred candidate below exists on this server
+only; do not copy its account paths into other setups. If the installation is
+missing, report the gap and propose an authorized installer task.
+
+For an existing clone of Melika's fork, fetch the branch without switching or
+overwriting another worker's checkout:
+
+```bash
+git fetch origin feature/shared-a5-native-ptoas
+git show --no-patch --oneline 461aa8f086c6bf26229ee324b8f4b5d3902e002d
+```
+
+For authorized installation, use an isolated checkout at the recorded commit
+and follow that revision's build requirements. This document records a native
+wheel plus an ABI-compatible three-file Python overlay, not a portable prebuilt
+wheel or an automatic installer. Inspect the installed base/extension before
+applying those files; do not overlay 3.6 source onto a 3.2.x installation.
+A local commit patch remains at
 `$HOME/tmp/triton36-install-20261022/shared-a5-native-ptoas.patch` (refactor only;
-it depends on Melika's existing bridge commits).
+the published branch already includes its Melika bridge dependencies).
 
 ## Installed State And Rollback
 
@@ -232,9 +256,9 @@ provenance while expanding only assigned coverage. Own integration and
 documentation reconciliation; coordinate before touching environments/builds
 that another agent owns. Read the manifests and diff the two changed frontend
 files at `461aa8f0`. Retain the compiler hash/build-before-commit explanation
-instead of silently replacing shared tools. Resolve the publication
-destination/access with the user, then publish the existing approved branch;
-no remote branch URL currently exists.
+instead of silently replacing shared tools. Use the published source baseline
+above for colleague installation/handoffs; source publication does not distribute
+the locally built wheel or validate a different host's package/extension ABI.
 
 If a fresh smoke is needed after a change, use fresh labels with the recorded
 runner (requires CANN local IPC access):
@@ -250,5 +274,5 @@ the stored wheel/backup in a separate environment; the runner now selects the
 patched candidate. Do not replace the working 3.2.2 environment, modify shared
 compiler binaries/pins, implement templates, revive uniform-ABI work, or fold
 unrelated pending Planner edits into this handoff. The original installer
-handoff was local and uncommitted; publishing this Planner record does not
-publish the Triton source branch or distribute the patched wheel.
+handoff was local and uncommitted. The Triton source branch is now published;
+the locally built wheel and runtime evidence remain server-local artifacts.

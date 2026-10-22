@@ -278,7 +278,16 @@ Codex should avoid modifying PTOAS unless the human explicitly asks. The preferr
 
 ## Build And Test Reality
 
-### Preferred Local Triton Environment
+### Shared Triton Source And Local Environment
+
+The shared Triton-Ascend 3.6 bridge baseline is
+[`Melikano/triton-ascend:feature/shared-a5-native-ptoas`](https://github.com/Melikano/triton-ascend/tree/feature/shared-a5-native-ptoas),
+validated at commit `461aa8f086c6bf26229ee324b8f4b5d3902e002d`. This branch is
+published, not a local-only patch. Record the installed source/patch revision;
+stock Triton-Ascend 3.6 alone does not establish that the bridge fix is present.
+On another server, verify a compatible installation from this baseline. If it
+is missing, report the setup gap and request authorized installer work rather
+than assuming the local venv exists or silently installing packages.
 
 For new local native NPU-IR and PTOAS bridge tests on this server, use
 `$HOME/.venv/npuir-sim-3.6-candidate/bin/python` and simulator

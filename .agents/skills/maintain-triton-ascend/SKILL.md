@@ -13,8 +13,11 @@ That record is historical evidence, not a substitute for inspecting current code
 
 ## Establish the Environment
 
-- The preferred environment for new local tests is the existing 3.6 candidate;
-  read its [setup and provenance](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#preferred-local-use)
+- Use the published `Melikano/triton-ascend:feature/shared-a5-native-ptoas`
+  baseline, validated at `461aa8f086c6bf26229ee324b8f4b5d3902e002d`; resolve its
+  [source, setup and provenance](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#shared-source-baseline).
+  Stock 3.6 alone does not include proof of our bridge patch. On this server the
+  preferred installation is the existing 3.6 candidate; inspect it
   before proposing installation work. Preserve the old venv for rollback and
   coordinate ownership and user approval before modifying the shared candidate.
   Do not silently replace it or treat this server's path as portable to A5 hosts.

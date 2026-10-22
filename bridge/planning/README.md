@@ -1,10 +1,21 @@
 # Planning Overview
 
-Last updated: 2026-10-16
+Last updated: 2026-10-22
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
 lower-level planning documents matter.
+
+## Triton-Ascend Integration
+
+The [3.6 shared A5 handoff](../memory/triton-ascend-3.6-shared-a5-2026-10-22.md)
+records the local minimal native/PTOAS refactor, isolated candidate installation,
+46 passing command/differential tests plus bounded native/bridge vadd,
+MmadL1 unit-flag and Fixpipe simulator checks on `Ascend950PR_9589`.
+The shared source is published as
+[`Melikano/triton-ascend:feature/shared-a5-native-ptoas`](https://github.com/Melikano/triton-ascend/tree/feature/shared-a5-native-ptoas)
+at validated commit `461aa8f0`; the candidate venv is server-local.
+See the handoff for setup, the compiler stamp/hash explanation and validation limits.
 
 ## Current Template Work
 

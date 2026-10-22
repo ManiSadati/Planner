@@ -10,8 +10,9 @@ Read [Planner's contract](../../../AGENT.md), its required reading, the
 [development guide](../../../bridge/designs/ptodsl-template-development-and-fallback.md).
 Use its environment setup rather than adding exports to kernels.
 
-For new local checks, use the preferred 3.6 candidate and setup in the
-[environment handoff](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#preferred-local-use).
+Use the [published 3.6 source baseline](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#shared-source-baseline)
+and its recorded setup; this server's preferred candidate is only one installation.
+On other servers, verify equivalent source/patch provenance and report missing setup.
 Verify the actual interpreter, patch and compiler paths; do not silently switch
 to an older environment or modify the shared installation after a failure.
 

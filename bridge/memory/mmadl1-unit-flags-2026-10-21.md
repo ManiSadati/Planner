@@ -134,12 +134,14 @@ the template campaign; then use this migration order.
 ## Separate Triton-Ascend Follow-Up
 
 Update 2026-10-22: implemented the shared native/bridge compilation path in the
-local Triton-Ascend branch `feature/shared-a5-native-ptoas` at `461aa8f0`.
+published Triton-Ascend branch
+[`feature/shared-a5-native-ptoas`](https://github.com/Melikano/triton-ascend/tree/feature/shared-a5-native-ptoas)
+at `461aa8f0`.
 The isolated 3.6 candidate passed command/differential tests, native/bridge
 vadd, one paired F16 NN unit-flag case with repeated launches, and one F32 UB
 Fixpipe tail case in both flows. It is the preferred environment for new local
 tests. See the [integration handoff](triton-ascend-3.6-shared-a5-2026-10-22.md)
-for setup, installed patch provenance, publication blocker and limits. This is
+for the shared source baseline, setup, installed patch provenance and limits. This is
 not full 3.6 template-matrix or physical-A5 coverage. The audit and proposed
 actions below describe the original state before that driver follow-up.
 
