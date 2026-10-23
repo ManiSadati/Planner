@@ -1,0 +1,1383 @@
+{
+  "recorded": "2026-10-23",
+  "campaign": "$HOME/template-census/triton36/q2-full/run-20261022",
+  "scope": "Native Q2 only, retained preparation/compile-preflight-supported functions; all declared source-expression input/autotune Cartesian tuples for these functions",
+  "summary": {
+    "state": "complete",
+    "updated_utc": "2026-10-23T00:16:11Z",
+    "total_configurations": 28751,
+    "test_functions": 33,
+    "completed": 28751,
+    "active": 0,
+    "remaining": 0,
+    "statuses": {
+      "complete": 22684,
+      "compile_failed": 6067
+    },
+    "failing_stages": {
+      "native_hivm_lowering": 6067
+    },
+    "unique_template_instances": 42,
+    "unique_native_compilations": 315,
+    "kernel_execution_performed": false,
+    "numerical_validation_performed": false,
+    "stop_reason": null
+  },
+  "plan": {
+    "configurations": 28751,
+    "test_functions": 33,
+    "catalogued_functions": 92,
+    "excluded_functions": 59,
+    "manifest_sha256": "72e350afb205d148536f28673113f5705efaebfc1a89283fdcd312ba3f339eb5",
+    "settings_sha256": "a63d1e3529dcec032888be73cf2955251602e73d84ab1b9f3c9ce8d1f43aaaec",
+    "records_sha256": "80e18334611a7bc60ecdd328ed9b5dd971cb58e948ae49d96f4f362b1f033411",
+    "target": "Ascend950PR_9589",
+    "compile_flow": "npuir",
+    "workers": 8,
+    "case_timeout_seconds": 240,
+    "native_compile_timeout_seconds": 120,
+    "per_worker_memory_GiB": 6,
+    "stop_below_free_disk_GiB": 32,
+    "completion": "All manifest entries; resumable. No fixed wall-clock truncation.",
+    "counting": "Declared unique source-expression input and autotune Cartesian tuples; branch-inactive choices may share JIT compilations. All original source pruning retained.",
+    "kernel_execution_performed": false,
+    "binary_backend_executed": false,
+    "numerical_validation_performed": false
+  },
+  "environment": {
+    "triton_ascend": "3.6.0+gite9f9b169",
+    "triton": "3.6.0",
+    "torch": "2.7.1+cpu",
+    "torch_npu": "2.7.1.post8",
+    "python": "$HOME/.venv/npuir-sim-3.6-candidate/bin/python",
+    "shared_source_baseline": "461aa8f086c6bf26229ee324b8f4b5d3902e002d",
+    "target": "Ascend950PR_9589",
+    "compile_flow": "npuir",
+    "bridge_enabled": false,
+    "private_snapshot_verified": true
+  },
+  "revisions": {
+    "q2": "ebf78b205a87ecc5cd935a214bd2ef0fc176dcd9",
+    "q2_worktree_status": "",
+    "npuir_source_checkout": "58f887f7688ba26e17ea02548558113abb702c19",
+    "npuir_source_dirty_at_freeze": [
+      "M bishengir/test/Integration/PTOASBridge/template_runtime/a5/Cube/MmadL1/native-instances/test_mmadl1_native_instances.py",
+      " D bishengir/test/Integration/PTOASBridge/template_runtime/a5/Cube/MmadL1/native-instances/test_mmadl1_unit_flags.py",
+      " M bishengir/test/Integration/PTOASBridge/template_runtime/utils.py"
+    ],
+    "npuir_compiler_self_report": "bishengir-compile 1.2.0 (git@gitcode.com:manisadati/AscendNPU-IR.git 75525e826a7b 2026-10-21) \nllvm 19.1.7 8ce9217f83f3\nRelease build",
+    "ascend_llvm": "8ce9217f83f3376970d10428de4e2d1c15039e08",
+    "ptoas_pinned_not_executed": "d36100d03255e5e8a858c497a4277708d8b889c9",
+    "pto_llvm_pinned_not_executed": "fa2fd1f75d742fec91ecf40d98c9c7961647ec42"
+  },
+  "compiler_sha256": "765cf8da946a15272dceb4a37f789394c783590814102f9bd49331845668fd8c",
+  "opt_sha256": "868595207c1c90dc434e65da1a0b2f7bea56a45302e94980ef6bc171b7330e1d",
+  "native_template_libraries": [
+    {
+      "file": "meta_op.aic.c310.bc",
+      "sha256": "b0cd46d30cc696492bfaeac04b4abf0ea08c7874794fa4e3695fd933a250fd03",
+      "reader": "CANN llvm-link 15.0.5 -S; external define records"
+    },
+    {
+      "file": "meta_op.aiv.c310.bc",
+      "sha256": "d4cc5a6a4573992024434a4d8ce0046db96852e1d9d33e13c46693779bf69818",
+      "reader": "CANN llvm-link 15.0.5 -S; external define records"
+    },
+    {
+      "file": "meta_op.mix.aic.c310.bc",
+      "sha256": "1ec216bf0eb5094b624384d18e9091fd59ce66496ce1f224673eade373a80df9",
+      "reader": "Ascend LLVM llvm-nm 19.1.7 --defined-only --extern-only"
+    },
+    {
+      "file": "meta_op.mix.aiv.c310.bc",
+      "sha256": "c1ad8eb63abcdd719b08f91593416d7c702e52ed9eeb9f15dab4a2b2a9cc87f2",
+      "reader": "Ascend LLVM llvm-nm 19.1.7 --defined-only --extern-only"
+    }
+  ],
+  "categories": [
+    {
+      "category": "MmadL1",
+      "unique_instances": 4,
+      "static_call_sites_unique_native_compilations": 185,
+      "call_sites_across_configurations": 3596
+    },
+    {
+      "category": "Fixpipe",
+      "unique_instances": 5,
+      "static_call_sites_unique_native_compilations": 167,
+      "call_sites_across_configurations": 3320
+    },
+    {
+      "category": "Nd2Nz",
+      "unique_instances": 2,
+      "static_call_sites_unique_native_compilations": 65,
+      "call_sites_across_configurations": 1722
+    },
+    {
+      "category": "Cube setup",
+      "unique_instances": 2,
+      "static_call_sites_unique_native_compilations": 65,
+      "call_sites_across_configurations": 1722
+    },
+    {
+      "category": "Vector DMA",
+      "unique_instances": 19,
+      "static_call_sites_unique_native_compilations": 2042,
+      "call_sites_across_configurations": 555533
+    },
+    {
+      "category": "Vector Integer64",
+      "unique_instances": 4,
+      "static_call_sites_unique_native_compilations": 96,
+      "call_sites_across_configurations": 108
+    },
+    {
+      "category": "Vector collective",
+      "unique_instances": 5,
+      "static_call_sites_unique_native_compilations": 16,
+      "call_sites_across_configurations": 662
+    },
+    {
+      "category": "SIMT indirect load",
+      "unique_instances": 1,
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 27
+    }
+  ],
+  "detailed_categories": {
+    "Cube/Setup/set2d-initialize": {
+      "instances": 2,
+      "static_call_sites_unique_native_compilations": 65,
+      "call_sites_across_configurations": 1722,
+      "distinct_files": 10,
+      "distinct_test_functions": 12
+    },
+    "Cube/Nd2Nz/standard-float": {
+      "instances": 2,
+      "static_call_sites_unique_native_compilations": 65,
+      "call_sites_across_configurations": 1722,
+      "distinct_files": 10,
+      "distinct_test_functions": 12
+    },
+    "Cube/MmadL1/classic-float": {
+      "instances": 3,
+      "static_call_sites_unique_native_compilations": 73,
+      "call_sites_across_configurations": 2700,
+      "distinct_files": 6,
+      "distinct_test_functions": 8
+    },
+    "Cube/Fixpipe/nz2nd": {
+      "instances": 1,
+      "static_call_sites_unique_native_compilations": 4,
+      "call_sites_across_configurations": 540,
+      "distinct_files": 2,
+      "distinct_test_functions": 3
+    },
+    "Vector/DMA/gm-to-ub": {
+      "instances": 7,
+      "static_call_sites_unique_native_compilations": 911,
+      "call_sites_across_configurations": 246570,
+      "distinct_files": 30,
+      "distinct_test_functions": 33
+    },
+    "Vector/DMA/ub-to-l1": {
+      "instances": 3,
+      "static_call_sites_unique_native_compilations": 144,
+      "call_sites_across_configurations": 2452,
+      "distinct_files": 8,
+      "distinct_test_functions": 10
+    },
+    "Cube/MmadL1/fp32-ieee-hf32": {
+      "instances": 1,
+      "static_call_sites_unique_native_compilations": 112,
+      "call_sites_across_configurations": 896,
+      "distinct_files": 4,
+      "distinct_test_functions": 4
+    },
+    "Cube/Fixpipe/normal": {
+      "instances": 2,
+      "static_call_sites_unique_native_compilations": 54,
+      "call_sites_across_configurations": 564,
+      "distinct_files": 6,
+      "distinct_test_functions": 7
+    },
+    "Cube/Fixpipe/dual-output": {
+      "instances": 2,
+      "static_call_sites_unique_native_compilations": 109,
+      "call_sites_across_configurations": 2216,
+      "distinct_files": 8,
+      "distinct_test_functions": 9
+    },
+    "Vector/DMA/ub-to-ub": {
+      "instances": 2,
+      "static_call_sites_unique_native_compilations": 261,
+      "call_sites_across_configurations": 143201,
+      "distinct_files": 15,
+      "distinct_test_functions": 16
+    },
+    "Vector/DMA/ub-to-gm": {
+      "instances": 7,
+      "static_call_sites_unique_native_compilations": 726,
+      "call_sites_across_configurations": 163310,
+      "distinct_files": 28,
+      "distinct_test_functions": 30
+    },
+    "Vector/Collective/prefix-sum-product": {
+      "instances": 5,
+      "static_call_sites_unique_native_compilations": 16,
+      "call_sites_across_configurations": 662,
+      "distinct_files": 7,
+      "distinct_test_functions": 7
+    },
+    "Vector/Integer64/conversion": {
+      "instances": 1,
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 27,
+      "distinct_files": 1,
+      "distinct_test_functions": 1
+    },
+    "Vector/Integer64/dma-addressing": {
+      "instances": 2,
+      "static_call_sites_unique_native_compilations": 48,
+      "call_sites_across_configurations": 54,
+      "distinct_files": 1,
+      "distinct_test_functions": 1
+    },
+    "Vector/Integer64/arithmetic": {
+      "instances": 1,
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 27,
+      "distinct_files": 1,
+      "distinct_test_functions": 1
+    },
+    "SIMT/IndirectLoad/rank1-rank2": {
+      "instances": 1,
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 27,
+      "distinct_files": 1,
+      "distinct_test_functions": 1
+    }
+  },
+  "symbols": [
+    {
+      "template_symbol": "mma_tile_bfloat16_t_to_float",
+      "category": "Cube/MmadL1/classic-float",
+      "static_call_sites_unique_native_compilations": 10,
+      "call_sites_across_configurations": 720,
+      "distinct_files": 4,
+      "distinct_test_functions": 6,
+      "family": "MmadL1",
+      "native_c_interface_symbol": "_mlir_ciface_mma_tile_bfloat16_t_to_float",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "mma_tile_bfloat16_t_to_float_ta",
+      "category": "Cube/MmadL1/classic-float",
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 720,
+      "distinct_files": 2,
+      "distinct_test_functions": 3,
+      "family": "MmadL1",
+      "native_c_interface_symbol": "_mlir_ciface_mma_tile_bfloat16_t_to_float_ta",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "mma_tile_bfloat16_t_to_float_tb",
+      "category": "Cube/MmadL1/classic-float",
+      "static_call_sites_unique_native_compilations": 39,
+      "call_sites_across_configurations": 1260,
+      "distinct_files": 4,
+      "distinct_test_functions": 5,
+      "family": "MmadL1",
+      "native_c_interface_symbol": "_mlir_ciface_mma_tile_bfloat16_t_to_float_tb",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "mma_tile_float_to_float",
+      "category": "Cube/MmadL1/fp32-ieee-hf32",
+      "static_call_sites_unique_native_compilations": 112,
+      "call_sites_across_configurations": 896,
+      "distinct_files": 4,
+      "distinct_test_functions": 4,
+      "family": "MmadL1",
+      "native_c_interface_symbol": "_mlir_ciface_mma_tile_float_to_float",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "fixpipe_normal_float_to_bfloat16_t_4d_to_4d_cbuf",
+      "category": "Cube/Fixpipe/normal",
+      "static_call_sites_unique_native_compilations": 6,
+      "call_sites_across_configurations": 180,
+      "distinct_files": 2,
+      "distinct_test_functions": 3,
+      "family": "Fixpipe",
+      "native_c_interface_symbol": "_mlir_ciface_fixpipe_normal_float_to_bfloat16_t_4d_to_4d_cbuf",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "fixpipe_normal_float_to_float_4d_to_4d_cbuf",
+      "category": "Cube/Fixpipe/normal",
+      "static_call_sites_unique_native_compilations": 48,
+      "call_sites_across_configurations": 384,
+      "distinct_files": 4,
+      "distinct_test_functions": 4,
+      "family": "Fixpipe",
+      "native_c_interface_symbol": "_mlir_ciface_fixpipe_normal_float_to_float_4d_to_4d_cbuf",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "fixpipe_nz2dn_dual_float_to_float_4d_to_2d_ubuf",
+      "category": "Cube/Fixpipe/dual-output",
+      "static_call_sites_unique_native_compilations": 6,
+      "call_sites_across_configurations": 180,
+      "distinct_files": 2,
+      "distinct_test_functions": 3,
+      "family": "Fixpipe",
+      "native_c_interface_symbol": "_mlir_ciface_fixpipe_nz2dn_dual_float_to_float_4d_to_2d_ubuf",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "fixpipe_nz2nd_dual_float_to_float_4d_to_2d_ubuf",
+      "category": "Cube/Fixpipe/dual-output",
+      "static_call_sites_unique_native_compilations": 103,
+      "call_sites_across_configurations": 2036,
+      "distinct_files": 8,
+      "distinct_test_functions": 9,
+      "family": "Fixpipe",
+      "native_c_interface_symbol": "_mlir_ciface_fixpipe_nz2nd_dual_float_to_float_4d_to_2d_ubuf",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "fixpipe_nz2nd_float_to_bfloat16_t_4d_to_2d_gm",
+      "category": "Cube/Fixpipe/nz2nd",
+      "static_call_sites_unique_native_compilations": 4,
+      "call_sites_across_configurations": 540,
+      "distinct_files": 2,
+      "distinct_test_functions": 3,
+      "family": "Fixpipe",
+      "native_c_interface_symbol": "_mlir_ciface_fixpipe_nz2nd_float_to_bfloat16_t_4d_to_2d_gm",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "nd2nz_bfloat16_t",
+      "category": "Cube/Nd2Nz/standard-float",
+      "static_call_sites_unique_native_compilations": 41,
+      "call_sites_across_configurations": 1530,
+      "distinct_files": 6,
+      "distinct_test_functions": 8,
+      "family": "Nd2Nz",
+      "native_c_interface_symbol": "_mlir_ciface_nd2nz_bfloat16_t",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "nd2nz_float",
+      "category": "Cube/Nd2Nz/standard-float",
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 192,
+      "distinct_files": 4,
+      "distinct_test_functions": 4,
+      "family": "Nd2Nz",
+      "native_c_interface_symbol": "_mlir_ciface_nd2nz_float",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "set_l1_2d_bfloat16_t",
+      "category": "Cube/Setup/set2d-initialize",
+      "static_call_sites_unique_native_compilations": 41,
+      "call_sites_across_configurations": 1530,
+      "distinct_files": 6,
+      "distinct_test_functions": 8,
+      "family": "Cube setup",
+      "native_c_interface_symbol": "_mlir_ciface_set_l1_2d_bfloat16_t",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "set_l1_2d_float",
+      "category": "Cube/Setup/set2d-initialize",
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 192,
+      "distinct_files": 4,
+      "distinct_test_functions": 4,
+      "family": "Cube setup",
+      "native_c_interface_symbol": "_mlir_ciface_set_l1_2d_float",
+      "c310_libraries": "meta_op.aic.c310.bc"
+    },
+    {
+      "template_symbol": "copy_ubuf_to_cbuf_1d_float",
+      "category": "Vector/DMA/ub-to-l1",
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 192,
+      "distinct_files": 2,
+      "distinct_test_functions": 2,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_copy_ubuf_to_cbuf_1d_float",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "copy_ubuf_to_cbuf_2d_bfloat16_t",
+      "category": "Vector/DMA/ub-to-l1",
+      "static_call_sites_unique_native_compilations": 40,
+      "call_sites_across_configurations": 1620,
+      "distinct_files": 4,
+      "distinct_test_functions": 6,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_copy_ubuf_to_cbuf_2d_bfloat16_t",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "copy_ubuf_to_cbuf_2d_float",
+      "category": "Vector/DMA/ub-to-l1",
+      "static_call_sites_unique_native_compilations": 80,
+      "call_sites_across_configurations": 640,
+      "distinct_files": 4,
+      "distinct_test_functions": 4,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_copy_ubuf_to_cbuf_2d_float",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "copy_ubuf_to_ubuf_1d_float",
+      "category": "Vector/DMA/ub-to-ub",
+      "static_call_sites_unique_native_compilations": 239,
+      "call_sites_across_configurations": 137817,
+      "distinct_files": 15,
+      "distinct_test_functions": 16,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_copy_ubuf_to_ubuf_1d_float",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "copy_ubuf_to_ubuf_2d_float",
+      "category": "Vector/DMA/ub-to-ub",
+      "static_call_sites_unique_native_compilations": 22,
+      "call_sites_across_configurations": 5384,
+      "distinct_files": 6,
+      "distinct_test_functions": 6,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_copy_ubuf_to_ubuf_2d_float",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "load_gm_to_ubuf_1d_bfloat16_t",
+      "category": "Vector/DMA/gm-to-ub",
+      "static_call_sites_unique_native_compilations": 105,
+      "call_sites_across_configurations": 2305,
+      "distinct_files": 13,
+      "distinct_test_functions": 16,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_load_gm_to_ubuf_1d_bfloat16_t",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "load_gm_to_ubuf_1d_float",
+      "category": "Vector/DMA/gm-to-ub",
+      "static_call_sites_unique_native_compilations": 243,
+      "call_sites_across_configurations": 35094,
+      "distinct_files": 16,
+      "distinct_test_functions": 16,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_load_gm_to_ubuf_1d_float",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "load_gm_to_ubuf_1d_half",
+      "category": "Vector/DMA/gm-to-ub",
+      "static_call_sites_unique_native_compilations": 129,
+      "call_sites_across_configurations": 193372,
+      "distinct_files": 10,
+      "distinct_test_functions": 10,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_load_gm_to_ubuf_1d_half",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "load_gm_to_ubuf_1d_int32_t",
+      "category": "Vector/DMA/gm-to-ub",
+      "static_call_sites_unique_native_compilations": 2,
+      "call_sites_across_configurations": 2,
+      "distinct_files": 1,
+      "distinct_test_functions": 1,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_load_gm_to_ubuf_1d_int32_t",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "load_gm_to_ubuf_2d_bfloat16_t",
+      "category": "Vector/DMA/gm-to-ub",
+      "static_call_sites_unique_native_compilations": 187,
+      "call_sites_across_configurations": 1874,
+      "distinct_files": 11,
+      "distinct_test_functions": 14,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_load_gm_to_ubuf_2d_bfloat16_t",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "load_gm_to_ubuf_2d_float",
+      "category": "Vector/DMA/gm-to-ub",
+      "static_call_sites_unique_native_compilations": 135,
+      "call_sites_across_configurations": 570,
+      "distinct_files": 11,
+      "distinct_test_functions": 12,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_load_gm_to_ubuf_2d_float",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "load_gm_to_ubuf_2d_half",
+      "category": "Vector/DMA/gm-to-ub",
+      "static_call_sites_unique_native_compilations": 110,
+      "call_sites_across_configurations": 13353,
+      "distinct_files": 8,
+      "distinct_test_functions": 8,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_load_gm_to_ubuf_2d_half",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "store_ubuf_to_gm_1d_bfloat16_t",
+      "category": "Vector/DMA/ub-to-gm",
+      "static_call_sites_unique_native_compilations": 26,
+      "call_sites_across_configurations": 539,
+      "distinct_files": 6,
+      "distinct_test_functions": 8,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_store_ubuf_to_gm_1d_bfloat16_t",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "store_ubuf_to_gm_1d_float",
+      "category": "Vector/DMA/ub-to-gm",
+      "static_call_sites_unique_native_compilations": 303,
+      "call_sites_across_configurations": 94189,
+      "distinct_files": 20,
+      "distinct_test_functions": 21,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_store_ubuf_to_gm_1d_float",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "store_ubuf_to_gm_1d_half",
+      "category": "Vector/DMA/ub-to-gm",
+      "static_call_sites_unique_native_compilations": 35,
+      "call_sites_across_configurations": 58550,
+      "distinct_files": 6,
+      "distinct_test_functions": 6,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_store_ubuf_to_gm_1d_half",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "store_ubuf_to_gm_2d_bfloat16_t",
+      "category": "Vector/DMA/ub-to-gm",
+      "static_call_sites_unique_native_compilations": 149,
+      "call_sites_across_configurations": 1499,
+      "distinct_files": 11,
+      "distinct_test_functions": 13,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_store_ubuf_to_gm_2d_bfloat16_t",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "store_ubuf_to_gm_2d_float",
+      "category": "Vector/DMA/ub-to-gm",
+      "static_call_sites_unique_native_compilations": 130,
+      "call_sites_across_configurations": 508,
+      "distinct_files": 9,
+      "distinct_test_functions": 9,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_store_ubuf_to_gm_2d_float",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "store_ubuf_to_gm_2d_half",
+      "category": "Vector/DMA/ub-to-gm",
+      "static_call_sites_unique_native_compilations": 82,
+      "call_sites_across_configurations": 8023,
+      "distinct_files": 8,
+      "distinct_test_functions": 8,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_store_ubuf_to_gm_2d_half",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "store_ubuf_to_gm_3d_float",
+      "category": "Vector/DMA/ub-to-gm",
+      "static_call_sites_unique_native_compilations": 1,
+      "call_sites_across_configurations": 2,
+      "distinct_files": 2,
+      "distinct_test_functions": 2,
+      "family": "Vector DMA",
+      "native_c_interface_symbol": "_mlir_ciface_store_ubuf_to_gm_3d_float",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "cast_int32_t_to_int64_t",
+      "category": "Vector/Integer64/conversion",
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 27,
+      "distinct_files": 1,
+      "distinct_test_functions": 1,
+      "family": "Vector Integer64",
+      "native_c_interface_symbol": "_mlir_ciface_cast_int32_t_to_int64_t",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "masked_store_NORM_B64_int64_t_rank1",
+      "category": "Vector/Integer64/dma-addressing",
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 27,
+      "distinct_files": 1,
+      "distinct_test_functions": 1,
+      "family": "Vector Integer64",
+      "native_c_interface_symbol": "_mlir_ciface_masked_store_NORM_B64_int64_t_rank1",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "vadd_int64_t",
+      "category": "Vector/Integer64/arithmetic",
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 27,
+      "distinct_files": 1,
+      "distinct_test_functions": 1,
+      "family": "Vector Integer64",
+      "native_c_interface_symbol": "_mlir_ciface_vadd_int64_t",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "vbr_int64_t",
+      "category": "Vector/Integer64/dma-addressing",
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 27,
+      "distinct_files": 1,
+      "distinct_test_functions": 1,
+      "family": "Vector Integer64",
+      "native_c_interface_symbol": "_mlir_ciface_vbr_int64_t",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "cumsum_1d_float_dim0",
+      "category": "Vector/Collective/prefix-sum-product",
+      "static_call_sites_unique_native_compilations": 2,
+      "call_sites_across_configurations": 2,
+      "distinct_files": 1,
+      "distinct_test_functions": 1,
+      "family": "Vector collective",
+      "native_c_interface_symbol": "_mlir_ciface_cumsum_1d_float_dim0",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "cumsum_2d_float_dim0",
+      "category": "Vector/Collective/prefix-sum-product",
+      "static_call_sites_unique_native_compilations": 4,
+      "call_sites_across_configurations": 369,
+      "distinct_files": 3,
+      "distinct_test_functions": 3,
+      "family": "Vector collective",
+      "native_c_interface_symbol": "_mlir_ciface_cumsum_2d_float_dim0",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "cumsum_2d_float_dim0_comp",
+      "category": "Vector/Collective/prefix-sum-product",
+      "static_call_sites_unique_native_compilations": 3,
+      "call_sites_across_configurations": 273,
+      "distinct_files": 3,
+      "distinct_test_functions": 3,
+      "family": "Vector collective",
+      "native_c_interface_symbol": "_mlir_ciface_cumsum_2d_float_dim0_comp",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "cumsum_2d_float_dim1",
+      "category": "Vector/Collective/prefix-sum-product",
+      "static_call_sites_unique_native_compilations": 6,
+      "call_sites_across_configurations": 16,
+      "distinct_files": 3,
+      "distinct_test_functions": 3,
+      "family": "Vector collective",
+      "native_c_interface_symbol": "_mlir_ciface_cumsum_2d_float_dim1",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "cumsum_3d_float_dim1",
+      "category": "Vector/Collective/prefix-sum-product",
+      "static_call_sites_unique_native_compilations": 1,
+      "call_sites_across_configurations": 2,
+      "distinct_files": 2,
+      "distinct_test_functions": 2,
+      "family": "Vector collective",
+      "native_c_interface_symbol": "_mlir_ciface_cumsum_3d_float_dim1",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    },
+    {
+      "template_symbol": "indirect_load_nonvolatile_1d_float_int64_t",
+      "category": "SIMT/IndirectLoad/rank1-rank2",
+      "static_call_sites_unique_native_compilations": 24,
+      "call_sites_across_configurations": 27,
+      "distinct_files": 1,
+      "distinct_test_functions": 1,
+      "family": "SIMT indirect load",
+      "native_c_interface_symbol": "_mlir_ciface_indirect_load_nonvolatile_1d_float_int64_t",
+      "c310_libraries": "meta_op.aiv.c310.bc"
+    }
+  ],
+  "retained_functions": [
+    {
+      "test_file": "tests/fla/test_chunk_scaled_dot_kkt_fwd.py",
+      "test_function": "test_chunk_scaled_dot_kkt_fwd_with_g_and_beta",
+      "declared_configurations": 270,
+      "outcomes": {
+        "complete": 270
+      }
+    },
+    {
+      "test_file": "tests/fla/test_layer_norm_gated_bwd.py",
+      "test_function": "test_layer_norm_gated_bwd",
+      "declared_configurations": 12960,
+      "outcomes": {
+        "complete": 9936,
+        "compile_failed": 3024
+      }
+    },
+    {
+      "test_file": "tests/fla/test_layer_norm_gated_fwd.py",
+      "test_function": "test_layer_norm_gated_fwd",
+      "declared_configurations": 360,
+      "outcomes": {
+        "complete": 360
+      }
+    },
+    {
+      "test_file": "tests/fla/test_recompute_w_u_fwd.py",
+      "test_function": "test_recompute_w_u_fwd",
+      "declared_configurations": 90,
+      "outcomes": {
+        "complete": 90
+      }
+    },
+    {
+      "test_file": "tests/fla/test_recompute_w_u_fwd.py",
+      "test_function": "test_recompute_w_u_fwd_cross_platform_acc",
+      "declared_configurations": 90,
+      "outcomes": {
+        "complete": 90
+      }
+    },
+    {
+      "test_file": "tests/fla/test_solve_tril.py",
+      "test_function": "test_solve_tril",
+      "declared_configurations": 8,
+      "outcomes": {
+        "complete": 8
+      }
+    },
+    {
+      "test_file": "tests/fla/test_solve_tril_mxr.py",
+      "test_function": "test_solve_tril_mxr",
+      "declared_configurations": 8,
+      "outcomes": {
+        "complete": 8
+      }
+    },
+    {
+      "test_file": "tests/fla/test_wy_fast_gated_delta_bwd.py",
+      "test_function": "test_prepare_wy_repr_bwd",
+      "declared_configurations": 60,
+      "outcomes": {
+        "complete": 60
+      }
+    },
+    {
+      "test_file": "tests/fla/test_wy_fast_gated_delta_bwd.py",
+      "test_function": "test_prepare_wy_repr_bwd_cross_platform_acc",
+      "declared_configurations": 60,
+      "outcomes": {
+        "complete": 60
+      }
+    },
+    {
+      "test_file": "tests/fla_perf/test_chunk_scaled_dot_kkt_fwd_perf.py",
+      "test_function": "test_chunk_scaled_dot_kkt_fwd_perf",
+      "declared_configurations": 270,
+      "outcomes": {
+        "complete": 270
+      }
+    },
+    {
+      "test_file": "tests/fla_perf/test_layer_norm_gated_bwd_perf.py",
+      "test_function": "test_layer_norm_gated_bwd_perf",
+      "declared_configurations": 12960,
+      "outcomes": {
+        "complete": 9936,
+        "compile_failed": 3024
+      }
+    },
+    {
+      "test_file": "tests/fla_perf/test_layer_norm_gated_fwd_perf.py",
+      "test_function": "test_layer_norm_gated_fwd_perf",
+      "declared_configurations": 360,
+      "outcomes": {
+        "complete": 360
+      }
+    },
+    {
+      "test_file": "tests/fla_perf/test_prepare_wy_repr_bwd_perf.py",
+      "test_function": "test_prepare_wy_repr_bwd_perf",
+      "declared_configurations": 60,
+      "outcomes": {
+        "complete": 60
+      }
+    },
+    {
+      "test_file": "tests/fla_perf/test_recompute_w_u_fwd_perf.py",
+      "test_function": "test_recompute_w_u_fwd_perf",
+      "declared_configurations": 90,
+      "outcomes": {
+        "complete": 90
+      }
+    },
+    {
+      "test_file": "tests/fla_perf/test_solve_tril_mxr_perf.py",
+      "test_function": "test_solve_tril_mxr_perf",
+      "declared_configurations": 8,
+      "outcomes": {
+        "complete": 8
+      }
+    },
+    {
+      "test_file": "tests/fla_perf/test_solve_tril_perf.py",
+      "test_function": "test_solve_tril_perf",
+      "declared_configurations": 8,
+      "outcomes": {
+        "complete": 8
+      }
+    },
+    {
+      "test_file": "tests/mojo_opset/test_activation.py",
+      "test_function": "test_silu",
+      "declared_configurations": 27,
+      "outcomes": {
+        "complete": 27
+      }
+    },
+    {
+      "test_file": "tests/mojo_opset/test_activation.py",
+      "test_function": "test_swiglu",
+      "declared_configurations": 27,
+      "outcomes": {
+        "complete": 25,
+        "compile_failed": 2
+      }
+    },
+    {
+      "test_file": "tests/mojo_opset/test_fused_add_layernorm.py",
+      "test_function": "test_fused_add_layernorm",
+      "declared_configurations": 60,
+      "outcomes": {
+        "complete": 60
+      }
+    },
+    {
+      "test_file": "tests/mojo_opset/test_fused_add_rmsnorm.py",
+      "test_function": "test_fused_add_rmsnorm",
+      "declared_configurations": 54,
+      "outcomes": {
+        "complete": 54
+      }
+    },
+    {
+      "test_file": "tests/mojo_opset/test_gelu.py",
+      "test_function": "test_gelu_accuracy",
+      "declared_configurations": 270,
+      "outcomes": {
+        "complete": 253,
+        "compile_failed": 17
+      }
+    },
+    {
+      "test_file": "tests/mojo_opset/test_rmsnorm.py",
+      "test_function": "test_rmsnorm_forward_backward_diff",
+      "declared_configurations": 30,
+      "outcomes": {
+        "complete": 30
+      }
+    },
+    {
+      "test_file": "tests/mojo_opset/test_topp_filter.py",
+      "test_function": "test_topp_filter",
+      "declared_configurations": 2,
+      "outcomes": {
+        "complete": 2
+      }
+    },
+    {
+      "test_file": "tests/fla/test_chunk_local_cumsum.py",
+      "test_function": "test_chunk_local_cumsum",
+      "declared_configurations": 240,
+      "outcomes": {
+        "complete": 240
+      }
+    },
+    {
+      "test_file": "tests/fla_perf/test_chunk_local_cumsum_perf.py",
+      "test_function": "test_chunk_local_cumsum_perf",
+      "declared_configurations": 240,
+      "outcomes": {
+        "complete": 240
+      }
+    },
+    {
+      "test_file": "tests/mamba/test_angle_dt_kernel.py",
+      "test_function": "test_main",
+      "declared_configurations": 81,
+      "outcomes": {
+        "complete": 81
+      }
+    },
+    {
+      "test_file": "tests/mamba/test_bwd_dadt_cumsum_fused_kernel.py",
+      "test_function": "test_main",
+      "declared_configurations": 6,
+      "outcomes": {
+        "complete": 6
+      }
+    },
+    {
+      "test_file": "tests/mamba/test_bwd_dtrap_ddt_kernel.py",
+      "test_function": "test_main",
+      "declared_configurations": 4,
+      "outcomes": {
+        "complete": 4
+      }
+    },
+    {
+      "test_file": "tests/mamba/test_bwd_segsum_dtrap_kernel.py",
+      "test_function": "test_main",
+      "declared_configurations": 1,
+      "outcomes": {
+        "complete": 1
+      }
+    },
+    {
+      "test_file": "tests/mamba/test_dacs_segsum_kernel.py",
+      "test_function": "test_main",
+      "declared_configurations": 1,
+      "outcomes": {
+        "complete": 1
+      }
+    },
+    {
+      "test_file": "tests/mamba/test_mamba3_siso_bwd_dzdo.py",
+      "test_function": "test_main",
+      "declared_configurations": 18,
+      "outcomes": {
+        "complete": 18
+      }
+    },
+    {
+      "test_file": "tests/mamba/test_mamba3_siso_bwd_kernel_ddt_dtrap_dinput_states.py",
+      "test_function": "test_main",
+      "declared_configurations": 27,
+      "outcomes": {
+        "complete": 27
+      }
+    },
+    {
+      "test_file": "tests/mamba/test_mamba3_siso_bwd_kernel_dk_state_post.py",
+      "test_function": "test_main",
+      "declared_configurations": 1,
+      "outcomes": {
+        "complete": 1
+      }
+    }
+  ],
+  "exclusion_reason_counts": {
+    "external_input_required": 7,
+    "expected_error_test": 1,
+    "generated_input_adapter_required": 2,
+    "guarded_source_targets_resolved_import_unverified": 1,
+    "autograd_adapter_required": 2,
+    "dedicated_fake_tensor_adapter_required": 2,
+    "missing_source_export": 3,
+    "no_triton_launch_in_test_body": 2,
+    "known_native_fixpipe_bytecode_import_failure": 5,
+    "native_compile_preflight_fixpipe_bytecode_import_failure": 6,
+    "argument_preparation_worker_without_result": 15,
+    "argument_preparation_preparation_blocked": 8,
+    "argument_preparation_worker_error": 5
+  },
+  "excluded_functions": [
+    {
+      "test_file": "tests/fla/test_prepare_wy_repr_bwd.py",
+      "test_function": "test_prepare_wy_repr_bwd_cross_platform_acc",
+      "reason": "external_input_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_assertion_rewrite.py",
+      "test_function": "test_assertion_rewrite",
+      "reason": "expected_error_test",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_dllm.py",
+      "test_function": "test_diffusion_attention_func",
+      "reason": "generated_input_adapter_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_store_paged_kv.py",
+      "test_function": "test_store_paged_kv",
+      "reason": "generated_input_adapter_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "performance/mojo_opset/test_dllm_up.py",
+      "test_function": "test_diffusion_attention_up_func",
+      "reason": "external_input_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_chunk_gated_delta_rule_bwd_dhu.py",
+      "test_function": "test_chunk_gated_delta_rule_bwd_dhu",
+      "reason": "guarded_source_targets_resolved_import_unverified",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla_perf/test_causal_conv1d_bwd_gpu_perf.py",
+      "test_function": "test_causal_conv1d_bwd_varlen_perf",
+      "reason": "autograd_adapter_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla_perf/test_causal_conv1d_bwd_gpu_perf.py",
+      "test_function": "test_causal_conv1d_bwd_with_initial_state_perf",
+      "reason": "autograd_adapter_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/flash_attention/test_fa_backward_fp8.py",
+      "test_function": "test_op",
+      "reason": "external_input_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mamba/test_layer_norm_gated.py",
+      "test_function": "test_main",
+      "reason": "dedicated_fake_tensor_adapter_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mamba/test_mamba3_siso_bwd_kernel_dqkv/test_mamba3_siso_bwd_kernel_dqkv.py",
+      "test_function": "test_dqkv_precision",
+      "reason": "external_input_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mamba/test_mamba3_siso_bwd_kernel_rotary_bias_angles.py",
+      "test_function": "test_gpu_dqktheta",
+      "reason": "external_input_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mamba/test_mamba3_siso_fwd_kernel/test_mamba3_siso_fwd.py",
+      "test_function": "test_main",
+      "reason": "dedicated_fake_tensor_adapter_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_conv_varlen.py",
+      "test_function": "test_conv_varlen_forward_accuracy",
+      "reason": "missing_source_export",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_dllm_up.py",
+      "test_function": "test_diffusion_attention_up_func",
+      "reason": "external_input_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_dllm_up_prof.py",
+      "test_function": "test_profile_dllm_attention_up",
+      "reason": "external_input_required",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_grid_pos_emb.py",
+      "test_function": "test_grid_pos_emb_accuracy",
+      "reason": "no_triton_launch_in_test_body",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_layernorm.py",
+      "test_function": "test_layernorm",
+      "reason": "missing_source_export",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_operator_dispatch.py",
+      "test_function": "test_operator_dispatch",
+      "reason": "no_triton_launch_in_test_body",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_store_lowrank.py",
+      "test_function": "test_store_lowrank",
+      "reason": "missing_source_export",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_chunk_gated_delta_rule_fwd_h.py",
+      "test_function": "test_chunk_gated_delta_rule_fwd_h",
+      "reason": "known_native_fixpipe_bytecode_import_failure",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_chunk_o.py",
+      "test_function": "test_chunk_fwd_o",
+      "reason": "known_native_fixpipe_bytecode_import_failure",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla_perf/test_chunk_gated_delta_rule_bwd_dhu_perf.py",
+      "test_function": "test_chunk_gated_delta_rule_bwd_dhu_perf",
+      "reason": "known_native_fixpipe_bytecode_import_failure",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla_perf/test_chunk_gated_delta_rule_fwd_h_perf.py",
+      "test_function": "test_chunk_gated_delta_rule_fwd_h_perf",
+      "reason": "known_native_fixpipe_bytecode_import_failure",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla_perf/test_chunk_o_perf.py",
+      "test_function": "test_chunk_fwd_o_perf",
+      "reason": "known_native_fixpipe_bytecode_import_failure",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "performance/mojo_opset/test_sdpa.py",
+      "test_function": "test_sdpa",
+      "reason": "native_compile_preflight_fixpipe_bytecode_import_failure",
+      "failing_stage": "bytecode_to_npuir_mlir"
+    },
+    {
+      "test_file": "performance/mojo_opset/test_sdpa.py",
+      "test_function": "test_sdpa_fwd",
+      "reason": "native_compile_preflight_fixpipe_bytecode_import_failure",
+      "failing_stage": "bytecode_to_npuir_mlir"
+    },
+    {
+      "test_file": "tests/fla/test_chunk_bwd_dv_local.py",
+      "test_function": "test_chunk_bwd_dv_local_g",
+      "reason": "native_compile_preflight_fixpipe_bytecode_import_failure",
+      "failing_stage": "bytecode_to_npuir_mlir"
+    },
+    {
+      "test_file": "tests/fla_perf/test_chunk_bwd_dv_local_perf.py",
+      "test_function": "test_chunk_bwd_dv_local_perf",
+      "reason": "native_compile_preflight_fixpipe_bytecode_import_failure",
+      "failing_stage": "bytecode_to_npuir_mlir"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_sdpa.py",
+      "test_function": "test_sdpa",
+      "reason": "native_compile_preflight_fixpipe_bytecode_import_failure",
+      "failing_stage": "bytecode_to_npuir_mlir"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_sdpa.py",
+      "test_function": "test_sdpa_fwd",
+      "reason": "native_compile_preflight_fixpipe_bytecode_import_failure",
+      "failing_stage": "bytecode_to_npuir_mlir"
+    },
+    {
+      "test_file": "performance/mojo_opset/test_sdpa.py",
+      "test_function": "test_sdpa_bwd",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_causal_conv1d_bwd.py",
+      "test_function": "test_causal_conv1d_bwd_varlen",
+      "reason": "argument_preparation_preparation_blocked",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_causal_conv1d_bwd.py",
+      "test_function": "test_causal_conv1d_bwd_with_initial_state",
+      "reason": "argument_preparation_preparation_blocked",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_chunk_bwd_dqkwg.py",
+      "test_function": "test_chunk_bwd_dqkwg_g",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_recompute_w_u_fwd_large.py",
+      "test_function": "test_recompute_w_u_fwd",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_recompute_w_u_fwd_large.py",
+      "test_function": "test_recompute_w_u_fwd_cross_platform_acc",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_recompute_w_u_fwd_large.py",
+      "test_function": "test_recompute_w_u_fwd_cross_platform_acc_large",
+      "reason": "argument_preparation_preparation_blocked",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_recompute_w_u_fwd_large.py",
+      "test_function": "test_recompute_w_u_fwd_large",
+      "reason": "argument_preparation_preparation_blocked",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_solve_tril.py",
+      "test_function": "test_solve_tril_varlen",
+      "reason": "argument_preparation_worker_error",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla/test_solve_tril_mxr.py",
+      "test_function": "test_solve_tril_mxr_varlen",
+      "reason": "argument_preparation_worker_error",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla_perf/test_causal_conv1d_bwd_perf.py",
+      "test_function": "test_causal_conv1d_bwd_varlen_perf",
+      "reason": "argument_preparation_preparation_blocked",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla_perf/test_causal_conv1d_bwd_perf.py",
+      "test_function": "test_causal_conv1d_bwd_with_initial_state_perf",
+      "reason": "argument_preparation_preparation_blocked",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla_perf/test_chunk_bwd_dqkwg_perf.py",
+      "test_function": "test_chunk_bwd_dqkwg_perf",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla_perf/test_solve_tril_mxr_perf.py",
+      "test_function": "test_solve_tril_mxr_varlen_perf",
+      "reason": "argument_preparation_worker_error",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/fla_perf/test_solve_tril_perf.py",
+      "test_function": "test_solve_tril_varlen_perf",
+      "reason": "argument_preparation_worker_error",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/flash_attention/test_fa_forward_fp8.py",
+      "test_function": "test_op",
+      "reason": "argument_preparation_worker_error",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_apply_penalties_temp.py",
+      "test_function": "test_apply_penalties_temp_accuracy",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_convolution.py",
+      "test_function": "test_causal_conv1d_update_state",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_fused_ce.py",
+      "test_function": "test_fused_ce_backward_accuracy",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_fused_ce.py",
+      "test_function": "test_fused_ce_forward_accuracy",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_paged_prefill_gqa.py",
+      "test_function": "test_paged_prefill_gqa",
+      "reason": "argument_preparation_preparation_blocked",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_pos_emb.py",
+      "test_function": "test_pos_emb",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_reject_sampler.py",
+      "test_function": "test_reject_sampler",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_sdpa.py",
+      "test_function": "test_sdpa_bwd",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_silu.py",
+      "test_function": "test_silu_forward_backward_diff",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/mojo_opset/test_topp_sampling.py",
+      "test_function": "test_topp_sampling_accuracy",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/vLLM/test_fused_sigmoid_gating_delta_rule_update_kernel_accuracy.py",
+      "test_function": "test_triton_fusion_ops",
+      "reason": "argument_preparation_worker_without_result",
+      "failing_stage": "not_recorded"
+    },
+    {
+      "test_file": "tests/vLLM/test_fused_sigmoid_gating_delta_rule_update_kernel_perf.py",
+      "test_function": "test_kernel",
+      "reason": "argument_preparation_preparation_blocked",
+      "failing_stage": "not_recorded"
+    }
+  ],
+  "artifact_sha256": {
+    "summary.json": "927990813c5b2c8246cfa1555654a9ce443ec2837b6ee7dcb4a9562c183c0976",
+    "observed-template-counts.csv": "db678b5ff78f4caa4150871a0e730b934980871990637c91b4970cdecab1e887",
+    "category-counts.json": "d2ecd5d88ac64c9c4e548d145bb0a67efd03f1e389c438c7b65d801325d7432e",
+    "plan.json": "627923f36a523eb1812fca95a2d0fdf7bb8dd1fca5736c0499074ae5c12b2059",
+    "manifest.jsonl": "72e350afb205d148536f28673113f5705efaebfc1a89283fdcd312ba3f339eb5",
+    "all-exclusions.json": "a2ed4aa24e321c6486bff8b61c73050e6e6fa6f87d439dacf0ced768eca3f838",
+    "bitcode-symbol-audit/audit.json": "717533c50290c8a3498b4a63c4ebd4e9edfdb292b9ae3772ef56f7c75bbfa973"
+  },
+  "limitations": [
+    "Observed dependencies for the retained Q2 scope, not the complete Q2/CI requirement set.",
+    "Usable JIT captures from entries with another failing JIT remain counted. Missing/failed capture is unknown coverage, not feature absence.",
+    "Same native compiler input is deduplicated globally for static sites and once per configuration for configuration-weighted sites; neither is a runtime invocation count.",
+    "C310 definition availability is not final device linking, bridge/PTODSL support or runtime validation.",
+    "Local historical template patches are included. Not an untouched-upstream audit.",
+    "Differences from the older mixed-suite census cannot be attributed to Triton 3.6 alone."
+  ]
+}

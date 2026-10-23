@@ -1,0 +1,9 @@
+category,unique_instances,static_call_sites_unique_native_compilations,call_sites_across_configurations
+MmadL1,4,185,3596
+Fixpipe,5,167,3320
+Nd2Nz,2,65,1722
+Cube setup,2,65,1722
+Vector DMA,19,2042,555533
+Vector Integer64,4,96,108
+Vector collective,5,16,662
+SIMT indirect load,1,24,27

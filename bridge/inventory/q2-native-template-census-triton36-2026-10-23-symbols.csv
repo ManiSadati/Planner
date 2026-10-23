@@ -1,0 +1,43 @@
+family,category,template_symbol,native_c_interface_symbol,static_call_sites_unique_native_compilations,call_sites_across_configurations,distinct_files,distinct_test_functions,c310_libraries
+MmadL1,Cube/MmadL1/classic-float,mma_tile_bfloat16_t_to_float,_mlir_ciface_mma_tile_bfloat16_t_to_float,10,720,4,6,meta_op.aic.c310.bc
+MmadL1,Cube/MmadL1/classic-float,mma_tile_bfloat16_t_to_float_ta,_mlir_ciface_mma_tile_bfloat16_t_to_float_ta,24,720,2,3,meta_op.aic.c310.bc
+MmadL1,Cube/MmadL1/classic-float,mma_tile_bfloat16_t_to_float_tb,_mlir_ciface_mma_tile_bfloat16_t_to_float_tb,39,1260,4,5,meta_op.aic.c310.bc
+MmadL1,Cube/MmadL1/fp32-ieee-hf32,mma_tile_float_to_float,_mlir_ciface_mma_tile_float_to_float,112,896,4,4,meta_op.aic.c310.bc
+Fixpipe,Cube/Fixpipe/normal,fixpipe_normal_float_to_bfloat16_t_4d_to_4d_cbuf,_mlir_ciface_fixpipe_normal_float_to_bfloat16_t_4d_to_4d_cbuf,6,180,2,3,meta_op.aic.c310.bc
+Fixpipe,Cube/Fixpipe/normal,fixpipe_normal_float_to_float_4d_to_4d_cbuf,_mlir_ciface_fixpipe_normal_float_to_float_4d_to_4d_cbuf,48,384,4,4,meta_op.aic.c310.bc
+Fixpipe,Cube/Fixpipe/dual-output,fixpipe_nz2dn_dual_float_to_float_4d_to_2d_ubuf,_mlir_ciface_fixpipe_nz2dn_dual_float_to_float_4d_to_2d_ubuf,6,180,2,3,meta_op.aic.c310.bc
+Fixpipe,Cube/Fixpipe/dual-output,fixpipe_nz2nd_dual_float_to_float_4d_to_2d_ubuf,_mlir_ciface_fixpipe_nz2nd_dual_float_to_float_4d_to_2d_ubuf,103,2036,8,9,meta_op.aic.c310.bc
+Fixpipe,Cube/Fixpipe/nz2nd,fixpipe_nz2nd_float_to_bfloat16_t_4d_to_2d_gm,_mlir_ciface_fixpipe_nz2nd_float_to_bfloat16_t_4d_to_2d_gm,4,540,2,3,meta_op.aic.c310.bc
+Nd2Nz,Cube/Nd2Nz/standard-float,nd2nz_bfloat16_t,_mlir_ciface_nd2nz_bfloat16_t,41,1530,6,8,meta_op.aic.c310.bc
+Nd2Nz,Cube/Nd2Nz/standard-float,nd2nz_float,_mlir_ciface_nd2nz_float,24,192,4,4,meta_op.aic.c310.bc
+Cube setup,Cube/Setup/set2d-initialize,set_l1_2d_bfloat16_t,_mlir_ciface_set_l1_2d_bfloat16_t,41,1530,6,8,meta_op.aic.c310.bc
+Cube setup,Cube/Setup/set2d-initialize,set_l1_2d_float,_mlir_ciface_set_l1_2d_float,24,192,4,4,meta_op.aic.c310.bc
+Vector DMA,Vector/DMA/ub-to-l1,copy_ubuf_to_cbuf_1d_float,_mlir_ciface_copy_ubuf_to_cbuf_1d_float,24,192,2,2,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-l1,copy_ubuf_to_cbuf_2d_bfloat16_t,_mlir_ciface_copy_ubuf_to_cbuf_2d_bfloat16_t,40,1620,4,6,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-l1,copy_ubuf_to_cbuf_2d_float,_mlir_ciface_copy_ubuf_to_cbuf_2d_float,80,640,4,4,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-ub,copy_ubuf_to_ubuf_1d_float,_mlir_ciface_copy_ubuf_to_ubuf_1d_float,239,137817,15,16,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-ub,copy_ubuf_to_ubuf_2d_float,_mlir_ciface_copy_ubuf_to_ubuf_2d_float,22,5384,6,6,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/gm-to-ub,load_gm_to_ubuf_1d_bfloat16_t,_mlir_ciface_load_gm_to_ubuf_1d_bfloat16_t,105,2305,13,16,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/gm-to-ub,load_gm_to_ubuf_1d_float,_mlir_ciface_load_gm_to_ubuf_1d_float,243,35094,16,16,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/gm-to-ub,load_gm_to_ubuf_1d_half,_mlir_ciface_load_gm_to_ubuf_1d_half,129,193372,10,10,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/gm-to-ub,load_gm_to_ubuf_1d_int32_t,_mlir_ciface_load_gm_to_ubuf_1d_int32_t,2,2,1,1,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/gm-to-ub,load_gm_to_ubuf_2d_bfloat16_t,_mlir_ciface_load_gm_to_ubuf_2d_bfloat16_t,187,1874,11,14,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/gm-to-ub,load_gm_to_ubuf_2d_float,_mlir_ciface_load_gm_to_ubuf_2d_float,135,570,11,12,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/gm-to-ub,load_gm_to_ubuf_2d_half,_mlir_ciface_load_gm_to_ubuf_2d_half,110,13353,8,8,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-gm,store_ubuf_to_gm_1d_bfloat16_t,_mlir_ciface_store_ubuf_to_gm_1d_bfloat16_t,26,539,6,8,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-gm,store_ubuf_to_gm_1d_float,_mlir_ciface_store_ubuf_to_gm_1d_float,303,94189,20,21,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-gm,store_ubuf_to_gm_1d_half,_mlir_ciface_store_ubuf_to_gm_1d_half,35,58550,6,6,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-gm,store_ubuf_to_gm_2d_bfloat16_t,_mlir_ciface_store_ubuf_to_gm_2d_bfloat16_t,149,1499,11,13,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-gm,store_ubuf_to_gm_2d_float,_mlir_ciface_store_ubuf_to_gm_2d_float,130,508,9,9,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-gm,store_ubuf_to_gm_2d_half,_mlir_ciface_store_ubuf_to_gm_2d_half,82,8023,8,8,meta_op.aiv.c310.bc
+Vector DMA,Vector/DMA/ub-to-gm,store_ubuf_to_gm_3d_float,_mlir_ciface_store_ubuf_to_gm_3d_float,1,2,2,2,meta_op.aiv.c310.bc
+Vector Integer64,Vector/Integer64/conversion,cast_int32_t_to_int64_t,_mlir_ciface_cast_int32_t_to_int64_t,24,27,1,1,meta_op.aiv.c310.bc
+Vector Integer64,Vector/Integer64/dma-addressing,masked_store_NORM_B64_int64_t_rank1,_mlir_ciface_masked_store_NORM_B64_int64_t_rank1,24,27,1,1,meta_op.aiv.c310.bc
+Vector Integer64,Vector/Integer64/arithmetic,vadd_int64_t,_mlir_ciface_vadd_int64_t,24,27,1,1,meta_op.aiv.c310.bc
+Vector Integer64,Vector/Integer64/dma-addressing,vbr_int64_t,_mlir_ciface_vbr_int64_t,24,27,1,1,meta_op.aiv.c310.bc
+Vector collective,Vector/Collective/prefix-sum-product,cumsum_1d_float_dim0,_mlir_ciface_cumsum_1d_float_dim0,2,2,1,1,meta_op.aiv.c310.bc
+Vector collective,Vector/Collective/prefix-sum-product,cumsum_2d_float_dim0,_mlir_ciface_cumsum_2d_float_dim0,4,369,3,3,meta_op.aiv.c310.bc
+Vector collective,Vector/Collective/prefix-sum-product,cumsum_2d_float_dim0_comp,_mlir_ciface_cumsum_2d_float_dim0_comp,3,273,3,3,meta_op.aiv.c310.bc
+Vector collective,Vector/Collective/prefix-sum-product,cumsum_2d_float_dim1,_mlir_ciface_cumsum_2d_float_dim1,6,16,3,3,meta_op.aiv.c310.bc
+Vector collective,Vector/Collective/prefix-sum-product,cumsum_3d_float_dim1,_mlir_ciface_cumsum_3d_float_dim1,1,2,2,2,meta_op.aiv.c310.bc
+SIMT indirect load,SIMT/IndirectLoad/rank1-rank2,indirect_load_nonvolatile_1d_float_int64_t,_mlir_ciface_indirect_load_nonvolatile_1d_float_int64_t,24,27,1,1,meta_op.aiv.c310.bc
