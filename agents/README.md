@@ -64,6 +64,9 @@ repositories need the role file supplied explicitly or a separate installation.
   role defaults. Roles do not grant permissions beyond the assigned task.
 - Read primary skills at task start, and supporting skills only when relevant.
   Follow linked files explicitly if they are not in the session's skill list.
+- Before local build/runtime work, read the short
+  [current environment note](../bridge/memory/current-local-environment.md).
+  Use the existing activated profile; installation guides are not routine setup.
 - Assign the objective, repository/revision, owned files, dependencies, permitted
   checks, runtime budget, and expected output. Missing authorization for broad
   design changes or expensive runs is not permission to proceed.

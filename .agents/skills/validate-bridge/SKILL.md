@@ -10,8 +10,11 @@ Read [Planner's contract](../../../AGENT.md), its required reading, the
 [development guide](../../../bridge/designs/ptodsl-template-development-and-fallback.md).
 Use its environment setup rather than adding exports to kernels.
 
-Use the [published 3.6 source baseline](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#shared-source-baseline)
-and its recorded setup; this server's preferred candidate is only one installation.
+For local work, use the short
+[current environment note](../../../bridge/memory/current-local-environment.md)
+rather than historical manual setup exports. The
+[published 3.6 source baseline](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#shared-source-baseline)
+records frontend provenance; this server's candidate is only one installation.
 On other servers, verify equivalent source/patch provenance and report missing setup.
 Verify the actual interpreter, patch and compiler paths; do not silently switch
 to an older environment or modify the shared installation after a failure.
@@ -21,8 +24,9 @@ to an older environment or modify the shared installation after a failure.
 1. Record NPU-IR and all relevant submodule revisions: Ascend LLVM, PTOAS, and
    PTO LLVM. Resolve the actual compiler executables, venv, and installed MLIR
    resources. A branch checkout does not rebuild installed tools.
-2. Use `bishengir-compile` from the intended NPU-IR build/install, `hivmc-a5`
-   from CANN, and PTOAS from this checkout's pinned submodule build. Do not use
+2. Use the intended NPU-IR/PTOAS build through the profile's compiler wrappers
+   and its compilation CANN for `hivmc-a5`; preserve the separate runtime CANN.
+   Match that build to the assigned source revision. Do not use
    Triton-bundled compiler copies or an unrelated standalone PTOAS checkout.
 3. Check the installed Triton driver patch, not just its package version.
    Keep the two LLVM toolchains separate; textual MLIR is their boundary.

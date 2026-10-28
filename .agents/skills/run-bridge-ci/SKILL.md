@@ -11,8 +11,11 @@ Read [Planner's contract](../../../AGENT.md), its required reading, the
 Use `validate-bridge` for toolchain provenance and runtime validation details.
 This skill runs checks; it does not install hosted CI or schedule jobs.
 
-Use the [published 3.6 source baseline](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#shared-source-baseline);
-select its preferred candidate on this server or a verified equivalent elsewhere.
+For local runs, use the short
+[current environment note](../../../bridge/memory/current-local-environment.md)
+and its already-wired candidate, not an installation recipe. The
+[published 3.6 source baseline](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#shared-source-baseline)
+records frontend provenance; other servers need a verified equivalent.
 Record its actual patch and tool provenance; failures do not authorize switching
 environments or reinstalling shared tools. Other servers need their own verified setup.
 

@@ -13,6 +13,9 @@ That record is historical evidence, not a substitute for inspecting current code
 
 ## Establish the Environment
 
+- Read the short [current local environment note](../../../bridge/memory/current-local-environment.md)
+  before changing this server's setup. Its existing candidate already handles
+  compilation/runtime separation; routine use does not require installation.
 - Use the published `Melikano/triton-ascend:feature/shared-a5-native-ptoas`
   baseline, validated at `461aa8f086c6bf26229ee324b8f4b5d3902e002d`; resolve its
   [source, setup and provenance](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#shared-source-baseline).
@@ -33,8 +36,9 @@ That record is historical evidence, not a substitute for inspecting current code
   candidate venv; do not replace another user's/shared env or install while
   workers use it. Python-only patches may avoid rebuilding only when compatible
   with the installed extension ABI; otherwise explain the required rebuild.
-- Resolve `bishengir-compile` from the intended NPU-IR build/install, `hivmc-a5`
-  from CANN and PTOAS from the checkout's pinned submodule build. Do not use
+- Resolve the intended NPU-IR/PTOAS build through the activated compiler profile,
+  with `hivmc-a5` from its compilation CANN, not its runtime CANN. Match the
+  installed tools to the assigned source revision. Do not use
   Triton-bundled compiler copies or mix libraries from the two LLVM builds.
 - Use **`--soc-version=Ascend950PR_9589`** for simulator validation. Prefer
   `Ascend950PR_9589` as the compiler target when accepted by the selected 3.6

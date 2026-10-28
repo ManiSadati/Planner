@@ -127,6 +127,13 @@ reinstall the saved native wheel, which removes the candidate's bridge patch.
 
 ## Preferred Local Use
 
+**Toolchain refresh, 2026-10-28:** the candidate's normal Bash activation now
+selects the [updated Wilson-master toolchain](toolchain-refresh-cann92-2026-10-28.md),
+with CANN 9.2 compiler subprocesses and the preserved CANN 9.1 beta runtime.
+Native and bridge vadd checks pass exactly with that setup. The manual compiler
+exports below select the historical shared installs; use normal candidate
+activation for the current tools. The frontend source baseline remains `461aa8f0`.
+
 Project-owner decision: use this candidate for new local native and bridge tests.
 Its shared A5 compiler path avoids the previous partial option-builder copy,
 including the missing unit-flag forwarding. Keep kernels backend-neutral.

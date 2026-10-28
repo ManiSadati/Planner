@@ -15,6 +15,11 @@ working environments and mainline behavior intact.
 
 ## Triton-Ascend Integration
 
+For routine work on this server, agents should read the short
+[current local environment note](../memory/current-local-environment.md): use
+the existing candidate, CANN 9.2 compiler wrappers and CANN 9.1 runtime. The
+installation handoff below is supporting evidence, not daily setup instructions.
+
 The [3.6 shared A5 handoff](../memory/triton-ascend-3.6-shared-a5-2026-10-22.md)
 records the local minimal native/PTOAS refactor, isolated candidate installation,
 46 passing command/differential tests plus bounded native/bridge vadd,
@@ -24,14 +29,23 @@ The shared source is published as
 at validated commit `461aa8f0`; the candidate venv is server-local.
 See the handoff for setup, the compiler stamp/hash explanation and validation limits.
 
+The [CANN 9.2 toolchain refresh](../memory/toolchain-refresh-cann92-2026-10-28.md)
+updates local `master` to `3bf5d9898` and installs NPU-IR 2.0, Ascend LLVM
+`95c46934` and PTOAS 0.69 in a separate prefix, wired into the same 3.6 candidate.
+Per owner direction, wrappers use CANN 9.2 for compilation while Torch-NPU and
+the simulator keep CANN 9.1 beta. Both actual vadd flows pass exactly on
+`Ascend950PR_9589`; 46 option/native-parity checks pass after installation.
+The old environment and shared installs are preserved. One upstream FileCheck
+formatting mismatch remains documented; no full-suite or workspace claim.
+
 The [mainline HOST metadata integration](../memory/triton-host-metadata-mainline-2026-10-28.md)
 is published on
 [`feature/ptoas-host-metadata-mainline`](https://github.com/Melikano/triton-ascend/tree/feature/ptoas-host-metadata-mainline)
 at `3e9b51d05`, with 86 CPU/mock-device checks passing. Its integration-agent
-handoff records the NPU-IR/LLVM intrinsic mismatch blocking installation and
-seven mainline integration cases. It is now
+handoff records the earlier NPU-IR/LLVM mismatch and seven pending mainline
+integration cases. It is now
 [deferred](deferred-work.md#host-callbacks-and-workspace-metadata), not an active
-installation task. The working candidate and old environment are unchanged.
+installation task. That HOST consumer remains uninstalled.
 
 ## Current Template Work
 

@@ -294,6 +294,15 @@ For new local native NPU-IR and PTOAS bridge tests on this server, use
 `Ascend950PR_9589`. This preference is server-local, not an assumption that the
 same environment exists on coworkers' servers or physical A5 machines.
 
+For everyday work on this server, read the short
+[current local environment note](bridge/memory/current-local-environment.md),
+not another server's installation guide. Activate the existing candidate:
+`source "$HOME/.venv/npuir-sim-3.6-candidate/bin/activate"`.
+Its compiler wrappers select **CANN 9.2 for compilation** while the parent
+Torch-NPU/simulator process uses **CANN 9.1.0-beta.3 for runtime**. Preserve this
+split; do not bypass the wrappers with historical manual tool-path exports or
+reinstall for routine tests. Confirm installed-tool versus edited-source revisions.
+
 The 3.6 bridge shares native A5 compilation and option construction instead of
 duplicating a partial builder that omitted controls such as unit flags. This
 reduces native/bridge drift and makes comparisons more reliable. Read the

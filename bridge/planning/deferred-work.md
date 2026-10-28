@@ -40,11 +40,11 @@ being removed or disabled.
   returns **24, 14, 0 and 8**, and a BF16 callback returning **8 bytes per block**.
   That BF16 device path then hits the independent `PIPE_S` restriction. These
   results are specific to that branch, not mainline runtime evidence.
-- The matching-mainline build is blocked by intrinsic IDs referenced by NPU-IR
-  but absent from pinned Ascend LLVM `8ce9217f`, including `hivm_GET_COREID`,
-  `hivm_SET_COND`, `hivm_vdintlvv2` and `hivm_vcaddv2_v64f32_x`. Header
-  regeneration reproduced the same definitions; this is not merely a stale
-  generated header. No pin change has been approved here.
+- The earlier mainline/LLVM `8ce9217f` intrinsic-ID mismatch was resolved by
+  the separately approved [toolchain refresh](../memory/toolchain-refresh-cann92-2026-10-28.md)
+  to NPU-IR `3bf5d9898` and Ascend LLVM `95c46934`. This does not resume HOST
+  work: its seven integration cases and two compiler fixtures remain unrun,
+  and the new Triton HOST consumer remains uninstalled.
 - No NPU numerical matrix or physical-A5 validation establishes this feature.
   Missing or failed callback processing must not silently become workspace zero.
 
@@ -54,9 +54,10 @@ being removed or disabled.
    implementation with current shared mainline. Report what is already covered
    and only then identify specific missing functionality, checks or tests worth
    porting. The remaining-gap comparison has not been performed by this note.
-2. Compiler/toolchain owner: establish a compatible mainline compiler,
-   optimizer and translator. Propose dependency/pin changes before applying
-   them; do not invent intrinsic IDs or drop native translation behavior.
+2. Compiler/toolchain owner: verify the refreshed compiler, optimizer and
+   translator against the HOST consumer's contract before requesting more
+   toolchain work. Propose any additional dependency/pin changes first; do not
+   invent intrinsic IDs or drop native translation behavior.
 3. Installer agent: keep the mainline `.host.mlir` contract unless a different
    contract is explicitly approved. Run the seven pending integration cases and
    two mainline compiler fixtures, then obtain approval and coordinate any

@@ -20,6 +20,8 @@ DMA bridge rows, and the first working PTO-native Cube template path.
 
 ## Current Status
 
+- Toolchain update procedure, compiler/runtime CANN split and encountered errors:
+  [NPU-IR/PTOAS/Triton update guide](designs/toolchain-update-cann92-compile-cann91-runtime.md).
 - Current template workflow, selection/fallback policy, and Python simulator
   exports: [PTODSL template development and fallback](designs/ptodsl-template-development-and-fallback.md).
   The runtime-test entry point is the Python file under `msprof op simulator`,

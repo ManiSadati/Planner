@@ -10,9 +10,12 @@ Read [Planner's contract](../../../AGENT.md), its required reading, the
 [runtime coverage policy](../../../bridge/inventory/ptodsl-template-test-triage.md#runtime-test-selection-standard).
 Use the actual code checkout, not legacy Planner fixture copies.
 
-Use the [published 3.6 source baseline](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#shared-source-baseline)
-for runtime tests, with this server's preferred candidate or a verified equivalent
-on another server. Missing setup is a blocker to report, not permission to install.
+For local runtime tests, follow the short
+[current environment note](../../../bridge/memory/current-local-environment.md)
+and keep its compiler/runtime split. The
+[published 3.6 source baseline](../../../bridge/memory/triton-ascend-3.6-shared-a5-2026-10-22.md#shared-source-baseline)
+records frontend provenance; other servers need a verified equivalent.
+Missing setup is a blocker to report, not permission to install.
 Verify the selected interpreter, patch and compiler provenance for both flows;
 do not silently change environments or patch the shared installation to pass.
 
