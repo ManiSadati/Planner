@@ -1,10 +1,17 @@
 # Planning Overview
 
-Last updated: 2026-10-22
+Last updated: 2026-10-28
 
 This file is the high-level index for active bridge planning. Codex should read
 this file at the start of each meaningful Planner task before choosing which
 lower-level planning documents matter.
+
+## Deferred Work
+
+[Deferred work](deferred-work.md) records preserved experiments and their
+resumption gates. HOST callback/workspace integration was deferred by the owner
+on 2026-10-28: do not adopt or install its new changes for now. Keep existing
+working environments and mainline behavior intact.
 
 ## Triton-Ascend Integration
 
@@ -16,6 +23,15 @@ The shared source is published as
 [`Melikano/triton-ascend:feature/shared-a5-native-ptoas`](https://github.com/Melikano/triton-ascend/tree/feature/shared-a5-native-ptoas)
 at validated commit `461aa8f0`; the candidate venv is server-local.
 See the handoff for setup, the compiler stamp/hash explanation and validation limits.
+
+The [mainline HOST metadata integration](../memory/triton-host-metadata-mainline-2026-10-28.md)
+is published on
+[`feature/ptoas-host-metadata-mainline`](https://github.com/Melikano/triton-ascend/tree/feature/ptoas-host-metadata-mainline)
+at `3e9b51d05`, with 86 CPU/mock-device checks passing. Its integration-agent
+handoff records the NPU-IR/LLVM intrinsic mismatch blocking installation and
+seven mainline integration cases. It is now
+[deferred](deferred-work.md#host-callbacks-and-workspace-metadata), not an active
+installation task. The working candidate and old environment are unchanged.
 
 ## Current Template Work
 
