@@ -15,3 +15,7 @@
 - [PTODSL test triage](ptodsl-template-test-triage.md)
   ([CSV](ptodsl-template-test-triage.csv)): focused implementation/test status.
   Native census observations do not mark these rows passing.
+
+- [Complete existing template runtime matrix, 2026-10-28](../memory/template-runtime-matrix-2026-10-28.md):
+  620 native/bridge attempts, all 149 failing instance/configuration pairs,
+  per-flow failure CSV, exact symbols/configurations, provenance and evidence.

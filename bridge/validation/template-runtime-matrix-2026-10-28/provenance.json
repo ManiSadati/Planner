@@ -1,0 +1,77 @@
+{
+  "run_date": "2026-10-28",
+  "published_date": "2026-10-29",
+  "source_head": "3bf5d9898e0c45447c81780bc35de7548f5cef99",
+  "source_worktree": "$HOME/worktrees/AscendNPU-IR-master-20261028",
+  "submodules": " 95c4693447af2473be62bdee19522cbe596f9e96 third-party/llvm-project (llvmorg-19.1.7-143-g95c4693447af24)\n 5ce40f710f7f83b8d1fb2d8c36647bb811236a49 third-party/ptoas (nightly-403-g5ce40f710)\n-fa2fd1f75d742fec91ecf40d98c9c7961647ec42 third-party/ptoas-llvm-project\n",
+  "compiler_version": "bishengir-compile 2.0.0 (git@gitcode.com:wilsoncxfeng/AscendNPU-IR.git 3bf5d9898e0c 2026-10-28) \nllvm 19.1.7 95c4693447af\nRelease build\n\n",
+  "ptoas_version": "ptoas 0.69\n",
+  "wrappers": {
+    "TRITON_NPU_COMPILER_PATH": "$HOME/.local/opt/ascend-toolchain-3bf5d9898-20261028/compiler-bin/bishengir-compile",
+    "TRITON_PTOAS_PATH": "$HOME/.local/opt/ascend-toolchain-3bf5d9898-20261028/compiler-bin/ptoas"
+  },
+  "python": "$HOME/.venv/npuir-sim-3.6-candidate/bin/python",
+  "simulator": "Ascend950PR_9589",
+  "compilation_cann": "9.2.0 through configured wrappers",
+  "runtime_cann": "9.1.0-beta.3",
+  "workers": 16,
+  "timeout_seconds": 900,
+  "native_first_per_configuration": true,
+  "bridge_fallback": 1,
+  "counts": {
+    "npuir": {
+      "pass-native": 298,
+      "selection-failure": 12
+    },
+    "ptoas": {
+      "selection-failure": 36,
+      "pass-replacement": 148,
+      "bridge-conversion-failure": 65,
+      "pass-native-fallback-baseline": 13,
+      "ptoas-compilation-failure": 48
+    }
+  },
+  "evidence_root": "$HOME/tmp/template-matrix-native-bridge-20261028.is6of753",
+  "coverage_gaps": {
+    "installed_exports_without_direct_runtime_target": [
+      "__pto_copy_ubuf_to_cbuf_2d_half",
+      "__pto_cumsum_2d_f32_dim0",
+      "__pto_fixpipe_nz2nd_f32_bf16_row_split_ub",
+      "__pto_fixpipe_nz2nd_f32_bf16_single_ub",
+      "__pto_fixpipe_nz2nd_f32_f16_row_split_ub",
+      "__pto_fixpipe_nz2nd_f32_f32_row_split_ub",
+      "__pto_load_gm_to_ubuf_2d_half",
+      "__pto_store_ubuf_to_gm_2d_half"
+    ],
+    "native_only_test_targets": [
+      "fixpipe_nz2nd_dual_float_to_int8_t_4d_to_2d_ubuf",
+      "mma_tile_int8_t_to_int32_t_tb"
+    ],
+    "absent_from_installed_suite": [
+      "SET2D (not installed in the selected 3bf5d9898 toolchain; no test module in its matching source)"
+    ]
+  },
+  "protected_file_audit": {
+    "protected_files": 494,
+    "all_hashes_match": true,
+    "source": "final-audit.json"
+  },
+  "evidence_audit": {
+    "complete": true,
+    "attempts_checked": 620,
+    "checks": {
+      "attempts_with_verified_compiler_trace": 620,
+      "passes_with_verified_runtime_split": 459,
+      "successful_numerical_assertions": 542,
+      "replacement_passes_with_exact_body_and_numerics": 148
+    }
+  },
+  "original_record_sha256": {
+    "manifest.json": "663834eadc6adf9817fc8689af9970f53c3041a94eefa9c0f05578a9f5758ff1",
+    "catalog.json": "9eb78f835164de02089b877849241ae4016f355ae3d0ec7f18058e6d12c5220d",
+    "report.json": "6ddc52257282c46fa9655fa53c9fe4ce96df20f3539f4a818deadfd483a07cb3",
+    "failures.json": "37ccffa3c7f472388f24763502ac91ad0dfff4b4d2d4b32652036ca2daf19c14",
+    "final-audit.json": "6630e44c4ed0d74aecb4b5648ca16645a9b305e100d599aef2d08bfe3f7124e6",
+    "evidence-audit.json": "ddf3fe696fd2b00345fab756767dc43a9a4e057973c137e28c279d39f8be84c8"
+  }
+}
