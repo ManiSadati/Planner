@@ -256,6 +256,26 @@ Codex should prefer concise, accurate documents over large copied documents. The
 
 Bridge docs should be updated when new facts are learned. They should not become long chat transcripts.
 
+## Commit messages by repository
+
+Use the target repository's agent guide and hooks as the commit-message source
+of truth, including when proposing a message without creating a commit.
+Generic role/skill examples do not override repository-specific syntax.
+
+AscendNPU-IR requires `[<Module>] <type>: <description>` or
+`[<Module>][<Submodule>] <type>: <description>`. For AVE-to-VMI work use
+`[Conversion] fix: ...`, not `fix(bridge): ...`. Allowed types are `feat`, `fix`,
+`doc`, `refactor` and `chore`; take allowed module names and the complete rules
+from [AscendNPU-IR/AGENTS.md](../AscendNPU-IR/AGENTS.md). Its commit body must
+contain `Motivation:`, `Design:` and `Risks:`, plus the exact `Assisted-by: AI`
+trailer when AI assisted.
+
+Before an authorized commit, check the proposed subject from that checkout:
+`sh .githooks/pre-push --check-subject '[Conversion] fix: describe the change'`.
+Validate all outgoing subjects before pushing. These format rules do not grant
+commit, push or history-rewrite authorization and do not impose AscendNPU-IR's
+format on Planner or other repositories with different conventions.
+
 ## Engineering Rules
 
 Before editing AscendNPU-IR, PTOAS, or PTO-ISA code, Codex should inspect the relevant local repo structure and current branch state.

@@ -55,6 +55,9 @@ pipeline, not validation of the disabled-finalizer flow.
 
 Return the exact cases/contracts fixed, branch and changed files, mapping and
 semantic proof, revision/tool manifest, commands and stage-specific results,
-evidence locations, remaining blockers, and a suggested `fix(bridge): ...`
-commit message. Do not label all parameter variants fixed based on one reduced
+evidence locations, remaining blockers, and a repository-valid commit message.
+For AscendNPU-IR use `[Conversion] fix: ...`, following its
+[canonical convention](../../../AscendNPU-IR/AGENTS.md), required body/trailer
+and pre-commit subject check; generic `fix(bridge): ...` examples are invalid
+there. Do not label all parameter variants fixed based on one reduced
 regression or a successful compiler exit.
