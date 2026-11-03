@@ -1,0 +1,64 @@
+{
+  "VMI-masked-store-datatype": {
+    "count": 22,
+    "cases": [
+      "load/1d/i16/singleton",
+      "load/1d/i16/pad-null-evict-last",
+      "load/1d/i16/pad-firstelem-evict-first",
+      "load/1d/i8/singleton",
+      "load/1d/i8/pad-null-evict-last",
+      "load/1d/i8/pad-firstelem-evict-first",
+      "load/2d/i16/singleton",
+      "load/2d/i16/permuted-layout",
+      "load/2d/i16/pad-null-evict-last",
+      "load/2d/i16/pad-firstelem-evict-first",
+      "load/2d/i8/singleton",
+      "load/2d/i8/permuted-layout",
+      "load/2d/i8/pad-null-evict-last",
+      "load/2d/i8/pad-firstelem-evict-first",
+      "store/1d/i16/singleton",
+      "store/1d/i8/singleton",
+      "store/2d/i16/singleton",
+      "store/2d/i16/permuted-layout",
+      "store/2d/i8/singleton",
+      "store/2d/i8/permuted-layout",
+      "store/3d/i8/singleton",
+      "store/3d/i8/permuted-layout"
+    ]
+  },
+  "VMI-llvm-alloca": {
+    "count": 14,
+    "cases": [
+      "load/1d/i64/singleton",
+      "load/1d/i64/pad-null-evict-last",
+      "load/1d/i64/pad-firstelem-evict-first",
+      "load/2d/i64/singleton",
+      "load/2d/i64/permuted-layout",
+      "load/2d/i64/pad-null-evict-last",
+      "load/2d/i64/pad-firstelem-evict-first",
+      "load/3d/i64/singleton",
+      "load/3d/i64/permuted-layout",
+      "store/1d/i64/singleton",
+      "store/2d/i64/singleton",
+      "store/2d/i64/permuted-layout",
+      "store/3d/i64/singleton",
+      "store/3d/i64/permuted-layout"
+    ]
+  },
+  "PTOAS-masked-store-alignment": {
+    "count": 3,
+    "cases": [
+      "store/2d/bf16/permuted-layout",
+      "store/2d/f16/permuted-layout",
+      "store/2d/i32/permuted-layout"
+    ]
+  },
+  "VMI-vgather-layout": {
+    "count": 3,
+    "cases": [
+      "store/2d/f32/permuted-layout",
+      "store/3d/f32/permuted-layout",
+      "store/3d/i32/permuted-layout"
+    ]
+  }
+}

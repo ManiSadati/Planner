@@ -1,0 +1,488 @@
+[
+  {
+    "direction": "load",
+    "rank": 1,
+    "instance": "bf16",
+    "native_symbol": "load_gm_to_ubuf_1d_bfloat16_t",
+    "config": {
+      "name": "pad-zero-t32",
+      "shape": [
+        19
+      ],
+      "tile": [
+        32
+      ],
+      "src_strides": [
+        1
+      ],
+      "dst_strides": [
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_1d.py::test_load_native_instance[bf16-pad-zero-t32]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_1d.py::test_load_native_instance[bf16-pad-zero-t32]",
+    "key": "load/1d/bf16/pad-zero-t32",
+    "number": 6
+  },
+  {
+    "direction": "load",
+    "rank": 1,
+    "instance": "f16",
+    "native_symbol": "load_gm_to_ubuf_1d_half",
+    "config": {
+      "name": "pad-zero-t32",
+      "shape": [
+        19
+      ],
+      "tile": [
+        32
+      ],
+      "src_strides": [
+        1
+      ],
+      "dst_strides": [
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_1d.py::test_load_native_instance[f16-pad-zero-t32]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_1d.py::test_load_native_instance[f16-pad-zero-t32]",
+    "key": "load/1d/f16/pad-zero-t32",
+    "number": 14
+  },
+  {
+    "direction": "load",
+    "rank": 1,
+    "instance": "f32",
+    "native_symbol": "load_gm_to_ubuf_1d_float",
+    "config": {
+      "name": "pad-zero-t32",
+      "shape": [
+        19
+      ],
+      "tile": [
+        32
+      ],
+      "src_strides": [
+        1
+      ],
+      "dst_strides": [
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_1d.py::test_load_native_instance[f32-pad-zero-t32]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_1d.py::test_load_native_instance[f32-pad-zero-t32]",
+    "key": "load/1d/f32/pad-zero-t32",
+    "number": 22
+  },
+  {
+    "direction": "load",
+    "rank": 1,
+    "instance": "i16",
+    "native_symbol": "load_gm_to_ubuf_1d_int16_t",
+    "config": {
+      "name": "pad-zero-t32",
+      "shape": [
+        19
+      ],
+      "tile": [
+        32
+      ],
+      "src_strides": [
+        1
+      ],
+      "dst_strides": [
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_1d.py::test_load_native_instance[i16-pad-zero-t32]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_1d.py::test_load_native_instance[i16-pad-zero-t32]",
+    "key": "load/1d/i16/pad-zero-t32",
+    "number": 30
+  },
+  {
+    "direction": "load",
+    "rank": 1,
+    "instance": "i32",
+    "native_symbol": "load_gm_to_ubuf_1d_int32_t",
+    "config": {
+      "name": "pad-zero-t32",
+      "shape": [
+        19
+      ],
+      "tile": [
+        32
+      ],
+      "src_strides": [
+        1
+      ],
+      "dst_strides": [
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_1d.py::test_load_native_instance[i32-pad-zero-t32]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_1d.py::test_load_native_instance[i32-pad-zero-t32]",
+    "key": "load/1d/i32/pad-zero-t32",
+    "number": 38
+  },
+  {
+    "direction": "load",
+    "rank": 1,
+    "instance": "i64",
+    "native_symbol": "load_gm_to_ubuf_1d_int64_t",
+    "config": {
+      "name": "pad-zero-t32",
+      "shape": [
+        19
+      ],
+      "tile": [
+        32
+      ],
+      "src_strides": [
+        1
+      ],
+      "dst_strides": [
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_1d.py::test_load_native_instance[i64-pad-zero-t32]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_1d.py::test_load_native_instance[i64-pad-zero-t32]",
+    "key": "load/1d/i64/pad-zero-t32",
+    "number": 46
+  },
+  {
+    "direction": "load",
+    "rank": 1,
+    "instance": "i8",
+    "native_symbol": "load_gm_to_ubuf_1d_int8_t",
+    "config": {
+      "name": "pad-zero-t32",
+      "shape": [
+        19
+      ],
+      "tile": [
+        32
+      ],
+      "src_strides": [
+        1
+      ],
+      "dst_strides": [
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_1d.py::test_load_native_instance[i8-pad-zero-t32]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_1d.py::test_load_native_instance[i8-pad-zero-t32]",
+    "key": "load/1d/i8/pad-zero-t32",
+    "number": 54
+  },
+  {
+    "direction": "load",
+    "rank": 2,
+    "instance": "bf16",
+    "native_symbol": "load_gm_to_ubuf_2d_bfloat16_t",
+    "config": {
+      "name": "pad-zero-t4x16",
+      "shape": [
+        3,
+        11
+      ],
+      "tile": [
+        4,
+        16
+      ],
+      "src_strides": [
+        23,
+        1
+      ],
+      "dst_strides": [
+        29,
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_2d.py::test_load_native_instance[bf16-pad-zero-t4x16]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_2d.py::test_load_native_instance[bf16-pad-zero-t4x16]",
+    "key": "load/2d/bf16/pad-zero-t4x16",
+    "number": 62
+  },
+  {
+    "direction": "load",
+    "rank": 2,
+    "instance": "f16",
+    "native_symbol": "load_gm_to_ubuf_2d_half",
+    "config": {
+      "name": "pad-zero-t4x16",
+      "shape": [
+        3,
+        11
+      ],
+      "tile": [
+        4,
+        16
+      ],
+      "src_strides": [
+        23,
+        1
+      ],
+      "dst_strides": [
+        29,
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_2d.py::test_load_native_instance[f16-pad-zero-t4x16]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_2d.py::test_load_native_instance[f16-pad-zero-t4x16]",
+    "key": "load/2d/f16/pad-zero-t4x16",
+    "number": 70
+  },
+  {
+    "direction": "load",
+    "rank": 2,
+    "instance": "f32",
+    "native_symbol": "load_gm_to_ubuf_2d_float",
+    "config": {
+      "name": "pad-zero-t4x16",
+      "shape": [
+        3,
+        11
+      ],
+      "tile": [
+        4,
+        16
+      ],
+      "src_strides": [
+        23,
+        1
+      ],
+      "dst_strides": [
+        29,
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_2d.py::test_load_native_instance[f32-pad-zero-t4x16]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_2d.py::test_load_native_instance[f32-pad-zero-t4x16]",
+    "key": "load/2d/f32/pad-zero-t4x16",
+    "number": 78
+  },
+  {
+    "direction": "load",
+    "rank": 2,
+    "instance": "i16",
+    "native_symbol": "load_gm_to_ubuf_2d_int16_t",
+    "config": {
+      "name": "pad-zero-t4x16",
+      "shape": [
+        3,
+        11
+      ],
+      "tile": [
+        4,
+        16
+      ],
+      "src_strides": [
+        23,
+        1
+      ],
+      "dst_strides": [
+        29,
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_2d.py::test_load_native_instance[i16-pad-zero-t4x16]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_2d.py::test_load_native_instance[i16-pad-zero-t4x16]",
+    "key": "load/2d/i16/pad-zero-t4x16",
+    "number": 86
+  },
+  {
+    "direction": "load",
+    "rank": 2,
+    "instance": "i32",
+    "native_symbol": "load_gm_to_ubuf_2d_int32_t",
+    "config": {
+      "name": "pad-zero-t4x16",
+      "shape": [
+        3,
+        11
+      ],
+      "tile": [
+        4,
+        16
+      ],
+      "src_strides": [
+        23,
+        1
+      ],
+      "dst_strides": [
+        29,
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_2d.py::test_load_native_instance[i32-pad-zero-t4x16]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_2d.py::test_load_native_instance[i32-pad-zero-t4x16]",
+    "key": "load/2d/i32/pad-zero-t4x16",
+    "number": 94
+  },
+  {
+    "direction": "load",
+    "rank": 2,
+    "instance": "i64",
+    "native_symbol": "load_gm_to_ubuf_2d_int64_t",
+    "config": {
+      "name": "pad-zero-t4x16",
+      "shape": [
+        3,
+        11
+      ],
+      "tile": [
+        4,
+        16
+      ],
+      "src_strides": [
+        23,
+        1
+      ],
+      "dst_strides": [
+        29,
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_2d.py::test_load_native_instance[i64-pad-zero-t4x16]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_2d.py::test_load_native_instance[i64-pad-zero-t4x16]",
+    "key": "load/2d/i64/pad-zero-t4x16",
+    "number": 102
+  },
+  {
+    "direction": "load",
+    "rank": 2,
+    "instance": "i8",
+    "native_symbol": "load_gm_to_ubuf_2d_int8_t",
+    "config": {
+      "name": "pad-zero-t4x16",
+      "shape": [
+        3,
+        11
+      ],
+      "tile": [
+        4,
+        16
+      ],
+      "src_strides": [
+        23,
+        1
+      ],
+      "dst_strides": [
+        29,
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_2d.py::test_load_native_instance[i8-pad-zero-t4x16]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_2d.py::test_load_native_instance[i8-pad-zero-t4x16]",
+    "key": "load/2d/i8/pad-zero-t4x16",
+    "number": 110
+  },
+  {
+    "direction": "load",
+    "rank": 3,
+    "instance": "i32",
+    "native_symbol": "load_gm_to_ubuf_3d_int32_t",
+    "config": {
+      "name": "pad-zero-t2x4x16",
+      "shape": [
+        2,
+        3,
+        11
+      ],
+      "tile": [
+        2,
+        4,
+        16
+      ],
+      "src_strides": [
+        113,
+        23,
+        1
+      ],
+      "dst_strides": [
+        149,
+        29,
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "nodeid": "test_load_gm_to_ubuf_3d.py::test_load_native_instance[i32-pad-zero-t2x4x16]",
+    "absolute_nodeid": "$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/test_load_gm_to_ubuf_3d.py::test_load_native_instance[i32-pad-zero-t2x4x16]",
+    "key": "load/3d/i32/pad-zero-t2x4x16",
+    "number": 118
+  }
+]

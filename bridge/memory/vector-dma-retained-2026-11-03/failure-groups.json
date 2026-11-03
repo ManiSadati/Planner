@@ -1,0 +1,58 @@
+{
+  "I8/I16 masked_store": {
+    "count": 18,
+    "cases": [
+      "load/1d/i16/singleton",
+      "load/1d/i16/value-padding-minus7-to-zero",
+      "load/1d/i8/singleton",
+      "load/1d/i8/value-padding-minus7-to-zero",
+      "load/2d/i16/singleton",
+      "load/2d/i16/permuted-layout",
+      "load/2d/i16/value-padding-minus7-to-zero",
+      "load/2d/i8/singleton",
+      "load/2d/i8/permuted-layout",
+      "load/2d/i8/value-padding-minus7-to-zero",
+      "store/1d/i16/singleton",
+      "store/1d/i8/singleton",
+      "store/2d/i16/singleton",
+      "store/2d/i16/permuted-layout",
+      "store/2d/i8/singleton",
+      "store/2d/i8/permuted-layout",
+      "store/3d/i8/singleton",
+      "store/3d/i8/permuted-layout"
+    ]
+  },
+  "llvm.alloca": {
+    "count": 12,
+    "cases": [
+      "load/1d/i64/singleton",
+      "load/1d/i64/value-padding-minus7-to-zero",
+      "load/2d/i64/singleton",
+      "load/2d/i64/permuted-layout",
+      "load/2d/i64/value-padding-minus7-to-zero",
+      "load/3d/i64/singleton",
+      "load/3d/i64/permuted-layout",
+      "store/1d/i64/singleton",
+      "store/2d/i64/singleton",
+      "store/2d/i64/permuted-layout",
+      "store/3d/i64/singleton",
+      "store/3d/i64/permuted-layout"
+    ]
+  },
+  "PTOAS masked-store alignment": {
+    "count": 3,
+    "cases": [
+      "store/2d/bf16/permuted-layout",
+      "store/2d/f16/permuted-layout",
+      "store/2d/i32/permuted-layout"
+    ]
+  },
+  "vgather layout": {
+    "count": 3,
+    "cases": [
+      "store/2d/f32/permuted-layout",
+      "store/3d/f32/permuted-layout",
+      "store/3d/i32/permuted-layout"
+    ]
+  }
+}

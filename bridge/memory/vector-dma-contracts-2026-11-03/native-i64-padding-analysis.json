@@ -1,0 +1,226 @@
+[
+  {
+    "number": 56,
+    "contract": "pad-null-evict-last",
+    "selected_native": "load_gm_to_ubuf_3d_int64_t",
+    "unequal": 6,
+    "wrong_valid_data": 0,
+    "elements": [
+      {
+        "index": 235,
+        "xyz": [
+          0,
+          0,
+          11
+        ],
+        "valid_data": false,
+        "actual": -25769803783,
+        "reference": -7
+      },
+      {
+        "index": 251,
+        "xyz": [
+          0,
+          1,
+          11
+        ],
+        "valid_data": false,
+        "actual": -25769803783,
+        "reference": -7
+      },
+      {
+        "index": 267,
+        "xyz": [
+          0,
+          2,
+          11
+        ],
+        "valid_data": false,
+        "actual": -25769803783,
+        "reference": -7
+      },
+      {
+        "index": 299,
+        "xyz": [
+          1,
+          0,
+          11
+        ],
+        "valid_data": false,
+        "actual": -25769803783,
+        "reference": -7
+      },
+      {
+        "index": 315,
+        "xyz": [
+          1,
+          1,
+          11
+        ],
+        "valid_data": false,
+        "actual": -25769803783,
+        "reference": -7
+      },
+      {
+        "index": 331,
+        "xyz": [
+          1,
+          2,
+          11
+        ],
+        "valid_data": false,
+        "actual": -25769803783,
+        "reference": -7
+      }
+    ],
+    "actual_native_operands": [
+      {
+        "arguments": [
+          "%cast",
+          "%cast_7",
+          "%c2_i32",
+          "%c-7_i64",
+          "%c0",
+          "%c0_i32"
+        ],
+        "values": {
+          "2": 2,
+          "3": -7,
+          "4": 0,
+          "5": 0
+        }
+      },
+      {
+        "arguments": [
+          "%cast_11",
+          "%cast_12",
+          "%c2_i32",
+          "%c0_i64",
+          "%c0",
+          "%c0_i32"
+        ],
+        "values": {
+          "2": 2,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        }
+      },
+      {
+        "arguments": [
+          "%cast_19",
+          "%cast_20",
+          "%c2_i32",
+          "%c0_i64",
+          "%c0",
+          "%c0_i32"
+        ],
+        "values": {
+          "2": 2,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        }
+      }
+    ],
+    "interpretation": "Saved original tensors: incorrect logical right-padding lanes; valid data unchanged. Native calls use Value mode. Repeated 32-bit halves are consistent with absent 3D B64 padding correction; not a FirstElem execution.",
+    "wrong_guards": 0,
+    "all_wrong_values_repeat_low_32_bits": true
+  },
+  {
+    "number": 57,
+    "contract": "pad-firstelem-evict-first",
+    "selected_native": "load_gm_to_ubuf_3d_int64_t",
+    "unequal": 6,
+    "wrong_valid_data": 0,
+    "elements": [
+      {
+        "index": 43,
+        "xyz": [
+          0,
+          0,
+          11
+        ],
+        "valid_data": false,
+        "actual": 2336462209568,
+        "reference": 137438954016
+      },
+      {
+        "index": 59,
+        "xyz": [
+          0,
+          1,
+          11
+        ],
+        "valid_data": false,
+        "actual": 2336462209568,
+        "reference": 137438954016
+      },
+      {
+        "index": 75,
+        "xyz": [
+          0,
+          2,
+          11
+        ],
+        "valid_data": false,
+        "actual": 2336462209568,
+        "reference": 137438954016
+      },
+      {
+        "index": 107,
+        "xyz": [
+          1,
+          0,
+          11
+        ],
+        "valid_data": false,
+        "actual": 2336462209568,
+        "reference": 137438954016
+      },
+      {
+        "index": 123,
+        "xyz": [
+          1,
+          1,
+          11
+        ],
+        "valid_data": false,
+        "actual": 2336462209568,
+        "reference": 137438954016
+      },
+      {
+        "index": 139,
+        "xyz": [
+          1,
+          2,
+          11
+        ],
+        "valid_data": false,
+        "actual": 2336462209568,
+        "reference": 137438954016
+      }
+    ],
+    "actual_native_operands": [
+      {
+        "arguments": [
+          "%cast",
+          "%cast_1",
+          "%c2_i32",
+          "%c137438954016_i64",
+          "%c0",
+          "%c0_i32"
+        ],
+        "values": {
+          "2": 2,
+          "3": 137438954016,
+          "4": 0,
+          "5": 0
+        }
+      }
+    ],
+    "interpretation": "Saved original tensors: incorrect logical right-padding lanes; valid data unchanged. Native calls use Value mode. Repeated 32-bit halves are consistent with absent 3D B64 padding correction; not a FirstElem execution.",
+    "wrong_guards": 0,
+    "all_wrong_values_repeat_low_32_bits": true
+  }
+]

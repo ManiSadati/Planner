@@ -1,0 +1,86 @@
+{
+  "native": {
+    "pass-native": 77,
+    "contract-coverage-gap": 30,
+    "numerical-mismatch": 2,
+    "frontend-unsupported": 23
+  },
+  "bridge": {
+    "pass-native-fallback": 47,
+    "contract-coverage-gap": 18,
+    "bridge-conversion-failure": 39,
+    "ptoas-compilation-failure": 3
+  },
+  "bridge_not_run": 25,
+  "new_candidates": 132,
+  "existing_baseline_cases": 225,
+  "total_collection": 357,
+  "audits": {
+    "bridge_attempts_with_verified_flow_fallback_and_native_dma_checkpoint": 107,
+    "ptoas_inputs_without_vector_dma_ptodsl": 68,
+    "verified_native_target_and_fallback_metadata": 65,
+    "bridge_exact_numerical_and_guard_passes": 65
+  },
+  "area_summary": {
+    "atomic": {
+      "candidates": 45,
+      "native": {
+        "pass-native": 22,
+        "frontend-unsupported": 23
+      },
+      "bridge": {
+        "pass-native-fallback": 22,
+        "not-run-native-blocked": 23
+      }
+    },
+    "burst-splitting": {
+      "candidates": 1,
+      "native": {
+        "pass-native": 1
+      },
+      "bridge": {
+        "pass-native-fallback": 1
+      }
+    },
+    "layout": {
+      "candidates": 20,
+      "native": {
+        "pass-native": 20
+      },
+      "bridge": {
+        "pass-native-fallback": 5,
+        "bridge-conversion-failure": 12,
+        "ptoas-compilation-failure": 3
+      }
+    },
+    "padding": {
+      "candidates": 32,
+      "native": {
+        "contract-coverage-gap": 30,
+        "numerical-mismatch": 2
+      },
+      "bridge": {
+        "contract-coverage-gap": 18,
+        "bridge-conversion-failure": 12,
+        "not-run-native-blocked": 2
+      }
+    },
+    "singleton": {
+      "candidates": 34,
+      "native": {
+        "pass-native": 34
+      },
+      "bridge": {
+        "pass-native-fallback": 19,
+        "bridge-conversion-failure": 15
+      }
+    }
+  },
+  "protected_final_files": 60,
+  "all_final_hashes_match": true,
+  "original_kernel_inputs_references_and_existing_test_functions_unchanged": true,
+  "native_atomic_and_reset_contract_passes": 22,
+  "bridge_atomic_and_reset_contract_passes": 22,
+  "native_logical_value_padding_transition_passes": 15,
+  "bridge_logical_value_padding_transition_passes": 9
+}

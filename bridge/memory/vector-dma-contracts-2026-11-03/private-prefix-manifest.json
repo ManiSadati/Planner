@@ -1,0 +1,243 @@
+{
+  "source_head": "a0876a76082e604016350a1825286ed945093039",
+  "compiler_version": "bishengir-compile 2.0.0 (git@gitcode.com:wilsoncxfeng/AscendNPU-IR.git a0876a76082e 2026-11-03) \nllvm 19.1.7 95c4693447af\nRelease build\n\n",
+  "artifacts": [
+    {
+      "source": "$HOME/AscendNPU-IR/build/bin/bishengir-compile",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/bin/bishengir-compile",
+      "sha256": "2b6f53b0ecdb32a025b557efaf532a0f48448852ccb460e2cf1ea932b86b9c74"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/bin/bishengir-opt",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/bin/bishengir-opt",
+      "sha256": "1dba412fd94ee1f91aef5b2d64c451c3bf15949eaa5559b8eeb5140117acf5a7"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.aic.c310.O0.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.aic.c310.O0.bc",
+      "sha256": "95edd3e7a7a0303bb9f03deda7edc4f4b36db5289274cf99589c29ce086d194e"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.aic.c310.O2.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.aic.c310.O2.bc",
+      "sha256": "bf509c2742426a979fb2da5b4b670220ad3d419edfca378c935c23bb6c0e0b5b"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.aic.c310.O2.bc.linked.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.aic.c310.O2.bc.linked.bc",
+      "sha256": "95edd3e7a7a0303bb9f03deda7edc4f4b36db5289274cf99589c29ce086d194e"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.aic.c310.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.aic.c310.bc",
+      "sha256": "b0cd46d30cc696492bfaeac04b4abf0ea08c7874794fa4e3695fd933a250fd03"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.aiv.c310.O0.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.aiv.c310.O0.bc",
+      "sha256": "c723481ab78076dbfb6196ddfd7613ff980d535669519a55b5808a1e763f0767"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.aiv.c310.O2.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.aiv.c310.O2.bc",
+      "sha256": "76621148cf4cb59a1cdbbc0fe19ed7ce2bbcb7ee492374de238338997709a6fb"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.aiv.c310.O2.bc.linked.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.aiv.c310.O2.bc.linked.bc",
+      "sha256": "c723481ab78076dbfb6196ddfd7613ff980d535669519a55b5808a1e763f0767"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.aiv.c310.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.aiv.c310.bc",
+      "sha256": "d4cc5a6a4573992024434a4d8ce0046db96852e1d9d33e13c46693779bf69818"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.mix.aic.c310.O0.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.mix.aic.c310.O0.bc",
+      "sha256": "765b566b216033b4b3faf38794d1ad7376b981596d6a84df551d0e2505282c34"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.mix.aic.c310.O2.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.mix.aic.c310.O2.bc",
+      "sha256": "ea784968a958fff8bd55febb4b6ded7d5c70c41c9bda1d5edaa59ff148921d55"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.mix.aic.c310.O2.bc.linked.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.mix.aic.c310.O2.bc.linked.bc",
+      "sha256": "765b566b216033b4b3faf38794d1ad7376b981596d6a84df551d0e2505282c34"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.mix.aic.c310.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.mix.aic.c310.bc",
+      "sha256": "1ec216bf0eb5094b624384d18e9091fd59ce66496ce1f224673eade373a80df9"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.mix.aiv.c310.O0.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.mix.aiv.c310.O0.bc",
+      "sha256": "198446bc8a2488392e4f0c1e83dd273720639e3b4b5be4d282780347e2444006"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.mix.aiv.c310.O2.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.mix.aiv.c310.O2.bc",
+      "sha256": "c999500f58df167d0edfc35d6489d39c18dd0c05152a83ff9af2da55d0da563d"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.mix.aiv.c310.O2.bc.linked.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.mix.aiv.c310.O2.bc.linked.bc",
+      "sha256": "198446bc8a2488392e4f0c1e83dd273720639e3b4b5be4d282780347e2444006"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/meta_op.mix.aiv.c310.bc",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/meta_op.mix.aiv.c310.bc",
+      "sha256": "c1ad8eb63abcdd719b08f91593416d7c702e52ed9eeb9f15dab4a2b2a9cc87f2"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/nd2nz_f16_gm_l1.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/nd2nz_f16_gm_l1.mlir",
+      "sha256": "c67c403d8bbce094463c796c8b368c8711b863158c84f2c325e7819ed53f7bb0"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/nd2nz_bf16_gm_l1.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/nd2nz_bf16_gm_l1.mlir",
+      "sha256": "cbb85ee323a273f254eac9baeb9e76114eb2687f57d3b5f083c026e060c89984"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/nd2nz_i8_gm_l1.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/nd2nz_i8_gm_l1.mlir",
+      "sha256": "7d3ec076edbcfd48a03467f0dec01cb08534dab775a21b30a92541d7da8fb3f3"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/nd2nz_f32_gm_l1.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/nd2nz_f32_gm_l1.mlir",
+      "sha256": "56fa0cce1de396985b1af5d83fa8d2579ac92417fd498888f77164c2654e041a"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/fixpipe_nz2nd_f32_f32_row_split_ub.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/fixpipe_nz2nd_f32_f32_row_split_ub.mlir",
+      "sha256": "ade4ca9b6b48db39f0ec784d774d50e115a6d70a35e9e0bc69ae7e2c15878b70"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/fixpipe_nz2nd_f32_f16_row_split_ub.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/fixpipe_nz2nd_f32_f16_row_split_ub.mlir",
+      "sha256": "b1738389795ff91375d11d741b876e83ad5c77fd00645bb058019c33b17ba623"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/fixpipe_nz2nd_f32_bf16_row_split_ub.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/fixpipe_nz2nd_f32_bf16_row_split_ub.mlir",
+      "sha256": "b78785b1aaf06d7be59562273839c498780690540d3362514bfa587e875da1a6"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/fixpipe_nz2nd_f32_bf16_single_ub.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/fixpipe_nz2nd_f32_bf16_single_ub.mlir",
+      "sha256": "6ecc4ce14e2875c4f746b9e01942edb634b00e9114e0c8858855b5d9a485ed1e"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/fixpipe_nz2nd_float_to_float_4d_to_2d_ubuf.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/fixpipe_nz2nd_float_to_float_4d_to_2d_ubuf.mlir",
+      "sha256": "1c0b4b6a971823f7184bfa497e712b3c261698d656ec07cd3cc1d53366c782da"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_f16_f32_nn.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_f16_f32_nn.mlir",
+      "sha256": "bfee7d0040ade61308e007121a3d3a74a3e645130ae3f5f7f46faa462dc04558"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_f16_f32_tb.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_f16_f32_tb.mlir",
+      "sha256": "a991d95508da58337117e417034915f947ed7283961c0fd8822ebabb57ce70d7"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_f16_f32_ta.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_f16_f32_ta.mlir",
+      "sha256": "6452c6357c65156493cca7fa067fa8b6816db2f766e381170c84069522e298b3"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_f16_f32_ta_tb.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_f16_f32_ta_tb.mlir",
+      "sha256": "8f556d835b48b23a70c07b44535369319ed2cb86a3561488acca9c5208ca95dc"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_bf16_f32_ta.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_bf16_f32_ta.mlir",
+      "sha256": "f2fd771a821c9db6b3f8f9381d99298a1406d8e891e4691227750fc8c02e83ef"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_bf16_f32_ta_tb.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_bf16_f32_ta_tb.mlir",
+      "sha256": "511d72e3cf9f7b6d122e4bdf85230c8f002f65780baf9ec416d67e001a8864e5"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_bf16_f32_nn.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_bf16_f32_nn.mlir",
+      "sha256": "16e15d842bf603973b6573ffc2de8dcaa988e1ae921ee09472724b9a69d2565a"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_bf16_f32_tb.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_bf16_f32_tb.mlir",
+      "sha256": "4c4e833bf6bfc0d6cc6a7712bb127ceaca87c95e35f045d585fe39eecb0a75b9"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_i8_i32_nn.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_i8_i32_nn.mlir",
+      "sha256": "7beb5ee2e9235dcd16d5178ab7bcbb7da50e727e5778cb9cc2a0bb8b52882b11"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_f8e4m3_f32_nn.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_f8e4m3_f32_nn.mlir",
+      "sha256": "24080599c5f472fc12548f4dccec417f3c217b38a678e0d91f45717860e2082e"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_f32_f32_hf32_nn.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_f32_f32_hf32_nn.mlir",
+      "sha256": "c4e0eff62a46d493a6ed4987355e44dfe2dabe1e775f1008e1213422348c1099"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/mmadl1_f32_f32_ieee_nn.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/mmadl1_f32_f32_ieee_nn.mlir",
+      "sha256": "bb302383006468a23d8587a856dc226995e1d8581b0c9b463bd98b18b1d20146"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/nd2nz_f8e4m3_gm_l1.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/nd2nz_f8e4m3_gm_l1.mlir",
+      "sha256": "894c5000ae28d2d4917d4872aa33cb11990a98966cd83fbcb8ba3d7bde163ffc"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/set_l1_2d_int8_t.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/set_l1_2d_int8_t.mlir",
+      "sha256": "1d72c96fa2872702a04f63b60a195c39ae14d4837354f274f58b3fdb49149139"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/set_l1_2d_half.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/set_l1_2d_half.mlir",
+      "sha256": "db786a1f3152c0ed1f0ba599a705d5adeb832df7b7b18aca931cc3f9112595d2"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/set_l1_2d_float.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/set_l1_2d_float.mlir",
+      "sha256": "a24c181dd689f0ebcc9829cdac1e8bffe6fd7c521fbb006e8b5b2d48eaf857e1"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/cube/set_l1_2d_bfloat16_t.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/cube/set_l1_2d_bfloat16_t.mlir",
+      "sha256": "dfd9850d501c8db4f21ddb85f605efca74bb929a3e201d89b5804b6c679bd0db"
+    },
+    {
+      "source": "$HOME/AscendNPU-IR/build/lib/bishengir/ptodsl/vector/cumsum_2d_f32_dim0.mlir",
+      "private": "$HOME/tmp/dma-contracts-20261103/native-dma-prefix/lib/bishengir/ptodsl/vector/cumsum_2d_f32_dim0.mlir",
+      "sha256": "b7baabde6c9cdfcae1307a3d5959c0228d52a7776f336370945fefcafccdd141"
+    }
+  ],
+  "excluded_vector_dma_resources": [
+    "vector/load_gm_to_ub_f16_transpose_64x64.mlir",
+    "vector/load_gm_to_ubuf_2d_half.mlir",
+    "vector/copy_ubuf_to_cbuf_2d_half.mlir",
+    "vector/store_ubuf_to_gm_2d_half.mlir",
+    "vector/load_gm_to_ubuf_1d_bfloat16_t.mlir",
+    "vector/load_gm_to_ubuf_2d_bfloat16_t.mlir",
+    "vector/store_ubuf_to_gm_1d_float.mlir",
+    "vector/store_ubuf_to_gm_2d_float.mlir",
+    "vector/store_ubuf_to_gm_2d_bfloat16_t.mlir"
+  ],
+  "shared_installation_changes": false
+}

@@ -1,0 +1,27 @@
+{
+  "total_collected": 302,
+  "retained_original_baseline": 210,
+  "retained_expansion": 92,
+  "expansion_native_passes": 92,
+  "native_evidence": "77 unchanged earlier native passes plus 15 fresh transition reruns; not a fresh full302 sweep",
+  "expansion_bridge": {
+    "pass-native-fallback": 56,
+    "bridge-conversion-failure": 33,
+    "ptoas-compilation-failure": 3
+  },
+  "bridge_full_contract_passes": 56,
+  "bridge_blocked": 36,
+  "fresh_native_transitions": 15,
+  "fresh_bridge_transitions": {
+    "pass-native-fallback": 9,
+    "bridge-conversion-failure": 6
+  },
+  "protected_hashes_match": true,
+  "protected_files": 60,
+  "kernel_unchanged": true,
+  "reference_algorithm_unchanged_after_equivalent_selector_normalization": true,
+  "vector_dma_ptodsl": "excluded; exact native fallback required",
+  "fallback": 1,
+  "left3_corner_cases_retained": 16,
+  "original_i64_3d_zero_retained": true
+}

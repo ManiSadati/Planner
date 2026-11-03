@@ -1,0 +1,392 @@
+[
+  {
+    "instance": "load_gm_to_ubuf_1d_bfloat16_t",
+    "cases": 3,
+    "native": {
+      "pass-native": 1,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 1,
+      "contract-coverage-gap": 2
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_1d_float",
+    "cases": 3,
+    "native": {
+      "pass-native": 1,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 1,
+      "contract-coverage-gap": 2
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_1d_half",
+    "cases": 3,
+    "native": {
+      "pass-native": 1,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 1,
+      "contract-coverage-gap": 2
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_1d_int16_t",
+    "cases": 3,
+    "native": {
+      "pass-native": 1,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "bridge-conversion-failure": 3
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_1d_int32_t",
+    "cases": 3,
+    "native": {
+      "pass-native": 1,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 1,
+      "contract-coverage-gap": 2
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_1d_int64_t",
+    "cases": 3,
+    "native": {
+      "pass-native": 1,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "bridge-conversion-failure": 3
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_1d_int8_t",
+    "cases": 3,
+    "native": {
+      "pass-native": 1,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "bridge-conversion-failure": 3
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_2d_bfloat16_t",
+    "cases": 4,
+    "native": {
+      "pass-native": 2,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 2,
+      "contract-coverage-gap": 2
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_2d_float",
+    "cases": 5,
+    "native": {
+      "pass-native": 3,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 3,
+      "contract-coverage-gap": 2
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_2d_half",
+    "cases": 4,
+    "native": {
+      "pass-native": 2,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 2,
+      "contract-coverage-gap": 2
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_2d_int16_t",
+    "cases": 4,
+    "native": {
+      "pass-native": 2,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "bridge-conversion-failure": 4
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_2d_int32_t",
+    "cases": 5,
+    "native": {
+      "pass-native": 3,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 3,
+      "contract-coverage-gap": 2
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_2d_int64_t",
+    "cases": 5,
+    "native": {
+      "pass-native": 3,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "bridge-conversion-failure": 5
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_2d_int8_t",
+    "cases": 4,
+    "native": {
+      "pass-native": 2,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "bridge-conversion-failure": 4
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_3d_int32_t",
+    "cases": 3,
+    "native": {
+      "pass-native": 1,
+      "contract-coverage-gap": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 1,
+      "contract-coverage-gap": 2
+    }
+  },
+  {
+    "instance": "load_gm_to_ubuf_3d_int64_t",
+    "cases": 3,
+    "native": {
+      "pass-native": 1,
+      "numerical-mismatch": 2
+    },
+    "bridge": {
+      "bridge-conversion-failure": 1,
+      "not-run-native-blocked": 2
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_1d_bfloat16_t",
+    "cases": 4,
+    "native": {
+      "pass-native": 2,
+      "frontend-unsupported": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 2,
+      "not-run-native-blocked": 2
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_1d_float",
+    "cases": 4,
+    "native": {
+      "pass-native": 4
+    },
+    "bridge": {
+      "pass-native-fallback": 4
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_1d_half",
+    "cases": 4,
+    "native": {
+      "pass-native": 2,
+      "frontend-unsupported": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 2,
+      "not-run-native-blocked": 2
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_1d_int16_t",
+    "cases": 4,
+    "native": {
+      "pass-native": 1,
+      "frontend-unsupported": 3
+    },
+    "bridge": {
+      "bridge-conversion-failure": 1,
+      "not-run-native-blocked": 3
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_1d_int32_t",
+    "cases": 4,
+    "native": {
+      "pass-native": 4
+    },
+    "bridge": {
+      "pass-native-fallback": 4
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_1d_int64_t",
+    "cases": 1,
+    "native": {
+      "pass-native": 1
+    },
+    "bridge": {
+      "bridge-conversion-failure": 1
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_1d_int8_t",
+    "cases": 4,
+    "native": {
+      "pass-native": 1,
+      "frontend-unsupported": 3
+    },
+    "bridge": {
+      "bridge-conversion-failure": 1,
+      "not-run-native-blocked": 3
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_2d_bfloat16_t",
+    "cases": 5,
+    "native": {
+      "pass-native": 3,
+      "frontend-unsupported": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 2,
+      "ptoas-compilation-failure": 1,
+      "not-run-native-blocked": 2
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_2d_float",
+    "cases": 6,
+    "native": {
+      "pass-native": 6
+    },
+    "bridge": {
+      "pass-native-fallback": 5,
+      "bridge-conversion-failure": 1
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_2d_half",
+    "cases": 5,
+    "native": {
+      "pass-native": 3,
+      "frontend-unsupported": 2
+    },
+    "bridge": {
+      "pass-native-fallback": 2,
+      "ptoas-compilation-failure": 1,
+      "not-run-native-blocked": 2
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_2d_int16_t",
+    "cases": 5,
+    "native": {
+      "pass-native": 2,
+      "frontend-unsupported": 3
+    },
+    "bridge": {
+      "bridge-conversion-failure": 2,
+      "not-run-native-blocked": 3
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_2d_int32_t",
+    "cases": 6,
+    "native": {
+      "pass-native": 6
+    },
+    "bridge": {
+      "pass-native-fallback": 5,
+      "ptoas-compilation-failure": 1
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_2d_int64_t",
+    "cases": 3,
+    "native": {
+      "pass-native": 3
+    },
+    "bridge": {
+      "bridge-conversion-failure": 3
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_2d_int8_t",
+    "cases": 6,
+    "native": {
+      "pass-native": 3,
+      "frontend-unsupported": 3
+    },
+    "bridge": {
+      "bridge-conversion-failure": 3,
+      "not-run-native-blocked": 3
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_3d_float",
+    "cases": 4,
+    "native": {
+      "pass-native": 4
+    },
+    "bridge": {
+      "bridge-conversion-failure": 1,
+      "pass-native-fallback": 3
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_3d_int32_t",
+    "cases": 4,
+    "native": {
+      "pass-native": 4
+    },
+    "bridge": {
+      "bridge-conversion-failure": 1,
+      "pass-native-fallback": 3
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_3d_int64_t",
+    "cases": 1,
+    "native": {
+      "pass-native": 1
+    },
+    "bridge": {
+      "bridge-conversion-failure": 1
+    }
+  },
+  {
+    "instance": "store_ubuf_to_gm_3d_int8_t",
+    "cases": 4,
+    "native": {
+      "pass-native": 1,
+      "frontend-unsupported": 3
+    },
+    "bridge": {
+      "bridge-conversion-failure": 1,
+      "not-run-native-blocked": 3
+    }
+  }
+]

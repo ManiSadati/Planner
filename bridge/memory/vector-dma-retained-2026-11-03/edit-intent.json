@@ -1,0 +1,11 @@
+{
+  "removed_frontend_atomic_cases": 23,
+  "removed_numerically_passing_firstelem_probes": 15,
+  "removed_native_i64_padding_failures": 2,
+  "retained_value_transitions": 15,
+  "removed_original_zero_probes": 15,
+  "retained_original_left3_cases": 16,
+  "retained_original_i64_3d_zero": 1,
+  "expected_collection": 302,
+  "original_kernel_unchanged": true
+}

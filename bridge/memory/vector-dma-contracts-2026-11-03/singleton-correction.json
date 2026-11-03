@@ -1,0 +1,21 @@
+{
+  "cases": [
+    21,
+    25,
+    29,
+    34,
+    38,
+    42,
+    46,
+    83,
+    88,
+    93,
+    98,
+    103,
+    108,
+    110
+  ],
+  "changed_function": "contract_cases",
+  "kernel_reference_and_inspector_functions_unchanged": true,
+  "explanation": "2D singleton descriptors retain rank in all 14 observed cases; initial collapsed-rank expectation was a test-author mistake. Exact symbol assertions retained. No tensor/tile/reference changes."
+}

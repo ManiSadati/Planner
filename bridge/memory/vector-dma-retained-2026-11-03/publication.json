@@ -1,0 +1,22 @@
+{
+  "npuir_remote": "git@gitcode.com:wilsoncxfeng/AscendNPU-IR.git",
+  "npuir_branch": "mani/vec-dma-test",
+  "npuir_commit": "3ffd17be7340416f3d07fd9ef01aaf917bc2801f",
+  "branch_base": "ab3f19b409f39375e9ea9a132d6f91a0113f2a9b",
+  "base_note": "The baseline is already merged in master e5f16345a, whose tree was identical. Omitted that server-generated merge from feature-branch history because its subject fails the local pre-push format check. No hook bypass or force push.",
+  "tested_compiler_note": "Frozen a0876a76082e Nov3 rebuilt binary plus uncommitted DMA work; exact binary/resource hashes in expansion evidence. Branch merge revision is not a new runtime validation.",
+  "scope": "10 test/documentation files only; no compiler, templates, submodule or shared-environment changes",
+  "collection": 302,
+  "native_validated_expansion_cases": 92,
+  "bridge_fallback_passes": 56,
+  "bridge_blocked": 36,
+  "vector_dma_ptodsl": "Excluded by explicit owner instruction; no replacement validation",
+  "test_source_hashes": "Validated Python file hashes match committed source.",
+  "planner_scope": [
+    "vector-dma-contract-expansion-2026-11-03.md",
+    "vector-dma-contract-retention-2026-11-03.md",
+    "vector-dma-contracts-2026-11-03/",
+    "vector-dma-retained-2026-11-03/"
+  ],
+  "committed_tree": "d9f48f51c8622ae9f6b06a39d6bd1ae1c71bca9f"
+}
