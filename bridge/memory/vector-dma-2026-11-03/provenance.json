@@ -1,0 +1,40 @@
+{
+  "npuir": "a0876a76082e604016350a1825286ed945093039",
+  "ascend_llvm": "95c4693447af2473be62bdee19522cbe596f9e96",
+  "compile_cann": "9.2 (compiler child wrappers)",
+  "runtime_cann": "9.1.0-beta.3 (parent runtime/simulator)",
+  "python": "$HOME/.venv/npuir-sim-3.6-candidate/bin/python",
+  "flow": "ptoas",
+  "soc": "Ascend950PR_9589",
+  "bridge_mode": "ptodsl",
+  "fallback": 1,
+  "ptoas": "5ce40f710f7f83b8d1fb2d8c36647bb811236a49",
+  "pto_llvm": "fa2fd1f75d742fec91ecf40d98c9c7961647ec42",
+  "fallback_bitcode": {
+    "aic": {
+      "path": "$HOME/AscendNPU-IR/build/lib/meta_op.aic.c310.O2.bc",
+      "sha256": "bf509c2742426a979fb2da5b4b670220ad3d419edfca378c935c23bb6c0e0b5b"
+    },
+    "aiv": {
+      "path": "$HOME/AscendNPU-IR/build/lib/meta_op.aiv.c310.O2.bc",
+      "sha256": "76621148cf4cb59a1cdbbc0fe19ed7ce2bbcb7ee492374de238338997709a6fb"
+    }
+  },
+  "compiler_and_ptoas_hashes": {
+    "$HOME/.local/opt/ascend-toolchain-3bf5d9898-20261028/ptoas/bin/ptoas": "08b609372cbf5fd03008717214421c46c699b96d9fe84eee7aed0a90eecffcf3",
+    "$HOME/AscendNPU-IR/build/bin/bishengir-compile": "93827a5beccd850e63e82ed8a98d0ca02daca6699ae8e364dbe849928bb33939"
+  },
+  "published_test_sha256": {
+    "README.md": "34d57ee49def53c974cb1d8cdd9f1fb7100c6f3796c542cfac072f27221631ee",
+    "dma_ir_utils.py": "2f305857fddb5d09096414e435e0866037ed02608483ed184cbea05e21ebb658",
+    "dma_test_utils.py": "0328335fd4caa72662a13771e980ec8cebeb8052cbc52fb13f531e56c1b344b4",
+    "test_load_gm_to_ubuf_1d.py": "9c45ec881fe127486f686404f9907842402fa29e0edfdd07ef33e75d0e7963e4",
+    "test_load_gm_to_ubuf_2d.py": "82720b64fedd53ee0ec5942d213db4ace6594a7039d618cb05e5cdc3709bd0a1",
+    "test_load_gm_to_ubuf_3d.py": "9bdac1a54711993ff72524ead481458ce2961c829d927b6d9038336c0a4587bb",
+    "test_store_ubuf_to_gm_1d.py": "4f6e7086c755e678dbe088bd4c6940b2cb4e3a55192194a0656b8bb7a1cd6696",
+    "test_store_ubuf_to_gm_2d.py": "e67c0b378e6ab01d70c46439ba9275d5a69ee55bde4f5d9fb043f57b81001104",
+    "test_store_ubuf_to_gm_3d.py": "de51bed89c1700b9be3ff8e7596797fbee0ee94ea8b77d48d97e069a79b00de0"
+  },
+  "original_manifest": "$HOME/tmp/dma-bridge-fallback-225-20261102-verified/manifest-at-run.json",
+  "path_normalization": "Only the workspace home prefix is replaced by $HOME in published evidence; original files remain unchanged."
+}

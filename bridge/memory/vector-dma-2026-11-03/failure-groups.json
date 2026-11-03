@@ -1,0 +1,176 @@
+{
+  "VMI-masked-store-datatype": {
+    "count": 59,
+    "cases": [
+      "load/1d/i16/aligned-t128",
+      "load/1d/i16/small-odd-t32",
+      "load/1d/i16/multi-tail-t64",
+      "load/1d/i16/offset-t16",
+      "load/1d/i16/strided-full-t32",
+      "load/1d/i16/reuse-t128",
+      "load/1d/i16/pad-zero-t32",
+      "load/1d/i16/pad-value-left3-t16",
+      "load/1d/i8/aligned-t128",
+      "load/1d/i8/small-odd-t32",
+      "load/1d/i8/multi-tail-t64",
+      "load/1d/i8/offset-t16",
+      "load/1d/i8/strided-full-t32",
+      "load/1d/i8/reuse-t128",
+      "load/1d/i8/pad-zero-t32",
+      "load/1d/i8/pad-value-left3-t16",
+      "load/2d/i16/aligned-t8x32",
+      "load/2d/i16/small-odd-t4x16",
+      "load/2d/i16/multi-tail-t8x32",
+      "load/2d/i16/offset-t4x32",
+      "load/2d/i16/strided-t8x32",
+      "load/2d/i16/reuse-t4x16",
+      "load/2d/i16/pad-zero-t4x16",
+      "load/2d/i16/pad-value-left3-t4x16",
+      "load/2d/i8/aligned-t8x32",
+      "load/2d/i8/small-odd-t4x16",
+      "load/2d/i8/multi-tail-t8x32",
+      "load/2d/i8/offset-t4x32",
+      "load/2d/i8/strided-t8x32",
+      "load/2d/i8/reuse-t4x16",
+      "load/2d/i8/pad-zero-t4x16",
+      "load/2d/i8/pad-value-left3-t4x16",
+      "store/1d/i16/aligned-t128",
+      "store/1d/i16/small-odd-t32",
+      "store/1d/i16/multi-tail-t64",
+      "store/1d/i16/offset-t16",
+      "store/1d/i16/strided-tail-contiguous-source-t32",
+      "store/1d/i16/reuse-t128",
+      "store/1d/i8/aligned-t128",
+      "store/1d/i8/small-odd-t32",
+      "store/1d/i8/multi-tail-t64",
+      "store/1d/i8/offset-t16",
+      "store/1d/i8/strided-tail-contiguous-source-t32",
+      "store/1d/i8/reuse-t128",
+      "store/2d/i16/aligned-t8x32",
+      "store/2d/i16/small-odd-t4x16",
+      "store/2d/i16/multi-tail-t8x32",
+      "store/2d/i16/offset-t4x32",
+      "store/2d/i16/reuse-t4x16",
+      "store/2d/i8/aligned-t8x32",
+      "store/2d/i8/small-odd-t4x16",
+      "store/2d/i8/multi-tail-t8x32",
+      "store/2d/i8/offset-t4x32",
+      "store/2d/i8/reuse-t4x16",
+      "store/3d/i8/aligned-t2x4x16",
+      "store/3d/i8/small-odd-t2x4x16",
+      "store/3d/i8/multi-tail-t2x4x32",
+      "store/3d/i8/offset-t2x8x16",
+      "store/3d/i8/reuse-t2x4x32"
+    ],
+    "instances": [
+      "load_gm_to_ubuf_1d_int16_t",
+      "load_gm_to_ubuf_1d_int8_t",
+      "load_gm_to_ubuf_2d_int16_t",
+      "load_gm_to_ubuf_2d_int8_t",
+      "store_ubuf_to_gm_1d_int16_t",
+      "store_ubuf_to_gm_1d_int8_t",
+      "store_ubuf_to_gm_2d_int16_t",
+      "store_ubuf_to_gm_2d_int8_t",
+      "store_ubuf_to_gm_3d_int8_t"
+    ],
+    "example_errors": [
+      "loc(\"value\"(\"$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/dma_test_utils.py\":129:22)): error: 'ave.hir.masked_store' op is unsupported by convert-hivmave-to-ptoas-vmi Phase 1: only normal store patterns matching f16/bf16/f32/i32 element width are supported",
+      "loc(\"value\"(\"$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/dma_test_utils.py\":129:22)): error: 'ave.hir.masked_store' op is unsupported by convert-hivmave-to-ptoas-vmi Phase 1: only normal store patterns matching f16/bf16/f32/i32 element width are supported",
+      "loc(\"value\"(\"$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/dma_test_utils.py\":129:22)): error: 'ave.hir.masked_store' op is unsupported by convert-hivmave-to-ptoas-vmi Phase 1: only normal store patterns matching f16/bf16/f32/i32 element width are supported"
+    ]
+  },
+  "VMI-llvm-alloca": {
+    "count": 40,
+    "cases": [
+      "load/1d/i64/aligned-t128",
+      "load/1d/i64/small-odd-t32",
+      "load/1d/i64/multi-tail-t64",
+      "load/1d/i64/offset-t16",
+      "load/1d/i64/strided-t32",
+      "load/1d/i64/reuse-t128",
+      "load/1d/i64/pad-zero-t32",
+      "load/1d/i64/pad-value-left3-t16",
+      "load/2d/i64/aligned-t8x32",
+      "load/2d/i64/small-odd-t4x16",
+      "load/2d/i64/multi-tail-t8x32",
+      "load/2d/i64/offset-t4x32",
+      "load/2d/i64/strided-t8x32",
+      "load/2d/i64/reuse-t4x16",
+      "load/2d/i64/pad-zero-t4x16",
+      "load/2d/i64/pad-value-left3-t4x16",
+      "load/3d/i64/aligned-t2x4x16",
+      "load/3d/i64/small-odd-t2x4x16",
+      "load/3d/i64/multi-tail-t2x4x32",
+      "load/3d/i64/offset-t2x8x16",
+      "load/3d/i64/strided-t2x4x16",
+      "load/3d/i64/reuse-t2x4x32",
+      "load/3d/i64/pad-zero-t2x4x16",
+      "load/3d/i64/pad-value-left3-t2x4x16",
+      "store/1d/i64/aligned-t128",
+      "store/1d/i64/small-odd-t32",
+      "store/1d/i64/multi-tail-t64",
+      "store/1d/i64/offset-t16",
+      "store/1d/i64/strided-t32",
+      "store/1d/i64/reuse-t128",
+      "store/2d/i64/aligned-t8x32",
+      "store/2d/i64/small-odd-t4x16",
+      "store/2d/i64/multi-tail-t8x32",
+      "store/2d/i64/offset-t4x32",
+      "store/2d/i64/reuse-t4x16",
+      "store/3d/i64/aligned-t2x4x16",
+      "store/3d/i64/small-odd-t2x4x16",
+      "store/3d/i64/multi-tail-t2x4x32",
+      "store/3d/i64/offset-t2x8x16",
+      "store/3d/i64/reuse-t2x4x32"
+    ],
+    "instances": [
+      "load_gm_to_ubuf_1d_int64_t",
+      "load_gm_to_ubuf_2d_int64_t",
+      "load_gm_to_ubuf_3d_int64_t",
+      "store_ubuf_to_gm_1d_int64_t",
+      "store_ubuf_to_gm_2d_int64_t",
+      "store_ubuf_to_gm_3d_int64_t"
+    ],
+    "example_errors": [
+      "error: failed to legalize operation 'llvm.alloca'",
+      "error: failed to legalize operation 'llvm.alloca'",
+      "error: failed to legalize operation 'llvm.alloca'"
+    ]
+  },
+  "numerical-mismatch": {
+    "count": 3,
+    "cases": [
+      "load/2d/f16/small-odd-t4x16",
+      "load/2d/f16/offset-t4x32",
+      "load/2d/f16/pad-zero-t4x16"
+    ],
+    "instances": [
+      "load_gm_to_ubuf_2d_half"
+    ],
+    "example_errors": [
+      "E   AssertionError: Tensor-likes are not equal!",
+      "E   AssertionError: Tensor-likes are not equal!",
+      "E   AssertionError: Tensor-likes are not equal!"
+    ]
+  },
+  "PTODSL-entry-ABI": {
+    "count": 6,
+    "cases": [
+      "load/2d/f16/multi-tail-t8x32",
+      "load/2d/f16/strided-t8x32",
+      "load/2d/f16/reuse-t4x16",
+      "load/2d/f16/pad-value-left3-t4x16",
+      "store/2d/f16/multi-tail-t8x32",
+      "store/2d/f16/reuse-t4x16"
+    ],
+    "instances": [
+      "load_gm_to_ubuf_2d_half",
+      "store_ubuf_to_gm_2d_half"
+    ],
+    "example_errors": [
+      "loc(\"value\"(\"$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/dma_test_utils.py\":129:22)): error: selected PTODSL template @__pto_load_gm_to_ubuf_2d_half has an incompatible native call ABI; expected '(memref<?x?xf16, strided<[?, ?], offset: ?>, #hivm.address_space<gm>>, memref<?x?xf16, strided<[?, ?], offset: ?>, #hivm.address_space<ub>>, i32, f16, index, i32) -> ()', got '(!pto.ptr<f16, gm>, !pto.ptr<f16, ub>, i64, i64, i64, i64, i64, i64, i64, f16, i64, i64) -> ()'; the template instance must provide its argument adapter",
+      "loc(\"value\"(\"$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/dma_test_utils.py\":129:22)): error: selected PTODSL template @__pto_load_gm_to_ubuf_2d_half has an incompatible native call ABI; expected '(memref<?x?xf16, strided<[?, ?], offset: ?>, #hivm.address_space<gm>>, memref<?x?xf16, strided<[?, ?], offset: ?>, #hivm.address_space<ub>>, i32, f16, index, i32) -> ()', got '(!pto.ptr<f16, gm>, !pto.ptr<f16, ub>, i64, i64, i64, i64, i64, i64, i64, f16, i64, i64) -> ()'; the template instance must provide its argument adapter",
+      "loc(\"value\"(\"$HOME/AscendNPU-IR/bishengir/test/Integration/PTOASBridge/template_runtime/a5/Vector/DMA/native-instances/dma_test_utils.py\":129:22)): error: selected PTODSL template @__pto_load_gm_to_ubuf_2d_half has an incompatible native call ABI; expected '(memref<?x?xf16, strided<[?, ?], offset: ?>, #hivm.address_space<gm>>, memref<?x?xf16, strided<[?, ?], offset: ?>, #hivm.address_space<ub>>, i32, f16, index, i32) -> ()', got '(!pto.ptr<f16, gm>, !pto.ptr<f16, ub>, i64, i64, i64, i64, i64, i64, i64, f16, i64, i64) -> ()'; the template instance must provide its argument adapter"
+    ]
+  }
+}

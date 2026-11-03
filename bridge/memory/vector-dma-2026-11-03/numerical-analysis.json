@@ -1,0 +1,275 @@
+[
+  {
+    "key": "load/2d/f16/pad-zero-t4x16",
+    "native_symbol": "load_gm_to_ubuf_2d_half",
+    "config": {
+      "name": "pad-zero-t4x16",
+      "shape": [
+        3,
+        11
+      ],
+      "tile": [
+        4,
+        16
+      ],
+      "src_strides": [
+        23,
+        1
+      ],
+      "dst_strides": [
+        29,
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "zero",
+      "left": 0
+    },
+    "selected_symbol": "__pto_load_gm_to_ubuf_2d_half",
+    "elements": 160,
+    "unequal_elements": 15,
+    "wrong_valid_data": 0,
+    "wrong_logical_padding": 15,
+    "wrong_guards": 0,
+    "max_absolute_error": 3.375,
+    "first_bad_indices": [
+      43,
+      44,
+      45,
+      46,
+      47,
+      59,
+      60,
+      61,
+      62,
+      63,
+      75,
+      76,
+      77,
+      78,
+      79
+    ],
+    "first_actual": [
+      -3.375,
+      -3.375,
+      -3.375,
+      -3.375,
+      -3.375,
+      -2.125,
+      -2.125,
+      -2.125,
+      -2.125,
+      -2.125,
+      -0.875,
+      -0.875,
+      -0.875,
+      -0.875,
+      -0.875
+    ],
+    "first_reference": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "native_dependencies": [
+      "store_ubuf_to_gm_1d_half"
+    ],
+    "evidence": "$HOME/tmp/dma-bridge-fallback-225-20261102-verified/full/0070/evidence",
+    "interpretation": "Descriptive measurements from saved original tensors. Original reference/tolerance unchanged; no recomputation or rerun. Exact target/body was selected; responsible template/adapter/buffer/dependency component not independently isolated."
+  },
+  {
+    "key": "load/2d/f16/small-odd-t4x16",
+    "native_symbol": "load_gm_to_ubuf_2d_half",
+    "config": {
+      "name": "small-odd-t4x16",
+      "shape": [
+        3,
+        13
+      ],
+      "tile": [
+        4,
+        16
+      ],
+      "src_strides": [
+        23,
+        1
+      ],
+      "dst_strides": [
+        29,
+        1
+      ],
+      "src_offset": 0,
+      "dst_offset": 0,
+      "rounds": 1,
+      "padding": "none",
+      "left": 0
+    },
+    "selected_symbol": "__pto_load_gm_to_ubuf_2d_half",
+    "elements": 160,
+    "unequal_elements": 9,
+    "wrong_valid_data": 0,
+    "wrong_logical_padding": 9,
+    "wrong_guards": 0,
+    "max_absolute_error": 3.375,
+    "first_bad_indices": [
+      45,
+      46,
+      47,
+      61,
+      62,
+      63,
+      77,
+      78,
+      79
+    ],
+    "first_actual": [
+      -3.375,
+      -3.375,
+      -3.375,
+      -2.125,
+      -2.125,
+      -2.125,
+      -0.875,
+      -0.875,
+      -0.875
+    ],
+    "first_reference": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "native_dependencies": [
+      "store_ubuf_to_gm_1d_half"
+    ],
+    "evidence": "$HOME/tmp/dma-bridge-fallback-225-20261102-verified/full/0065/evidence",
+    "interpretation": "Descriptive measurements from saved original tensors. Original reference/tolerance unchanged; no recomputation or rerun. Exact target/body was selected; responsible template/adapter/buffer/dependency component not independently isolated."
+  },
+  {
+    "key": "load/2d/f16/offset-t4x32",
+    "native_symbol": "load_gm_to_ubuf_2d_half",
+    "config": {
+      "name": "offset-t4x32",
+      "shape": [
+        7,
+        29
+      ],
+      "tile": [
+        4,
+        32
+      ],
+      "src_strides": [
+        43,
+        1
+      ],
+      "dst_strides": [
+        41,
+        1
+      ],
+      "src_offset": 5,
+      "dst_offset": 7,
+      "rounds": 1,
+      "padding": "none",
+      "left": 0
+    },
+    "selected_symbol": "__pto_load_gm_to_ubuf_2d_half",
+    "elements": 359,
+    "unequal_elements": 21,
+    "wrong_valid_data": 0,
+    "wrong_logical_padding": 21,
+    "wrong_guards": 0,
+    "max_absolute_error": 7.625,
+    "first_bad_indices": [
+      68,
+      69,
+      70,
+      100,
+      101,
+      102,
+      132,
+      133,
+      134,
+      164,
+      165,
+      166,
+      196,
+      197,
+      198,
+      228,
+      229,
+      230,
+      260,
+      261,
+      262
+    ],
+    "first_actual": [
+      7.25,
+      7.25,
+      7.25,
+      3.375,
+      3.375,
+      3.375,
+      -0.5,
+      -0.5,
+      -0.5,
+      -4.375,
+      -4.375,
+      -4.375,
+      7.625,
+      7.625,
+      7.625,
+      3.75,
+      3.75,
+      3.75,
+      -0.125,
+      -0.125,
+      -0.125
+    ],
+    "first_reference": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "native_dependencies": [
+      "store_ubuf_to_gm_1d_half"
+    ],
+    "evidence": "$HOME/tmp/dma-bridge-fallback-225-20261102-verified/full/0067/evidence",
+    "interpretation": "Descriptive measurements from saved original tensors. Original reference/tolerance unchanged; no recomputation or rerun. Exact target/body was selected; responsible template/adapter/buffer/dependency component not independently isolated."
+  }
+]

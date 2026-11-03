@@ -1,0 +1,29 @@
+{
+  "npuir_repository": "git@gitcode.com:wilsoncxfeng/AscendNPU-IR.git",
+  "npuir_branch": "mani/vec-dma-test",
+  "npuir_commit": "ab3f19b409f39375e9ea9a132d6f91a0113f2a9b",
+  "rebased_onto": "a0876a76082e604016350a1825286ed945093039",
+  "base_ref": "wilsoncxfeng/master (freshly fetched 2026-11-03)",
+  "test_worktree": "$HOME/worktrees/AscendNPU-IR-vec-dma-test",
+  "original_checkout_preserved": "$HOME/AscendNPU-IR on mani/update-fix-oct",
+  "change_scope": {
+    "files": 9,
+    "added_lines": 627,
+    "compiler_or_native_template_changes": false,
+    "shared_environment_changes": false
+  },
+  "publication_checks": {
+    "pytest_collection": 225,
+    "matches_recorded_node_catalog": true,
+    "nine_files_identical_to_original_checkout": true,
+    "diff_check": "pass",
+    "new_simulator_runs": 0
+  },
+  "collection_log": "$HOME/tmp/vec-dma-publish-collection-20261103.log",
+  "runtime_evidence_revision": "a0876a76082e604016350a1825286ed945093039",
+  "native_passes": 225,
+  "bridge_passes": 117,
+  "bridge_failures": 108,
+  "planner_scope": "Only vector-dma-native-bridge-2026-11-03.md and vector-dma-2026-11-03/; unrelated existing edits are excluded.",
+  "npuir_push": "Confirmed new remote branch; remote hooks passed."
+}

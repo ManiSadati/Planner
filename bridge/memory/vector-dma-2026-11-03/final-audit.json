@@ -1,0 +1,13 @@
+{
+  "protected_files": 551,
+  "all_hashes_match": true,
+  "attempts": 225,
+  "checks": {
+    "attempts_with_verified_flow_and_matching_fallback_modules": 225,
+    "native_target_fallback_passes": 113,
+    "passes_with_verified_numerics_and_environment": 117,
+    "padding_cases_with_actual_scalar_provenance": 16,
+    "replacement_passes_with_exact_materialized_body": 4,
+    "numerical_failures_with_exact_replacement_and_saved_tensors": 3
+  }
+}
