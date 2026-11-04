@@ -1,7 +1,7 @@
 # Q2/Q3 A5 Hardware Test Runner
 
-`bridge/tools/run_q2_q3_hardware_tests.py` runs the original Q2 and Q3 pytest
-benchmark cases on one A5 NPU. It does not modify the benchmark repositories,
+`bridge/tools/run_q2_q3_hardware_tests.py` runs the original Q2 pytest tests and
+Q3 benchmark cases on one A5 NPU. It does not modify the benchmark repositories,
 compiler, or testcase sources.
 
 The runner first uses pytest collection to obtain the exact parametrized node
@@ -130,9 +130,28 @@ schedule work across multiple NPUs.
 
 ## Included Suites
 
-Q2 collection covers `tests/fla_perf` and retains the working-command exclusion
-of `test_causal_conv1d_bwd_gpu_perf.py`. Q3 collections are performed
-separately for:
+Q2 collection covers all seven directories under `tests/`, each in a separate
+pytest collection process:
+
+- `tests/fla_perf`
+- `tests/fla`
+- `tests/mamba`
+- `tests/flash_attention`
+- `tests/mojo_opset`
+- `tests/megablocks`
+- `tests/vLLM`
+
+The FLA performance suite retains the exclusion of
+`test_causal_conv1d_bwd_gpu_perf.py`. Megablocks additionally collects `npu_*.py`
+because its NPU tests do not use pytest's default test filenames; `gpu_*.py`
+files are not selected. Other suites use pytest's normal filename patterns.
+`--repo q2` therefore includes the accuracy tests as well as performance tests.
+To retain the earlier FLA-performance-only selection, use
+`--repo q2 --pattern 'q2::tests/fla_perf/*'`.
+Patterns filter queued cases after all configured suites are collected;
+collection errors in other suites are still reported.
+
+Q3 collections are performed separately for:
 
 - `tests/fbgemm_perf`
 - `tests/fla_perf`
@@ -141,12 +160,12 @@ separately for:
 - `tests/recsys_perf`
 - `tests/vllm_ascend_perf`
 
-Separate Q3 collection avoids pytest module-name collisions between suite-local
+Separate suite collection avoids pytest module-name collisions between suite-local
 files such as `test_common.py`. Every parametrized pytest node ID is one queued
 testcase. The final parameter ID becomes the report's `shape` value. If a test
 has no parameter ID, the runner reports `unknown` rather than guessing.
 
-Some Q3 cases depend on generated `.pt` inputs or other external data. Generate
+Some Q2 and Q3 cases depend on generated `.pt` inputs or other external data. Generate
 those inputs with the testcase's adjacent generator before the run. A missing
 input is retained and reported as a testcase failure; the runner does not alter
 the source tree or manufacture test data.

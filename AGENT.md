@@ -256,6 +256,18 @@ Codex should prefer concise, accurate documents over large copied documents. The
 
 Bridge docs should be updated when new facts are learned. They should not become long chat transcripts.
 
+Whenever an investigation or implementation finds an AVE contract without a
+one-to-one VMI mapping, record it under `bridge/` before handing off, even when
+a supported composition or workaround exists. Maintain the
+[non-one-to-one mapping ledger](bridge/designs/ave-vmi-non-one-to-one-mappings.md),
+linking existing detailed notes instead of duplicating them. Record the exact
+source contract and affected cases, target sequence or unresolved mapping,
+reason a direct mapping does not suffice, semantic guards, implementation status,
+revision/tool evidence, validation stages and remaining limits. Include packing
+and carrier folds, multi-operation compositions, graph-dependent rewrites and
+fallbacks. A working composition does not itself establish a missing VMI
+capability; update the compatibility tracker separately for actual target gaps.
+
 ## Commit messages by repository
 
 Use the target repository's agent guide and hooks as the commit-message source
@@ -435,3 +447,19 @@ When changing Planner docs, preserve the distinction between:
 - AI-maintained working memory;
 - source-repo facts;
 - inferred design hypotheses.
+
+## Predicate-memory work deferred — 2026-10-29
+
+The human deferred predicate-memory support and requested rollback of this
+implementation. Keep ordinary vector/mask conversion in VMI and physical
+lowering in PTOAS. No early physical predicate exception, finalizer activation
+or PTOAS mask-boundary change is currently authorized. Historical run reports
+remain evidence only; obtain a new task before resuming predicate-memory work.
+
+General masked numeric-store alignment work remains deferred (2026-10-29),
+and the human explicitly declined PTOAS modifications. A subsequent assignment
+approved dual pointer/descriptor views inside AVE-to-VMI: recover existing pointer
+provenance for VMI, preserve native descriptor ABIs, and keep unproven cases
+rejected. This bounded bridge change does not authorize PTOAS changes,
+finalizers or general alignment assertions. See the
+[current note](bridge/designs/masked-numeric-store-alignment.md).

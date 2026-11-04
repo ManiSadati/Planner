@@ -41,8 +41,13 @@ unless the user explicitly requests delegation.
    when actually performed, and honor compilation-only assignments.
 6. Explain whether each supported conversion is one-to-one or a composition,
    with preservation of masks, lane layout, bits, offsets/strides, attributes,
-   and synchronization. Update the compatibility tracker for actual PTOAS VMI
-   gaps, including the current workaround, limits, and proposed upstream fix.
+   and synchronization. Whenever a contract lacks a one-to-one VMI mapping,
+   document it under `bridge/` and add or update the
+   [mapping ledger](../../bridge/designs/ave-vmi-non-one-to-one-mappings.md)
+   before handoff, including supported compositions and unresolved mappings.
+   Follow the shared contract's evidence and semantic-guard requirements.
+   Update the compatibility tracker separately for actual PTOAS VMI gaps,
+   including the current workaround, limits, and proposed upstream fix.
 
 ## Boundaries and Completion
 
@@ -61,3 +66,7 @@ For AscendNPU-IR use `[Conversion] fix: ...`, following its
 and pre-commit subject check; generic `fix(bridge): ...` examples are invalid
 there. Do not label all parameter variants fixed based on one reduced
 regression or a successful compiler exit.
+
+Predicate-memory implementation is deferred and rolled back at the human's
+request (2026-10-29). The prior direct-physical exception and finalizer route
+are not active authorizations; see the [shared status](../../AGENT.md#predicate-memory-work-deferred--2026-10-29).

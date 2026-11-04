@@ -2,6 +2,15 @@
 
 Last updated: 2026-09-18
 
+## Current status — deferred 2026-10-29
+
+The human deferred this item and requested rollback of the recent predicate
+compiler/tests/runner changes. The following describes the historical opt-in
+experiment, not an active default path or validated general predicate-memory
+solution. Both bridge finalizers remain disabled in the default compiler flow.
+No direct-physical exception or PTOAS mask-boundary extension is authorized.
+See the [rollback record](../../../Logs/run_reports/q2-predicate-rollback-2026-10-29/report.md).
+
 ## Summary
 
 The masked 64-by-64 FlashAttention kernel stores a predicate value in UB and

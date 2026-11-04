@@ -1,12 +1,14 @@
 import csv
 import importlib.util
 import json
+import os
 import sys
 import tempfile
 import threading
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 RUNNER = Path(__file__).resolve().parents[1] / "run_q2_q3_hardware_tests.py"
@@ -249,6 +251,63 @@ RuntimeError: ACL_ERROR_RT_DEVICE_TASK_ABORT
             command[-1],
             "/bench/Q2TritonKernel-main/tests/fla_perf/test_chunk.py::test_chunk[B1-T64]",
         )
+
+    def test_q2_discovery_covers_other_directories_and_npu_named_megablocks(self):
+        # Omitting a suite or using pytest's default filename pattern for
+        # megablocks must lose a real collected node, not merely change a constant.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "Q2"
+            files = [
+                "tests/fla_perf/test_case.py",
+                "tests/fla/test_case.py",
+                "tests/mamba/test_case.py",
+                "tests/flash_attention/test_case.py",
+                "tests/mojo_opset/test_case.py",
+                "tests/megablocks/npu_padded_copy_gather.py",
+                "tests/vLLM/test_case.py",
+            ]
+            for relative in files:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    "def test_case():\n"
+                    "    raise AssertionError('collection must not execute tests')\n"
+                )
+            for relative in (
+                "tests/fla_perf/test_causal_conv1d_bwd_gpu_perf.py",
+                "tests/megablocks/gpu_padded_copy_gather.py",
+            ):
+                (root / relative).write_text(
+                    "raise AssertionError('GPU-only module must not be imported')\n"
+                )
+            with patch.dict(os.environ, {"PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"}):
+                cases, failures = self.runner.discover_cases(
+                    [suite for suite in self.runner.SUITES if suite.repo == "q2"],
+                    {"q2": root},
+                    output_dir=Path(temp_dir) / "out",
+                    python_executable=sys.executable,
+                    timeout_seconds=30,
+                )
+            self.assertEqual(failures, [])
+            self.assertCountEqual(
+                [case.nodeid for case in cases],
+                [relative + "::test_case" for relative in files],
+            )
+            # An explicitly selected nonstandard file must also execute by its
+            # exact node ID, without needing the collection pattern again.
+            case = next(case for case in cases if "megablocks" in case.nodeid)
+            command = self.runner.case_command(
+                case,
+                junit_path=Path(temp_dir) / "junit.xml",
+                cache_dir=Path(temp_dir) / "cache",
+                base_temp=Path(temp_dir) / "tmp",
+                python_executable=sys.executable,
+            )
+            self.assertEqual(
+                command[-1],
+                str(root / "tests/megablocks/npu_padded_copy_gather.py")
+                + "::test_case",
+            )
 
 
 if __name__ == "__main__":

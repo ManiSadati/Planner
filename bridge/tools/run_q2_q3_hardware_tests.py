@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Q2 and Q3 Triton pytest benchmarks on one A5 NPU."""
+"""Run Q2 Triton tests and Q3 pytest benchmarks on one A5 NPU."""
 
 from __future__ import annotations
 
@@ -53,6 +53,7 @@ class SuiteConfig:
     repo: str
     relative_path: str
     ignores: tuple[str, ...] = ()
+    python_files: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -94,6 +95,17 @@ SUITES = (
         relative_path="tests/fla_perf",
         ignores=("tests/fla_perf/test_causal_conv1d_bwd_gpu_perf.py",),
     ),
+    SuiteConfig("q2-fla", "q2", "tests/fla"),
+    SuiteConfig("q2-mamba", "q2", "tests/mamba"),
+    SuiteConfig("q2-flash-attention", "q2", "tests/flash_attention"),
+    SuiteConfig("q2-mojo-opset", "q2", "tests/mojo_opset"),
+    SuiteConfig(
+        "q2-megablocks",
+        "q2",
+        "tests/megablocks",
+        python_files=("test_*.py", "*_test.py", "npu_*.py"),
+    ),
+    SuiteConfig("q2-vllm", "q2", "tests/vLLM"),
     SuiteConfig("q3-fbgemm-perf", "q3", "tests/fbgemm_perf"),
     SuiteConfig("q3-fla-perf", "q3", "tests/fla_perf"),
     SuiteConfig("q3-minimax-m3-perf", "q3", "tests/minimax_m3_perf"),
@@ -349,6 +361,8 @@ def collection_command(
         "--collect-only",
         "-q",
     ]
+    if suite.python_files:
+        command.extend(("-o", f"python_files={' '.join(suite.python_files)}"))
     for ignored in suite.ignores:
         command.extend(("--ignore", ignored))
     return command
@@ -662,7 +676,7 @@ def _parser() -> argparse.ArgumentParser:
     planner_root = Path(__file__).resolve().parents[2]
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     parser = argparse.ArgumentParser(
-        description="Run Q2/Q3 pytest benchmark cases through a bounded queue on one A5 NPU."
+        description="Run Q2 tests and Q3 pytest benchmarks through a bounded queue on one A5 NPU."
     )
     parser.add_argument("--repo", choices=("all", "q2", "q3"), default="all")
     parser.add_argument("--q2-root", type=Path, default=_default_root("q2"))
