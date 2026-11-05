@@ -190,3 +190,8 @@ profiles, and fixture build products.
 The configured PTOAS watcher scope is current as of 2026-08-19. GitHub
 direct-fork/fork-of-fork discovery is implemented for configured GitHub repos.
 GitCode issue/PR tracking is still pending.
+
+## Follow-ups
+
+See [follow-ups](follow-ups/README.md) for documented compatibility issues,
+missing behavior, workarounds, and cleanup tasks.
