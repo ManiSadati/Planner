@@ -59,28 +59,9 @@ This rejects BF16 even when the operation supplies the F32-to-BF16 conversion
 mode. The confirmed blocker is the verifier contract. Whether subsequent PTOAS
 lowering already supports this precise combination remains unverified.
 
-## Compatibility Direction
-
-PTOAS needs to admit the supported F32 L0C-to-BF16 L1 normal-layout conversion
-and preserve it through intrinsic selection and code generation. Any verifier
-extension should be limited to the supported destination, source, and conversion
-mode combination; removing the shared restriction for every accumulator store
-would admit unrelated combinations without evidence.
-
-Changing the helper to `nz2nd` would change its destination layout and would not
-implement the requested normal 4D-to-4D contract.
-
-Validation should cover operation verification and rejection of invalid
-combinations, target lowering, numerical BF16 conversion, supported ReLU and
-unit-flag controls, and regression coverage for the existing F32 CBUF instance.
-
 ## Current Status
 
 - Native CCE template: registered.
 - PTODSL generation: blocked by the PTOAS `nz2nz` destination-type verifier.
 - PTOAS verifier or lowering fix: not implemented in this investigation.
 - PTODSL runtime parity: not established.
-
-Watch PTOAS changes to structured accumulator-store `nz2nz` verification,
-`pto.mte_l0c_l1` destination typing, and F32-to-BF16 conversion lowering. Revisit
-the instance after the exact combination passes generation and target validation.
